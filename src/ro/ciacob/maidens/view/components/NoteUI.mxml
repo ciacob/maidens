@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="utf-8"?>
+<components:UIBase initialize="_onInitialize(event)"
+                   xmlns:components="ro.ciacob.maidens.view.components.*"
+                   xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:s="library://ns.adobe.com/flex/spark">
+
+    <fx:Script>
+		<![CDATA[
+        import eu.claudius.iacob.maidens.skins.BlackPianoKeySkin;
+        import eu.claudius.iacob.maidens.skins.WhitePianoKeySkin;
+
+        import mx.controls.CheckBox;
+        import mx.controls.RadioButton;
+        import mx.controls.RadioButtonGroup;
+        import mx.core.Container;
+        import mx.core.UIComponent;
+        import mx.events.FlexEvent;
+
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.controller.MusicUtils;
+        import ro.ciacob.maidens.controller.MusicUtils;
+        import ro.ciacob.maidens.generators.constants.parts.PartRanges;
+        import ro.ciacob.maidens.generators.constants.pitch.MiddleCMapping;
+        import ro.ciacob.maidens.generators.constants.pitch.OctaveNames;
+        import ro.ciacob.maidens.model.ProjectData;
+        import ro.ciacob.maidens.model.constants.DataFields;
+        import ro.ciacob.maidens.model.constants.StaticTokens;
+
+        import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.Colors;
+
+        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.utils.Strings;
+        import ro.ciacob.utils.Time;
+
+
+        private static const RANGE_INFO:String = '** %s (concert pitch) range is %s.';
+
+        private var _octaveGroupInitialized:Boolean;
+        private var _selectedOctave:int;
+        private var _selectedOctaveChanged:Boolean;
+        private var _selectedPitch:String;
+        private var _selectedPitchChanged:Boolean;
+        private var _tieSetting:Boolean;
+        private var _tieSettingChanged:Boolean;
+        private var _partName:String;
+
+        // Recipient for all key buttons used by the keyboard UI. They register themselves in this Array
+        // as soon as each of them initializes
+        private const KEY_BUTTONS:Array = [];
+
+        // Storage for the "octave offset" introduced by the extra-keys. These temporarily change the register to enable the
+        // user faster access to a couple pitches over/under the current octave.
+        private var _cachedOctaveOffset:int;
+
+        override protected function commitProperties():void {
+            super.commitProperties();
+            if (_selectedPitchChanged) {
+                _selectedPitchChanged = false;
+                _updatePitchSelection(_selectedPitch);
+            }
+            if (_selectedOctaveChanged) {
+                _selectedOctaveChanged = false;
+                _updateOctaveSelection(_selectedOctave);
+            }
+            if (_tieSettingChanged) {
+                _tieSettingChanged = false;
+                var tieCheckBox:CheckBox = (getControlByName(DataFields.TIES_TO_NEXT_NOTE) as CheckBox);
+                tieCheckBox.selected = _tieSetting;
+            }
+        }
+
+        override protected function populateUI(workingData:ProjectData):void {
+
+            // Pitch
+            var note:ProjectData = (workingData.clone() as ProjectData);
+            note = MusicUtils.canonicalizeNote(note, true);
+            if (note != null) {
+                note.setContent(DataFields.OCTAVE_INDEX, DataFields.VALUE_NOT_SET);
+                _selectedPitch = MusicUtils.noteToString(note);
+                _selectedPitchChanged = true;
+                invalidateProperties();
+            }
+
+            // Octave Index
+            var index:Object = workingData.getContent(DataFields.OCTAVE_INDEX);
+            if (index != DataFields.VALUE_NOT_SET) {
+                _selectedOctave = (index as int);
+                _selectedOctaveChanged = true;
+                invalidateProperties();
+            }
+
+            // Tie
+            var tie:Object = workingData.getContent(DataFields.TIES_TO_NEXT_NOTE);
+            if (tie != DataFields.VALUE_NOT_SET) {
+                _tieSetting = (tie as Boolean);
+                _tieSettingChanged = true;
+                invalidateProperties();
+            }
+
+            // Instrument range
+            var range:String = Strings.sprintf(RANGE_INFO, StaticTokens.CURRENT_INSTRUMENT, StaticTokens.UNKNOWN);
+            if (!Strings.isEmpty(_partName)) {
+                var rangeLimits:Array = (PartRanges[_partName.toUpperCase()] as Array);
+                if (rangeLimits != null && rangeLimits.length == 2) {
+                    var lowerNote:ProjectData = MusicUtils.midiNumberToNote(rangeLimits[0]);
+                    var upperNote:ProjectData = MusicUtils.midiNumberToNote(rangeLimits[1]);
+                    if (lowerNote != null && upperNote != null) {
+                        range = Strings.sprintf(RANGE_INFO, _partName,
+                                Strings.sprintf(StaticTokens.RANGE_SHORT, MusicUtils.noteToString(lowerNote),
+                                        MusicUtils.noteToString(upperNote)));
+                    }
+                }
+            }
+            rangeNote.text = range;
+        }
+
+
+        private function _onPartNameAvailable(name:String):void {
+            _partName = name;
+        }
+
+        private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
+            if (subpanel == this) {
+                removeStandardControls();
+                PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+                PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+                PTT.getPipe().unsubscribe(ViewKeys.CURRENT_PART_NAME, _onPartNameAvailable);
+            }
+        }
+
+        private function _onInitialize(event:FlexEvent):void {
+            addStandardControls();
+            // Force registration of the`octaveIndexGroup` RadioButtonGroup
+            octaveIndexGroup.dispatchEvent(new Event(Event.CHANGE));
+
+            // Subscribe to termination signal
+            PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+
+            // Subscribe to new data
+            PTT.getPipe().subscribe(ViewKeys.RESET, reset);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+            PTT.getPipe().subscribe(ViewKeys.CURRENT_PART_NAME, _onPartNameAvailable);
+
+            // Request info about the current instrument
+            PTT.getPipe().send(ViewKeys.NEED_CURRENT_PART_NAME);
+        }
+
+        private static function _onOctaveButtonInit(event:FlexEvent):void {
+            var button:RadioButton = (event.target as RadioButton);
+            var container:Container = (button.parent as Container);
+            var buttonIndex:int = container.getChildIndex(button);
+            button.value = buttonIndex;
+            button.label = buttonIndex.toString();
+            button.toolTip = OctaveNames[MusicUtils.OCTAVES_MAP[buttonIndex]];
+        }
+
+        private function _onOctaveChanged(event:Event):void {
+            if (!_octaveGroupInitialized) {
+                _octaveGroupInitialized = true;
+                registerUIControl(event, DataFields.OCTAVE_INDEX);
+            } else {
+                onControlChanged(event);
+            }
+        }
+
+        private function _setPitchTo(pitchName:String, requestedOffset:int = 0):void {
+            Time.delay(0, function ():void {
+                var newOctaveIndex:int;
+                var note:ProjectData = MusicUtils.stringToNote(pitchName);
+                if (note != null) {
+                    var newPitchName:Object = note.getContent(DataFields.PITCH_NAME);
+                    updateWorkingData(newPitchName, DataFields.PITCH_NAME);
+                    var newPitchAlteration:Object = note.getContent(DataFields.PITCH_ALTERATION);
+                    updateWorkingData(newPitchAlteration, DataFields.PITCH_ALTERATION);
+
+                    // Handle the extra-keys. These provide easier access to a couple extra neighbour pitches.
+                    if (requestedOffset) {
+
+                        // Make sure opposite offsets (e.g., B3 followed by C5) don't cancel each other.
+                        // Also, make sure that skipping an octave gives faithful results
+                        if ((_cachedOctaveOffset > 0 && requestedOffset < 0) ||
+                                (_cachedOctaveOffset < 0 && requestedOffset > 0)) {
+                            _cachedOctaveOffset = 0;
+                            requestedOffset *= 2;
+                        }
+
+                        // Only apply the offset once per each entrance in the extra-keys area (or else, the user
+                        // wouldn't be able to click a sequence such as C5 D5 E5, as it would actually result in
+                        // C5 D6 E7).
+                        if (!_cachedOctaveOffset) {
+                            _cachedOctaveOffset = requestedOffset;
+                            newOctaveIndex = (parseInt('' + octaveIndexGroup.selectedValue) + requestedOffset);
+                            newOctaveIndex = Math.max(0, Math.min(MusicUtils.OCTAVES_MAP.length - 1, newOctaveIndex));
+                            updateWorkingData(newOctaveIndex, DataFields.OCTAVE_INDEX);
+                        }
+                    } else {
+
+                        // If we were not requested an offset, it means that the user is in the "main" area: remove any
+                        // stored offset (to give the user acces to the original octave) and proceed as normal.
+                        if (_cachedOctaveOffset) {
+
+
+                            // Take into account the fact that the offset might have been doubled (if user skipped one
+                            // octave)
+                            if ((_cachedOctaveOffset > 1) || (_cachedOctaveOffset < -1)) {
+                                _cachedOctaveOffset /= 2;
+                            }
+                            newOctaveIndex = (parseInt('' + octaveIndexGroup.selectedValue) - _cachedOctaveOffset);
+                            newOctaveIndex = Math.max(0, Math.min(MusicUtils.OCTAVES_MAP.length - 1, newOctaveIndex));
+                            updateWorkingData(newOctaveIndex, DataFields.OCTAVE_INDEX);
+                            _cachedOctaveOffset = 0;
+                        }
+                    }
+                    notifyDataSetChanged();
+                    applyChanges();
+                }
+            });
+        }
+
+        private function _updateOctaveSelection(value:int):void {
+            var octaveIndexGroup:RadioButtonGroup = (getControlByName(DataFields.OCTAVE_INDEX) as RadioButtonGroup);
+            octaveIndexGroup.selectedValue = value;
+        }
+
+        private function _updatePitchSelection(value:String):void {
+            KEY_BUTTONS.forEach(function (keyButton:ToggleButton, i:int, a:Array):void {
+                if (keyButton) {
+                    keyButton.selected = _cachedOctaveOffset? (keyButton.name == (value + '*')) :
+                            (keyButton.name == value);
+                }
+            });
+        }
+        ]]>
+	</fx:Script>
+    <fx:Declarations/>
+
+    <mx:Label styleName="editorHeader"
+              text="Note"
+              width="100%"/>
+
+    <!-- Note Pitch-->
+    <mx:Label styleName="editorLabel"
+              text="Pitch: *"/>
+
+
+    <mx:Canvas width="100%"
+               styleName="thickText blockSection"
+               horizontalScrollPolicy="off"
+               verticalScrollPolicy="off"
+               height="{Sizes.SMALL_GAP + Sizes.KEYBOARD_WHITES_HEIGHT + Sizes.LARGE_GAP }">
+
+        <!-- Piano Keyboard UI -->
+        <s:Group top="{Sizes.SMALL_GAP}" bottom="{Sizes.LARGE_GAP}" horizontalCenter="23">
+
+            <!-- EXTRA WHITE KEYS (LOWER) -->
+            <s:ToggleButton id="A0" name="A*" toolTip="A" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('A', -1)" initialize="{KEY_BUTTONS.push(A0)}"
+                            x="-46" y="0" width="23"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+            <s:ToggleButton id="B0" name="B*" toolTip="B" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('B', -1)" initialize="{KEY_BUTTONS.push(B0)}"
+                            x="-23" y="0" width="23"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- EXTRA BLACK KEY (LOWER) -->
+            <s:ToggleButton id="ASh0" name="Aú*" toolTip="Aú / Bù" skinClass="{BlackPianoKeySkin}"
+                            click="_setPitchTo('A ú', -1)" initialize="{KEY_BUTTONS.push(ASh0)}"
+                            x="-26.25" y="0" width="13"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- White keys  -->
+            <s:ToggleButton id="C" name="C" toolTip="C" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('C')" initialize="{KEY_BUTTONS.push(C)}"
+                            x="0" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="D" name="D" toolTip="D" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('D')" initialize="{KEY_BUTTONS.push(D)}"
+                            x="23" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="E" name="E" toolTip="E" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('E')" initialize="{KEY_BUTTONS.push(E)}"
+                            x="46" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="F" name="F" toolTip="F" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('F')" initialize="{KEY_BUTTONS.push(F)}"
+                            x="69" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="G" name="G" toolTip="G" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('G')" initialize="{KEY_BUTTONS.push(G)}"
+                            x="92" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="A" name="A" toolTip="A" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('A')" initialize="{KEY_BUTTONS.push(A)}"
+                            x="115" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="B" name="B" toolTip="B" skinClass="{WhitePianoKeySkin}"
+                            click="_setPitchTo('B')" initialize="{KEY_BUTTONS.push(B)}"
+                            x="138" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+
+            <!-- Black keys  -->
+            <s:ToggleButton id="CSh" name="Cú" toolTip="Cú / Dù" skinClass="{BlackPianoKeySkin}"
+                            click="_setPitchTo('C ú')" initialize="{KEY_BUTTONS.push(CSh)}"
+                            x="14.33333" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="DSh" name="Dú" toolTip="Dú / Eù" skinClass="{BlackPianoKeySkin}"
+                            click="_setPitchTo('D ú')" initialize="{KEY_BUTTONS.push(DSh)}"
+                            x="41.66666" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="FSh" name="Fú" toolTip="Fú / Gù" skinClass="{BlackPianoKeySkin}"
+                            click="_setPitchTo('F ú')" initialize="{KEY_BUTTONS.push(FSh)}"
+                            x="82.25" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="GSh" name="Gú" toolTip="Gú / Aù" skinClass="{BlackPianoKeySkin}"
+                            click="_setPitchTo('G ú')" initialize="{KEY_BUTTONS.push(GSh)}"
+                            x="108.25" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="ASh" name="Aú" toolTip="Aú / Bù" skinClass="{BlackPianoKeySkin}"
+                            click="_setPitchTo('A ú')" initialize="{KEY_BUTTONS.push(ASh)}"
+                            x="134.75" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- EXTRA WHITE KEYS (UPPER) -->
+            <s:ToggleButton id="C1" name="C*" toolTip="C" skinClass="{WhitePianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            click="_setPitchTo('C', 1)" initialize="{KEY_BUTTONS.push(C1)}"
+                            x="161" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+            <s:ToggleButton id="D1" name="D*" toolTip="D" skinClass="{WhitePianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            click="_setPitchTo('D', 1)" initialize="{KEY_BUTTONS.push(D1)}"
+                            x="184" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+            <s:ToggleButton id="E1" name="E*" toolTip="E" skinClass="{WhitePianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            click="_setPitchTo('E', 1)" initialize="{KEY_BUTTONS.push(E1)}"
+                            x="207" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- EXTRA BLACK KEYS (UPPER) -->
+            <s:ToggleButton id="CSh1" name="Cú*" toolTip="Cú / Dù" skinClass="{BlackPianoKeySkin}"
+                            click="_setPitchTo('C ú', 1)" initialize="{KEY_BUTTONS.push(CSh1)}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            x="175.33333" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="DSh1" name="Dú*" toolTip="Dú / Eù" skinClass="{BlackPianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            click="_setPitchTo('D ú', 1)" initialize="{KEY_BUTTONS.push(DSh1)}"
+                            x="202.66666" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+        </s:Group>
+
+    </mx:Canvas>
+
+    <!-- Octave -->
+    <mx:Label styleName="editorLabel"
+              text="Octave: **"/>
+
+    <mx:HBox horizontalAlign="center"
+             horizontalGap="0"
+             horizontalScrollPolicy="off"
+             paddingLeft="7"
+             paddingTop="10"
+             styleName="thickText blockSection"
+             verticalAlign="bottom"
+             verticalScrollPolicy="off"
+             width="100%">
+
+        <mx:RadioButtonGroup change="{_onOctaveChanged(event)}"
+                             id="octaveIndexGroup"/>
+
+        <mx:Repeater dataProvider="{MusicUtils.OCTAVES_MAP}">
+            <mx:RadioButton group="{octaveIndexGroup}"
+                            initialize="_onOctaveButtonInit(event)"
+                            labelPlacement="bottom"
+                            width="{Sizes.PITCH_BUTTON_WIDTH}"/>
+
+        </mx:Repeater>
+
+    </mx:HBox>
+
+
+    <!-- Tie -->
+    <mx:Label styleName="editorLabel"
+              text="Augmentation"/>
+    <mx:CheckBox initialize="{registerUIControl(event, DataFields.TIES_TO_NEXT_NOTE)}"
+                 change="{onControlChanged(event)}"
+                 label="Tie to next note of same pitch"/>
+
+    <!-- Notes -->
+    <mx:Text paddingTop="15"
+             selectable="false"
+             styleName="editorNote"
+             text="* midle C (MIDI note {MiddleCMapping.MIDDLE_C_MIDI_VALUE}) is C{MiddleCMapping.MIDDLE_C_OCTAVE_INDEX} in MAIDENS"
+             width="100%"/>
+    <mx:Text selectable="false"
+             id="rangeNote"
+             styleName="editorNote"
+             width="100%"/>
+    <mx:Text selectable="false"
+             styleName="editorNote"
+             width="100%"
+             text="*** In MAIDENS, all transposing instruments sound where written."/>
+
+</components:UIBase>

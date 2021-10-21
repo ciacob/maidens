@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox horizontalScrollPolicy="off"
+		 initialize="_onInitialize(event)"
+		 verticalScrollPolicy="off"
+		 width="100%"
+		 xmlns:components="ro.ciacob.maidens.view.components.*"
+		 xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:s="library://ns.adobe.com/flex/spark">
+
+	<fx:Metadata>
+		[Event(name="change",type="flash.events.Event")]
+	</fx:Metadata>
+
+	<fx:Script>
+		<![CDATA[
+		import mx.collections.ArrayCollection;
+		import mx.events.FlexEvent;
+
+		import ro.ciacob.desktop.signals.PTT;
+		import ro.ciacob.maidens.view.constants.EditorSessions;
+		import ro.ciacob.maidens.view.constants.PickupComponentKeys;
+
+		import eu.claudius.iacob.maidens.Sizes;
+
+		import ro.ciacob.maidens.view.constants.ViewKeys;
+
+		import eu.claudius.iacob.maidens.skins.CreateElementSkin;
+		import eu.claudius.iacob.maidens.skins.DeleteElementSkin;
+		import eu.claudius.iacob.maidens.skins.DeleteElementSkinSmall;
+		import eu.claudius.iacob.maidens.skins.NudgeDownSkin;
+		import eu.claudius.iacob.maidens.skins.NudgeDownSkinSmall;
+		import eu.claudius.iacob.maidens.skins.NudgeUpSkin;
+		import eu.claudius.iacob.maidens.skins.NudgeUpSkinSmall;
+		import eu.claudius.iacob.maidens.skins.OpenEditorSkin;
+
+		import ro.ciacob.utils.Arrays;
+		import ro.ciacob.utils.Strings;
+		import ro.ciacob.utils.Time;
+
+		/**
+		 * Defines a CSS style for the text inside the editor window's items.
+		 * Set this to a CSS selector pointing to a style you have defined,
+		 * e.g. ".myItems" - mind the leading dot in this example.
+		 */
+		[Bindable]
+		public var editorItemStyleName:String
+
+		/**
+		 * Defines a CSS style for the text inside the component's list items.
+		 * Set this to a CSS selector pointing to a style you have defined,
+		 * e.g. ".myItems" - mind the leading dot in this example.
+		 */
+		[Bindable]
+		public var itemStyleName:String;
+
+		private var _allowDupplicates:Boolean;
+		private var _allowDupplicatesChanged:Boolean;
+		private var _availableItems:Array;
+		private var _editorSessionUid:String;
+		private var _editorTitle:String;
+		private var _enabled:Boolean;
+		private var _enabledChanged:Boolean;
+		private var _haveEditorOpen:Boolean;
+		private var _pickedUpItems:Array;
+		private var _pickedUpItemsChanged:Boolean;
+		[Bindable]
+		private var _pickedUpItemsListDp:ArrayCollection = new ArrayCollection;
+		private var _pickedUpItemsListSelIndex:int = -1;
+		private var _userPickedUpItemsChanged:Boolean;
+
+		public function get allowDupplicates():Boolean {
+			return _allowDupplicates;
+		}
+
+		public function set allowDupplicates(value:Boolean):void {
+			_allowDupplicates = value;
+			_allowDupplicatesChanged = true;
+			invalidateProperties();
+
+		}
+
+		public function set availableItems(value:Array):void {
+			_availableItems = value;
+		}
+
+		public function set editorTitle(value:String):void {
+			_editorTitle = value;
+		}
+
+		/**
+		 * We must always return true, or else an ugly `blocker` will be shown.
+		 * Use `isEnabled` to correctly read this property from the outside.
+		 */
+		override public function get enabled():Boolean {
+			return true;
+		}
+
+		override public function set enabled(value:Boolean):void {
+			if (_enabled != value) {
+				_enabled = value;
+				_enabledChanged = true;
+				invalidateProperties();
+			}
+		}
+
+		public function get isEnabled():Boolean {
+			return _enabled;
+		}
+
+		public function get pickedUpItems():Array {
+			var items:Array = (_pickedUpItemsListDp == null) ? [] : _pickedUpItemsListDp.source;
+			var ret:Array = [];
+			for (var i:int = 0; i < items.length; i++) {
+				var item:PickupItem = items[i];
+				ret.push(item.src);
+			}
+			return ret;
+		}
+
+		public function set pickedUpItems(value:Array):void {
+			_pickedUpItems = (value != null) ? value.concat() : null;
+			_pickedUpItemsChanged = true;
+			invalidateProperties();
+		}
+
+		override protected function commitProperties():void {
+			super.commitProperties();
+			var i:int;
+			var item:PickupItem;
+			if (_enabledChanged) {
+				_enabledChanged = false;
+				if (!_enabled) {
+					if (_haveEditorOpen) {
+						_forceCloseEditor();
+					}
+				}
+				pickedUpItemsList.enabled = _enabled;
+				_updateControls();
+
+			}
+			if (_pickedUpItemsChanged) {
+				_pickedUpItemsChanged = false;
+				_updateLeftList();
+			}
+			if (_userPickedUpItemsChanged) {
+				_userPickedUpItemsChanged = false;
+				_updateLeftList();
+				_broadcastChange();
+			}
+			if (_allowDupplicatesChanged) {
+				_allowDupplicatesChanged = false;
+				if (!allowDupplicates) {
+					if (_pickedUpItems != null) {
+						var tmp:Array = _pickedUpItems.concat();
+						Arrays.removeDuplicates(tmp);
+						_repopulateLeftList(tmp);
+					}
+				}
+			}
+		}
+
+		private function _broadcastChange():void {
+			dispatchEvent(new Event(Event.CHANGE));
+		}
+
+		private function _deletePickedUpListItem():void {
+			var selectedIndex:int = pickedUpItemsList.selectedIndex;
+			_pickedUpItemsListDp.removeItemAt(selectedIndex);
+			if (selectedIndex < _pickedUpItemsListDp.length) {
+				_pickedUpItemsListSelIndex = selectedIndex;
+			} else if (_pickedUpItemsListDp.length > 0) {
+				_pickedUpItemsListSelIndex = (_pickedUpItemsListDp.length - 1);
+			} else {
+				_pickedUpItemsListSelIndex = -1;
+			}
+		}
+
+		private function _forceCloseEditor():void {
+			PTT.getPipe().send(ViewKeys.NEED_PICKUP_COMPONENT_WINDOW_FORCE_CLOSED);
+		}
+
+		private function _hideEditorMemo():void {
+			editorMemo.visible = false;
+			editorMemo.includeInLayout = false;
+		}
+
+		private function _hideUI():void {
+			pickedUpItemsList.visible = false;
+			pickedUpItemsList.includeInLayout = false;
+			controls.visible = false;
+			controls.includeInLayout = false;
+		}
+
+		private function _movePickedUpListItem(direction:int):void {
+			var item:Object = pickedUpItemsList.selectedItem;
+			var srcIndex:int = pickedUpItemsList.selectedIndex;
+			if (srcIndex >= 0) {
+				var targetIndex:int = (srcIndex + direction);
+				_pickedUpItemsListDp.removeItemAt(srcIndex);
+				_pickedUpItemsListDp.addItemAt(item, targetIndex);
+				_pickedUpItemsListSelIndex = targetIndex;
+				Time.delay(0.1, function ():void {
+					pickedUpItemsList.scrollToIndex(targetIndex);
+				});
+			}
+		}
+
+		private function _onDeleteButtonClick(event:Event):void {
+			_deletePickedUpListItem();
+			_broadcastChange();
+		}
+
+		private function _onEditClick(event:MouseEvent):void {
+			if (_pickedUpItemsListDp != null) {
+				_editorSessionUid = Strings.generateUniqueId(EditorSessions.UID_POOL, EditorSessions.UID_NUM_CHARS);
+				var windowData:Object = {};
+				windowData[ViewKeys.EDITOR_SESSION] = _editorSessionUid;
+				windowData[ViewKeys.CURRENT_SUBSET] = _pickedUpItemsListDp.source;
+				windowData[ViewKeys.AVAILABLE_SETS] = _availableItems;
+				windowData[ViewKeys.ARE_DUPPLICATES_PERMITTED] = _allowDupplicates;
+				windowData[PickupComponentKeys.ITEMS_STYLE_NAME] = editorItemStyleName;
+				var data:Object = {};
+				data[ViewKeys.WINDOW_TITLE] = _editorTitle;
+				data[ViewKeys.PICKUP_WINDOW_DATA] = windowData;
+				PTT.getPipe().send(ViewKeys.NEED_PICKUP_COMPONENT_WINDOW, data);
+			}
+		}
+
+		private function _onEditorClose(windowData:Object):void {
+			var session:String = windowData[ViewKeys.EDITOR_SESSION];
+			if (session == _editorSessionUid) {
+				_showUI();
+				_hideEditorMemo();
+				_haveEditorOpen = false;
+			}
+		}
+
+		private function _onEditorCommit(commitData:Object):void {
+			var commitSessionUid:String = commitData[ViewKeys.EDITOR_SESSION];
+			if (commitSessionUid == _editorSessionUid) {
+				var pickedUpElements:Array = commitData[ViewKeys.PICKED_UP_ELEMENTS];
+				_pickedUpItems = pickedUpElements.concat();
+				_pickedUpItemsListDp.refresh();
+				_userPickedUpItemsChanged = true;
+				invalidateProperties();
+			}
+		}
+
+		private function _onEditorOpen(windowData:Object):void {
+			var session:String = windowData[ViewKeys.EDITOR_SESSION];
+			if (session == _editorSessionUid) {
+				_hideUI();
+				_showEditorMemo();
+				_haveEditorOpen = true;
+			}
+		}
+
+		private function _onInitialize(event:FlexEvent):void {
+			PTT.getPipe().subscribe(ViewKeys.PICKUP_WINDOW_OPEN, _onEditorOpen);
+			PTT.getPipe().subscribe(ViewKeys.PICKUP_WINDOW_CLOSE, _onEditorClose);
+			PTT.getPipe().subscribe(ViewKeys.PICKUP_WINDOW_COMMIT, _onEditorCommit);
+		}
+
+		private function _onMoveNextButtonClick(event:MouseEvent):void {
+			_movePickedUpListItem(1);
+			_broadcastChange();
+		}
+
+		private function _onMovePrevButtonClick(event:MouseEvent):void {
+			_movePickedUpListItem(-1);
+			_broadcastChange();
+		}
+
+		private function _onPickedUpItemsListUpdateComplete(event:Event):void {
+			pickedUpItemsList.selectedIndex = _pickedUpItemsListSelIndex;
+			_updateControls();
+		}
+
+		private function _onPickedUpItemsListUserSelection(event:Event):void {
+			_updateControls();
+		}
+
+		private function _repopulateLeftList(fromSource:Array):void {
+			_pickedUpItemsListDp.removeAll();
+			if (fromSource != null) {
+				for (var i:int = 0; i < fromSource.length; i++) {
+					var item:PickupItem = new PickupItem(_pickedUpItems[i]);
+					_pickedUpItemsListDp.addItem(item);
+				}
+			}
+		}
+
+		private function _showEditorMemo():void {
+			editorMemo.visible = true;
+			editorMemo.includeInLayout = true;
+		}
+
+		private function _showUI():void {
+			pickedUpItemsList.visible = true;
+			pickedUpItemsList.includeInLayout = true;
+			controls.visible = true;
+			controls.includeInLayout = true;
+		}
+
+		private function _updateControls():void {
+			deleteButton.enabled = (_enabled && pickedUpItemsList.selectedItem != null);
+			movePrevButton.enabled = (_enabled && pickedUpItemsList.selectedIndex > 0);
+			moveNextButton.enabled = (_enabled && pickedUpItemsList.selectedItem != null && pickedUpItemsList.selectedIndex < _pickedUpItemsListDp.length - 1);
+			openEditorButton.enabled = _enabled;
+		}
+
+		private function _updateLeftList():void {
+			_repopulateLeftList(_pickedUpItems);
+		}
+		]]>
+	</fx:Script>
+	<fx:Declarations/>
+
+	<!-- "Editor open" notice -->
+	<mx:Box borderStyle="solid"
+			height="{Sizes.SMALL_TILE_SIZE}"
+			horizontalAlign="center"
+			id="editorMemo"
+			includeInLayout="false"
+			styleName="blockSection"
+			verticalAlign="middle"
+			visible="false"
+			width="100%">
+		<mx:Label styleName="editorNote"
+				  text="close the editor when done"/>
+	</mx:Box>
+
+	<!-- List -->
+	<components:CustomHorizontalList change="_onPickedUpItemsListUserSelection(event)"
+									 verticalAlign="middle"
+									 itemStyleName="{itemStyleName}"
+									 columnWidth="{Sizes.SMALL_TILE_SIZE}"
+									 dataProvider="{_pickedUpItemsListDp}"
+									 labelField="label"
+									 height="{Sizes.SMALL_TILE_SIZE + (pickedUpItemsList.isHorizontalScrollBarVisible? 16 : 0)}"
+									 id="pickedUpItemsList"
+									 paddingBottom="0"
+									 paddingLeft="0"
+									 paddingRight="0"
+									 paddingTop="0"
+									 rowHeight="{Sizes.SMALL_TILE_SIZE}"
+									 styleName="thickText"
+									 updateComplete="_onPickedUpItemsListUpdateComplete(event)"
+									 width="100%"
+									 x="0"
+									 itemRenderer="ro.ciacob.maidens.view.components.PickupComponentItemRenderer"
+									 y="0"/>
+
+	<!-- Controls -->
+	<mx:HBox horizontalGap="4"
+			 id="controls"
+			 width="100%">
+
+		<!-- OPEN EDITOR -->
+		<mx:Button click="_onEditClick(event)"
+				   enabled="false"
+				   id="openEditorButton"
+				   toolTip="Open Editor"
+				   skin="{OpenEditorSkin}"/>
+
+		<!-- REMOVE -->
+		<mx:Button click="_onDeleteButtonClick(event)"
+				   enabled="false"
+				   id="deleteButton"
+				   skin="{DeleteElementSkinSmall}"
+				   toolTip="Delete element"/>
+
+		<!-- UP -->
+		<mx:Button click="_onMovePrevButtonClick(event)"
+				   enabled="false"
+				   id="movePrevButton"
+				   toolTip="Nudge element before"
+				   skin="{NudgeUpSkinSmall}"/>
+		
+		<!-- DOWN -->
+		<mx:Button click="_onMoveNextButtonClick(event)"
+				   enabled="false"
+				   id="moveNextButton"
+				   toolTip="Nudge element after"
+				   skin="{NudgeDownSkinSmall}" />
+
+	</mx:HBox>
+
+</mx:VBox>

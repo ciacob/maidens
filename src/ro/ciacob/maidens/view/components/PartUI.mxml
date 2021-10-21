@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<components:UIBase initialize="_onInitialize(event)"
+                   xmlns:components="ro.ciacob.maidens.view.components.*"
+                   xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:s="library://ns.adobe.com/flex/spark">
+
+    <fx:Style>
+        @namespace s "library://ns.adobe.com/flex/spark";
+        @namespace mx "library://ns.adobe.com/flex/mx";
+        @namespace components "ro.ciacob.maidens.view.components.*";
+
+        .clefItemsStyleSmall {
+            fontSize: 24px;
+        }
+
+        .clefItemsStyleLarge {
+            fontSize: 48px;
+        }
+
+    </fx:Style>
+
+    <fx:Script>
+		<![CDATA[
+        import mx.core.UIComponent;
+        import mx.events.FlexEvent;
+
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.controller.MusicUtils;
+        import ro.ciacob.maidens.generators.constants.BracketTypes;
+        import ro.ciacob.maidens.generators.constants.parts.PartMaxAutonomousVoices;
+        import ro.ciacob.maidens.model.ProjectData;
+        import ro.ciacob.maidens.model.constants.DataFields;
+        import ro.ciacob.maidens.model.constants.StaticTokens;
+
+        import eu.claudius.iacob.maidens.Sizes;
+
+        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.utils.Strings;
+
+        private static const NUM_PARTS_VISIBLE:int = 12;
+
+        private var _availableClefs:Array;
+        private var _availableClefsChanged:Boolean;
+        private var _bracketType:String;
+        private var _bracketTypes:Array;
+        private var _bracketTypesChanged:Boolean;
+        private var _isClefsTitleSet:Boolean;
+        private var _partName:String;
+        private var _partNames:Array;
+        private var _partNamesChanged:Boolean;
+        private var _internalPartName:String;
+
+        override protected function commitProperties():void {
+            super.commitProperties();
+            if (_partNamesChanged) {
+                _partNamesChanged = false;
+                var partsList:ComboBox = ComboBox(getControlByName(DataFields.PART_NAME));
+                partsList.dataProvider = _partNames;
+                _updatePartNameSelection();
+            }
+            if (_bracketTypesChanged) {
+                _bracketTypesChanged = false;
+                var bracketTypesList:HorizontalList = HorizontalList(getControlByName(DataFields.PART_OWN_BRACKET_TYPE));
+                bracketTypesList.dataProvider = _bracketTypes;
+                _updateBracketSelection();
+            }
+            if (_availableClefsChanged) {
+                _availableClefsChanged = false;
+                var clefsComponent:PickupComponent = PickupComponent(getControlByName(DataFields.PART_CLEFS_LIST));
+                var clefsPage:Object = {};
+                clefsPage[ViewKeys.PAGE_HEADER] = StaticTokens.ALL_CLEFS;
+                clefsPage[ViewKeys.PAGE_BODY] = _availableClefs;
+                clefsComponent.availableItems = [clefsPage];
+                if (!_isClefsTitleSet) {
+                    _isClefsTitleSet = true;
+                    clefsComponent.editorTitle = StaticTokens.SELECT_PART_CLEFS;
+                }
+            }
+        }
+
+        override protected function populateUI(workingData:ProjectData):void {
+
+            // Name (type of instrument to use)
+            _partName = (workingData.getContent(DataFields.PART_NAME) as String);
+            _internalPartName = Strings.toAS3ConstantCase(_partName);
+            _updatePartNameSelection();
+
+            // Number of staves
+            var numStavesStepper:NonEditableNumericStepper = NonEditableNumericStepper(getControlByName(DataFields.PART_NUM_STAVES));
+            var currentNumStaves:int = (workingData.getContent(DataFields.PART_NUM_STAVES) as int);
+            var maxNumVoices:uint = (PartMaxAutonomousVoices[_internalPartName] as uint);
+            numStavesStepper.value = currentNumStaves;
+            numStavesStepper.minimum = Math.ceil(maxNumVoices / 2);
+            numStavesStepper.maximum = maxNumVoices;
+            numStavesStepper.enabled = (numStavesStepper.minimum != numStavesStepper.maximum);
+
+            // Type of bracket
+            _bracketType = (workingData.getContent(DataFields.PART_OWN_BRACKET_TYPE) as String);
+            _updateBracketSelection();
+
+            // Clef(s) to use
+            var clefs:Array = (workingData.getContent(DataFields.PART_CLEFS_LIST) as Array);
+            var clefsEditor:PickupComponent = PickupComponent(getControlByName(DataFields.PART_CLEFS_LIST));
+            clefsEditor.pickedUpItems = clefs;
+
+            // Range (informative section)
+            var range:Array = (workingData.getContent(DataFields.CONCERT_PITCH_RANGE) as
+                    Array);
+            var rangeInfo:String = '';
+            if (range != null) {
+                var lowerNote:ProjectData = MusicUtils.midiNumberToNote(range[0]);
+                var upperNote:ProjectData = MusicUtils.midiNumberToNote(range[1]);
+                if (lowerNote != null && upperNote != null) {
+                    rangeInfo = StaticTokens.PART_RANGE.replace('%s', MusicUtils.noteToString(lowerNote)).replace('%s', MusicUtils.noteToString(upperNote));
+                }
+            }
+            var pitchRangeLabel:Label = (getControlByName(DataFields.CONCERT_PITCH_RANGE) as
+                    Label);
+            pitchRangeLabel.text = rangeInfo;
+            pitchRangeLabel.data = range;
+
+            // Transposition (informative section)
+            var transposition:int = (workingData.getContent(DataFields.PART_TRANSPOSITION) as
+                    int);
+            var interval:String = MusicUtils.semitonesToIntervalName(transposition);
+            var transpositionInfo:String = StaticTokens.PART_TRANSPOSITION.replace('%s',
+                    interval);
+            var transpositionLabel:Label = (getControlByName(DataFields.PART_TRANSPOSITION) as
+                    Label);
+            transpositionLabel.text = transpositionInfo;
+            transpositionLabel.data = transposition;
+        }
+
+        private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
+            if (subpanel == this) {
+                removeStandardControls();
+                PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+                PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+                PTT.getPipe().unsubscribe(ViewKeys.PART_NAMES_LIST, _onPartNamesData);
+                PTT.getPipe().unsubscribe(ViewKeys.BRACKETS_TYPES_LIST, _onBracketTypesData);
+                PTT.getPipe().unsubscribe(ViewKeys.CLEF_TYPES_LIST, _onClefTypesData);
+                PTT.getPipe().unsubscribe(ViewKeys.PART_DEFAULT_DATA, _onPartDefaultData);
+            }
+        }
+
+        private function _onBracketTypesData(bracketTypes:Array):void {
+            if (bracketTypes != null) {
+                _bracketTypes = bracketTypes;
+                _bracketTypesChanged = true;
+                invalidateProperties();
+            }
+        }
+
+        private function _onClefTypesData(data:Object):void {
+            if (data != null) {
+                _availableClefs = (data as Array);
+                _availableClefsChanged = true;
+                invalidateProperties();
+            }
+        }
+
+        private function _onInitialize(event:FlexEvent):void {
+            addStandardControls();
+
+            // Subscribe to termination signal
+            PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+
+            // Subscribe to data regarding the current project tree selection
+            PTT.getPipe().subscribe(ViewKeys.RESET, reset);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+
+            // Subscribe to static data responses
+            PTT.getPipe().subscribe(ViewKeys.PART_NAMES_LIST, _onPartNamesData);
+            PTT.getPipe().subscribe(ViewKeys.BRACKETS_TYPES_LIST, _onBracketTypesData);
+            PTT.getPipe().subscribe(ViewKeys.CLEF_TYPES_LIST, _onClefTypesData);
+            PTT.getPipe().subscribe(ViewKeys.PART_DEFAULT_DATA, _onPartDefaultData);
+
+            // Request static data
+            PTT.getPipe().send(ViewKeys.NEED_PART_NAMES_LIST);
+            PTT.getPipe().send(ViewKeys.NEED_BRACKET_TYPES_LIST);
+            PTT.getPipe().send(ViewKeys.NEED_CLEF_TYPES_LIST);
+        }
+
+        private function _onPartDefaultData(part:ProjectData):void {
+            updateWorkingDataSet(part);
+            notifyDataSetChanged();
+        }
+
+        /**
+         * When this function is triggered (if it get triggered), the UI
+         * has already been populated with the current (working) dataset.
+         *
+         * If the user selects a different part, the UI is populated with
+         * default data for that particular part. Other changes made in the
+         * UI are lost in the process.
+         */
+        private function _onPartNameChange(event:Event):void {
+            var comboBox:ComboBox = ComboBox(event.target);
+            var partName:String = (comboBox.value as String);
+            PTT.getPipe().send(ViewKeys.NEED_PART_DEFAULT_DATA, partName);
+            onControlChanged(event);
+        }
+
+        private function _onPartNamesData(data:Object):void {
+            if (data != null) {
+                _partNames = (data as Array);
+                _partNamesChanged = true;
+                invalidateProperties();
+            }
+        }
+
+        private function _updateBracketSelection():void {
+            var bracketTypesList:HorizontalList = HorizontalList(getControlByName(DataFields.PART_OWN_BRACKET_TYPE));
+            if (bracketTypesList.dataProvider != null && _bracketType != null) {
+                bracketTypesList.selectedItem = _bracketType;
+            }
+        }
+
+        private function _updatePartNameSelection():void {
+            var partsList:ComboBox = ComboBox(getControlByName(DataFields.PART_NAME));
+            if (partsList.dataProvider != null && _partName != null) {
+                partsList.selectedItem = _partName;
+            }
+        }
+        ]]>
+	</fx:Script>
+    <fx:Declarations/>
+
+    <!-- Header -->
+    <mx:Label styleName="editorHeader"
+              text="Part"
+              width="100%"/>
+
+    <!-- Part instrument -->
+    <mx:Label styleName="editorLabel"
+              text="Instrument: *"/>
+    <mx:ComboBox change="_onPartNameChange(event)"
+                 initialize="{registerUIControl(event, DataFields.PART_NAME)}"
+                 rowCount="{NUM_PARTS_VISIBLE}"
+                 width="100%"/>
+
+    <!-- Part staves number -->
+    <mx:Label styleName="editorLabel"
+              text="Number of staves: *"/>
+    <components:NonEditableNumericStepper change="{onControlChanged(event)}"
+                                          initialize="{registerUIControl(event, DataFields.PART_NUM_STAVES)}"
+                                          maximum="4"
+                                          minimum="1"
+                                          stepSize="1"
+                                          width="100%"/>
+
+    <!-- Part bracket type -->
+    <mx:Label styleName="editorLabel"
+              text="System bracket type:"/>
+    <mx:HorizontalList change="{onControlChanged(event)}"
+                       columnWidth="{Sizes.SMALL_TILE_SIZE}"
+                       fontSize="{Sizes.SMALL_TILE_SIZE * 0.72}"
+                       initialize="{registerUIControl(event, DataFields.PART_OWN_BRACKET_TYPE)}"
+                       paddingBottom="0"
+                       paddingLeft="0"
+                       paddingRight="0"
+                       paddingTop="0"
+                       rowHeight="{Sizes.SMALL_TILE_SIZE}"
+                       styleName="thickText"
+                       width="100%"/>
+
+    <!-- Part clefs -->
+    <mx:Label styleName="editorLabel"
+              text="Clef(s):"/>
+    <components:PickupComponent allowDupplicates="true"
+                                change="{onControlChanged(event)}"
+                                editorItemStyleName=".clefItemsStyleLarge"
+                                initialize="{registerUIControl(event, DataFields.PART_CLEFS_LIST)}"
+                                itemStyleName=".clefItemsStyleSmall"
+                                width="100%"/>
+
+    <!-- Part transposition info -->
+    <mx:Label initialize="{registerUIControl(event, DataFields.PART_TRANSPOSITION)}"
+              styleName="editorLabel"/>
+
+    <!-- Part range info -->
+    <mx:Label initialize="{registerUIControl(event, DataFields.CONCERT_PITCH_RANGE)}"
+              paddingTop="0"
+              styleName="editorLabel"/>
+
+    <!-- Notes -->
+    <mx:Text selectable="false"
+             paddingTop="15"
+             styleName="editorNote"
+             condenseWhite="true"
+             width="100%">
+        <mx:htmlText>
+            <![CDATA[
+			<p>* Changing the instrument of a part or reducing its staves number is a <b>potentially destructive</b> operation.</p><br>
+			<p>For instance, if you want to migrate a Harp part (two staves) to a Celesta part (one staff), make sure to nudge the 1st voice of the 2nd staff as the 2nd voice of the 1st staff, <b>before</b> switching, or else you will loose all music in the 2nd staff.</p>
+			]]>
+        </mx:htmlText>
+    </mx:Text>
+
+
+</components:UIBase>

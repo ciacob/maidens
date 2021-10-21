@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009"
+		   xmlns:s="library://ns.adobe.com/flex/spark"
+		   xmlns:mx="library://ns.adobe.com/flex/mx"
+		   styleName="tintorettoBackground"
+		   implements="ro.ciacob.desktop.windows.IWindowContent"
+		   verticalGap="{SPACE}"
+		   paddingTop="{SPACE * 2}"
+		   paddingLeft="{SPACE * 1.5}"
+		   paddingRight="{SPACE * 1.5}"
+		   paddingBottom="{SPACE * 2.5}"
+		   minWidth="400"
+		   minHeight="100"
+		   horizontalScrollPolicy="off"
+		   verticalScrollPolicy="off"
+		   preinitialize="_onPreinitialize (event)"
+		   initialize="_initialize (event)">
+	
+	<fx:Script>
+		<![CDATA[
+        import mx.events.FlexEvent;
+
+        import ro.ciacob.desktop.filebrowser.constants.Sizes;
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.desktop.windows.IWindowContent;
+        import ro.ciacob.desktop.windows.IWindowsManager;
+        import ro.ciacob.desktop.windows.WindowContentBehavior;
+        import ro.ciacob.maidens.controller.constants.GeneratorKeys;
+        import ro.ciacob.maidens.generators.core.abstracts.AbstractGeneratorModule;
+
+        import eu.claudius.iacob.maidens.skins.ProgressBarSkin;
+        import eu.claudius.iacob.maidens.skins.ProgressTrackSkin;
+
+        import ro.ciacob.utils.Strings;
+        import ro.ciacob.utils.constants.CommonStrings;
+
+        /**
+         * Write only accessor to record the name of the Generator this window serves.
+         */
+        public function set generatorName(value:String):void {
+            _generatorName = value;
+        }
+
+        /**
+         * Write only accessor to set up a bidirectional communication channel
+         * with this class. USed to receive the information to render and to broadcast
+         * user actions.
+         */
+        public function set pipe(value:PTT):void {
+            if (_pipe != value) {
+                if (_pipe != null) {
+                    _pipe.unsubscribe(GeneratorKeys.STATUS_CHANGED, _onStatusChanged);
+                }
+                _pipe = value;
+                _pipe.subscribe(GeneratorKeys.STATUS_CHANGED, _onStatusChanged);
+                if (_pipe.hasBackupFor(GeneratorKeys.STATUS_CHANGED)) {
+                    _onStatusChanged(_pipe.recoverBackupFor(GeneratorKeys.STATUS_CHANGED));
+                    _pipe.deleteBackupFor(GeneratorKeys.STATUS_CHANGED);
+                }
+            }
+        }
+
+        private static const SPACE:int = 10;
+
+        private var _windowBehavior:WindowContentBehavior;
+        private var _pipe:PTT;
+        private var _generatorName:String;
+        [Bindable]
+        private var _message:String = CommonStrings.ELLIPSIS;
+
+
+        /**
+         * Returns the UID of the window owning this content. The windows manager assigns unique IDs to all windows upon creation,
+         * and manipulates them by mean of these IDS. Will return `null` if the owner window has been destroyed (or, in other words,
+         * `windowUid` will be `null` for orphaned content).
+         * @readonly
+         */
+        public function get windowUid():String {
+            return _windowBehavior.windowUid;
+        }
+
+        /**
+         * Returns the screen this content is, or was displayed onto. Returns null if this content was never displayed (e.g., if the
+         * windows holding this content has been created, but never shown).
+         * @readonly
+         */
+        public function get homeScreen():Screen {
+            return _windowBehavior.homeScreen;
+        }
+
+        /**
+         * Returns the horizontal position of this content across the joined space of all screens in use. For instance, it will return
+         * `1920` for a content held by a window which is placed at (0, 0) on the second monitor on the right, on a two, side-by-side
+         * Full HD monitors setup. The offset of the window chrome, if any, is also taken into account. Returns `NaN` for orphaned content
+         * (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+         * @readonly
+         */
+        public function get allScreensX():Number {
+            return _windowBehavior.allScreensX;
+        }
+
+        /**
+         * @see `allScreensX`
+         * @readonly
+         */
+        public function get allScreensY():Number {
+            return _windowBehavior.allScreensY;
+        }
+
+        /**
+         * Returns the horizontal position of this content within the screen its left boundary is laid on. For instance, it will return
+         * `0` (rather than `1920`) for a content held by a window which is placed at (0, 0) on the second monitor on the right,
+         * on a two, side-by-side Full HD monitors setup. The offset of the window chrome, if any, is also taken into account.
+         *  Returns `NaN` for orphaned content (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+         * @readonly
+         */
+        public function get currentScreensX():Number {
+            return _windowBehavior.currentScreensX;
+        }
+
+        /**
+         * @see `currentScreensX`
+         * @readonly
+         */
+        public function get currentScreensY():Number {
+            return _windowBehavior.currentScreensY;
+        }
+
+        /**
+         * Sends an instance of the windows manager owner into this implementor (required for performing various calculations).
+         */
+        public function set manager(value:IWindowsManager):void {
+            _windowBehavior.manager = value;
+        }
+
+        public function get manager():IWindowsManager {
+            return _windowBehavior.manager;
+        }
+
+        /**
+         * Closest equivalent of a constructor for MXML classes.
+         */
+        protected function _onPreinitialize(event:FlexEvent):void {
+            _windowBehavior = new WindowContentBehavior(this);
+        }
+
+        /**
+         * Executed after this component was initialized, along with all its children.
+         * Children have not been measured, nor drawn at this point.
+         */
+        protected function _initialize(event:FlexEvent):void {
+        }
+
+        /**
+         * Executed when a new status update is received through the communication pipe.
+         */
+        private function _onStatusChanged(statusInfo:Object):void {
+            var status:String = (statusInfo.state as String);
+
+            // Update the text and progress bar
+            if (_generatorName) {
+                var template:String = (status == AbstractGeneratorModule.STATUS_IN_PROGRESS) ?
+                        GeneratorKeys.GENERATION_IN_PROGRESS : (status == AbstractGeneratorModule.STATUS_COMPLETED) ?
+                                GeneratorKeys.GENERATION_COMPLETED : (status == AbstractGeneratorModule.STATUS_ABORTED) ?
+                                        GeneratorKeys.GENERATION_ABORTED : CommonStrings.ELLIPSIS;
+                var compiledText:String = Strings.sprintf(template, _generatorName);
+                if (_message != compiledText) {
+                    _message = compiledText;
+                }
+            }
+            var progressValue:Number = (statusInfo.percentComplete as Number);
+            if (!isNaN(progressValue)) {
+                infoProgress.setProgress(progressValue, 1);
+            }
+
+            // Disable the buttons on certain states
+            if ((status == AbstractGeneratorModule.STATUS_COMPLETED) || (status == AbstractGeneratorModule.STATUS_ABORTED)) {
+                abortButton.enabled = minimizeButton.enabled = false;
+            }
+        }
+
+        /**
+         * Executed when user clicks the "Abort" button.
+         */
+        protected function _onAbortButtonClick(event:MouseEvent):void {
+            abortButton.enabled = false;
+            _pipe.send(GeneratorKeys.GEN_ABORT_REQUESTED);
+        }
+
+        /**
+         * Executed when user clicks the "Minimize" button.
+         */
+        protected function _onMinimizeButtonClick(event:MouseEvent):void {
+            _pipe.send(GeneratorKeys.GEN_MINIMIZE_REQUESTED);
+        }
+        ]]>
+	</fx:Script>
+
+	<mx:Text id="infoText" 
+			 width="100%"
+			 height="100%"
+			 selectable="false"
+			 text="{_message}"/>
+	
+	<mx:ProgressBar id="infoProgress"
+					width="100%"
+					mode="manual"
+					labelPlacement="top"
+					labelWidth="{infoProgress.width}"
+					textAlign="center"
+					label="%3%%"
+					barSkin="{ProgressBarSkin}"
+					trackHeight="{SPACE}"
+					trackSkin="{ProgressTrackSkin}" />
+	
+	<mx:HBox width="100%"
+			 horizontalGap="{SPACE}"
+			 horizontalAlign="right"
+			 verticalScrollPolicy="off"
+			 horizontalScrollPolicy="off">
+		
+		<mx:Button id="abortButton" 
+				label="Abort"
+				minWidth="{Sizes.WIDE_BUTTON_SIZE}"
+				click="_onAbortButtonClick(event)" />
+		
+		<mx:Button id="minimizeButton" 
+				   label="Minimize"
+				   minWidth="{Sizes.WIDE_BUTTON_SIZE}"
+				   click="_onMinimizeButtonClick(event)" />
+		
+	</mx:HBox>
+</mx:VBox>

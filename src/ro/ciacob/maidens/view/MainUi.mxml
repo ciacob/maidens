@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="utf-8"?>
+<windows:BasicWindowRootContainer height="100%"
+                                  horizontalScrollPolicy="off"
+                                  initialize="_onInitialize(event)"
+                                  preinitialize="_onPreinitialize(event)"
+                                  creationComplete="_onCreationComplete(event)"
+                                  verticalScrollPolicy="auto"
+                                  width="100%"
+                                  styleName="tintorettoBackground"
+                                  xmlns:fx="http://ns.adobe.com/mxml/2009"
+                                  xmlns:mx="library://ns.adobe.com/flex/mx"
+                                  xmlns:windows="ro.ciacob.desktop.windows.*"
+                                  xmlns:view1="ro.ciacob.maidens.view.*"
+                                  xmlns:components="ro.ciacob.maidens.view.components.*">
+
+    <fx:Declarations>
+
+        <!-- Flex Menu (to be used on Windows) -->
+        <mx:MenuBar dataProvider="{appMenudata}"
+                    id="flexMenu"
+                    backgroundSkin="{MainMenuSkin}"
+                    itemSkin="{MainMenuSkin}"
+                    itemClick="_onAppMenuItemClick(event)"
+                    labelField="@label"
+                    showRoot="false"
+                    height="100%"/>
+
+    </fx:Declarations>
+
+    <fx:Script>
+		<![CDATA[
+        import com.greensock.TweenMax;
+
+        import flash.filters.ColorMatrixFilter;
+
+        import mx.controls.Menu;
+
+        import mx.core.FlexGlobals;
+        import mx.core.UIComponent;
+        import mx.events.FlexEvent;
+        import mx.events.MenuEvent;
+
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.generators.constants.MIDI;
+        import ro.ciacob.maidens.model.constants.DataFields;
+        import ro.ciacob.maidens.model.constants.ModelKeys;
+        import ro.ciacob.maidens.model.constants.StaticFieldValues;
+        import ro.ciacob.maidens.model.constants.StaticTokens;
+        import ro.ciacob.maidens.model.constants.URLs;
+
+        import eu.claudius.iacob.maidens.Colors;
+
+        import ro.ciacob.maidens.view.constants.MenuCommandNames;
+        import ro.ciacob.maidens.view.constants.MenuIds;
+        import ro.ciacob.maidens.view.constants.PromptColors;
+        import ro.ciacob.maidens.view.constants.PromptKeys;
+
+        import eu.claudius.iacob.maidens.Sizes;
+
+        import ro.ciacob.maidens.view.constants.ViewKeys;
+
+        import eu.claudius.iacob.maidens.skins.CreateElementSkin;
+        import eu.claudius.iacob.maidens.skins.DeleteElementSkin;
+        import eu.claudius.iacob.maidens.skins.FitSelectionSkin;
+        import eu.claudius.iacob.maidens.skins.FitToWidthSkin;
+        import eu.claudius.iacob.maidens.skins.MainMenuSkin;
+        import eu.claudius.iacob.maidens.skins.NextPageSkin;
+        import eu.claudius.iacob.maidens.skins.NudgeDownSkin;
+        import eu.claudius.iacob.maidens.skins.NudgeUpSkin;
+        import eu.claudius.iacob.maidens.skins.PlaybackSkin;
+        import eu.claudius.iacob.maidens.skins.PrevPageSkin;
+        import eu.claudius.iacob.maidens.skins.StopSkin;
+
+        import ro.ciacob.utils.Arrays;
+        import ro.ciacob.utils.OSFamily;
+        import ro.ciacob.utils.Strings;
+        import ro.ciacob.utils.Time;
+        import ro.ciacob.utils.constants.CommonStrings;
+
+        private static const GLOBAL_PIPE:PTT = PTT.getPipe();
+
+        [Bindable]
+        private var _minimumZoomFactor:Number = 0.25;
+        [Bindable]
+        private var _haveScoreSelection:Boolean;
+        [Bindable]
+        private var appMenudata:XML;
+        private var _compile_helper_1:MenuCommandNames;
+        private var _ctaMessages:Array;
+        private var _currentCtaIdx:int = 0;
+        private var ptt:PTT;
+
+        [Bindable]
+        private var _currPageNumber:int;
+        [Bindable]
+        private var _numPages:int;
+        [Bindable]
+        private var _noScore:Boolean;
+
+        /**
+         * Syntactic sugar. Subscribes given callback to given PTT key, also considering
+         * "cached notifications" (notifications that occurred before any subscribers were
+         * available; the last body/payload of such a notification gets cached and can
+         * be retrieved by late subscribers by using dedicated API).
+         */
+        private function retroactivelySubscribe(keyName:String, callback:Function):void {
+            GLOBAL_PIPE.subscribe(keyName, callback);
+            if (GLOBAL_PIPE.hasBackupFor(keyName)) {
+                callback(GLOBAL_PIPE.recoverBackupFor(keyName));
+                GLOBAL_PIPE.deleteBackupFor(keyName);
+            }
+        }
+
+        /**
+         * Fired when a menu item was clicked.
+         * Merely forward to controller, which will handle this.
+         */
+        private function _onAppMenuItemClick(event:Event):void {
+            var selectedItem:XML = null;
+            if ('item' in event) {
+                selectedItem = (event['item'] as XML);
+            }
+            if (selectedItem != null) {
+                var commandName:String = Strings.trim(selectedItem.@commandName);
+                var commandArgs:Array = Strings.trim(selectedItem.@commandArguments || '').split(CommonStrings.COMMA);
+                if (!Strings.isEmpty(commandName)) {
+                    GLOBAL_PIPE.send(ViewKeys.APP_MENU_TRIGGERED, {
+                        'commandName': commandName,
+                        'commandArgs': commandArgs
+                    });
+                }
+            }
+        }
+
+        /**
+         * Fired when a toolbar item was clicked
+         * Merely forward to controller, which will handle this.
+         */
+        private function _onAppToolbarItemClick(event:Event, commandName:String):void {
+            var button:UIComponent = (event.target as UIComponent);
+            button.enabled = false;
+            if (!Strings.isEmpty(commandName)) {
+                GLOBAL_PIPE.send(ViewKeys.APP_MENU_TRIGGERED, {'commandName': commandName});
+            }
+        }
+
+        /**
+         * Equivalent of a constructor function for MXML classes. Children components
+         * are not available yet at this stage.
+         */
+        private function _onPreinitialize(event:FlexEvent):void {
+            setStyle('pictureAlpha', 0.2);
+            ptt = PTT.getPipe();
+            appMenudata = FlexGlobals.topLevelApplication.appMenudata;
+        }
+
+        /**
+         * Triggered after children components where initialized (but not configured or
+         * rendered). Sort of a "stage two" constructor function for MXML classes.
+         */
+        private function _onInitialize(event:FlexEvent):void {
+            appCtrlBar.addChildAt(flexMenu, 0);
+            flexMenu.addEventListener(MenuEvent.MENU_SHOW, _onMenuShow);
+            flexMenu.addEventListener(MenuEvent.MENU_HIDE, _onMenuHide);
+
+            // The application control bar will be centered on macOS (centered layout is
+            // something like a tradition on OSX family) and left aligned on Windows, running
+            // to the right of the custom menu.
+            appCtrlBar.setStyle('horizontalAlign', 'left');
+
+            // Initialize application wide functionality
+            GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT, _onPromptRequested);
+            GLOBAL_PIPE.subscribe(ViewKeys.UNDO_REDO_STATUSQUO, _onUndoRedoStatusUpdate);
+
+            // Monitor changes to current theme to update the menu accordingly
+            GLOBAL_PIPE.subscribe(ViewKeys.COLORIZATION_UPDATED, _onColorizationChanged);
+
+            // Initialize dynamic menu items
+            _updateMenuItem(MenuIds.UNDO_ITEM, StaticTokens.CANNOT_UNDO, false);
+            _updateMenuItem(MenuIds.REDO_ITEM, StaticTokens.CANNOT_REDO, false);
+            _updateMenuItem(MenuIds.COPY_ITEM, StaticTokens.CANNOT_COPY, false);
+            _updateMenuItem(MenuIds.CUT_ITEM, StaticTokens.CANNOT_CUT, false);
+            _updateMenuItem(MenuIds.PASTE_ITEM, StaticTokens.CANNOT_PASTE, false);
+
+            // Initialize toolbar related functionality
+            retroactivelySubscribe(ViewKeys.STRUCTURE_OPERATIONS_STATUS, _onOperationsStatusUpdate);
+            GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STARTED, _onMidiPlaybackStarted);
+            GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STOPPED, _onMidiPlaybackStopped);
+            retroactivelySubscribe(ViewKeys.NAVIGATION_STATE_CHANGE, _onNavigationStateChange);
+            retroactivelySubscribe(ViewKeys.SCORE_WAS_RESIZED, _onScoreResized);
+            retroactivelySubscribe(ViewKeys.ZOOM_INTERNAL_CHANGE, _onZoomInternalChange);
+            retroactivelySubscribe(ViewKeys.SCORE_SELECTION_CHANGE, _onScoreSelectionChange);
+
+            // Initialize the "call to action" carousel
+            _ctaMessages = [
+                Strings.sprintf(StaticTokens.CTA_REPORT_BUGS, URLs.CTA_REPORT_BUGS),
+                Strings.sprintf(StaticTokens.CTA_DONATE, URLs.CTA_DONATE),
+                Strings.sprintf(StaticTokens.CTA_SUBSCRIBE, URLs.CTA_SUBSCRIBE),
+                Strings.sprintf(StaticTokens.CTA_SPREAD_THE_WORD, URLs.CTA_SPREAD_THE_WORD),
+            ];
+            _showNextCta();
+        }
+
+        /**
+         * Executed when the current theme is changed, either by the user, via the "View -> Theme"
+         * sub-menu, or by the Controller, by reading a property from the application persistence.
+         *
+         * @param   themeName
+         *          The name of the current theme, in its raw format, e.g., "$LIGHT". See the
+         *          constants in class UiColorizationThemes.
+         */
+        private function _onColorizationChanged(themeName:String):void {
+            var themeItems:XMLList = appMenudata.descendants().(hasOwnProperty('@id') &&
+            @id == MenuIds.THEME_SUBMENU).item;
+            var i:int;
+            var item:XML;
+            var mustBeSelected : Boolean;
+            for (i = 0; i < themeItems.length(); i++) {
+                item = (themeItems[i] as XML);
+                mustBeSelected = (item.@commandArguments.toString() == themeName);
+                _updateXMLItem(item, null, true, mustBeSelected);
+            }
+        }
+
+        /**
+         * Executed on Windows, when a sub-menu of the menu bar opens or a childless menu item
+         * is clicked.
+         */
+        private function _onMenuShow(event:MenuEvent):void {
+            var menu:Menu = event.menu;
+            if (menu) {
+                GLOBAL_PIPE.send(ViewKeys.APP_MENU_SHOWN, menu);
+            }
+        }
+
+        /**
+         * Executed on Windows, when a sub-menu of the menu bar hides.
+         */
+        private function _onMenuHide(event:MenuEvent):void {
+            var menu:Menu = event.menu;
+            if (menu) {
+                GLOBAL_PIPE.send(ViewKeys.APP_MENU_HIDDEN, menu);
+            }
+        }
+
+        /**
+         * Triggered after children components where initialized and configured (but
+         * not rendered). Sort of a "stage three" constructor function for MXML classes.
+         */
+        private function _onCreationComplete(event:FlexEvent):void {
+        }
+
+        /**
+         * Responds to the MIDI playback started signal, by disabling the "playback" button
+         * and enabling the "stop" button.
+         */
+        private function _onMidiPlaybackStarted(...args):void {
+            _updatePlaybackButtons(MIDI.PLAYING_STATE);
+        }
+
+        /**
+         * Responds to the MIDI playback stoped signal, by disabling the "stop" button
+         * and enabling the "playback" button.
+         */
+        private function _onMidiPlaybackStopped(...args):void {
+            _updatePlaybackButtons(MIDI.STOPPED_STATE);
+        }
+
+        /**
+         * Toggles availability of the playback buttons based on given state.
+         */
+        private function _updatePlaybackButtons(state:int):void {
+            switch (state) {
+                case MIDI.PLAYING_STATE:
+                    playButton.enabled = false;
+                    stopButton.enabled = true;
+                    break;
+                case MIDI.STOPPED_STATE:
+                    playButton.enabled = true;
+                    stopButton.enabled = false;
+                    break;
+                case MIDI.UNKNOWN_STATE:
+                default:
+                    playButton.enabled = false;
+                    stopButton.enabled = false;
+                    break;
+            }
+        }
+
+        /**
+         * Changes the label, enables or disables, or adds or removes a checkmark
+         * to a menu item, be it inside a native or Flex menu.
+         */
+        private function _updateMenuItem(itemId:String, label:String = null, enablement:Boolean = true, checked:Boolean = false):void {
+            var items:XMLList = appMenudata.descendants().(hasOwnProperty('@id') && @id == itemId);
+            var numItems:uint = items.length();
+            for (var i:int = 0; i < numItems; i++) {
+                var item:XML = items[i] as XML;
+                _updateXMLItem(item, label, enablement, checked);
+            }
+
+        }
+
+        /**
+         * Lower-level method that actually carries on the task handled to "_updateMenuItem()",
+         * once the actual XML Item responsible for representing a menu item has been identified.
+         * Can also be directly called if this information is known beforehand.
+         * @see _updateMenuItem()
+         */
+        private function _updateXMLItem(item:XML, label:String = null, enablement:Boolean = true, checked:Boolean = false):void {
+            if (label) {
+                item.@label = label;
+            }
+            item.@enabled = enablement;
+            item.@type = (checked ? 'check' : '');
+            item.@toggled = (checked? 'true' : 'false');
+        }
+
+        /**
+         * Triggered when there has been a notification received that deals with the
+         * availaility of the Undo/Redo buttons, as well as with additional related info.
+         */
+        private function _onUndoRedoStatusUpdate(status:Object):void {
+            var canUndo:Boolean = status[ViewKeys.CAN_UNDO] as Boolean;
+            var canRedo:Boolean = status[ViewKeys.CAN_REDO] as Boolean;
+            var undoDescription:String = status[ViewKeys.UNDO_DESCRIPTION] as String;
+            var redoDescription:String = status[ViewKeys.REDO_DESCRIPTION] as String;
+            if (undoDescription) {
+                undoDescription = Strings.sprintf(StaticTokens.UNDO_LABEL, undoDescription);
+            }
+            if (redoDescription) {
+                redoDescription = Strings.sprintf(StaticTokens.REDO_LABEL, redoDescription);
+            }
+            _updateMenuItem(MenuIds.UNDO_ITEM, undoDescription || StaticTokens.CANNOT_UNDO, canUndo);
+            _updateMenuItem(MenuIds.REDO_ITEM, redoDescription || StaticTokens.CANNOT_REDO, canRedo);
+        }
+
+        /**
+         * Triggered when a notification is received that deals with the availability
+         * of common functions, such as creating, deleting or moving items around,
+         * performing copy/paste operations, etc.
+         */
+        private function _onOperationsStatusUpdate(status:Object):void {
+            // Update toolbar buttons
+            addButton.enabled = (status[ViewKeys.ADD_ELEMENT_AVAILABLE] as Boolean);
+            removeButton.enabled = (status[ViewKeys.REMOVE_ELEMENT_AVAILABLE] as Boolean);
+            moveUpButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_UP_AVAILABLE] as Boolean);
+            moveDownButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_DOWN_AVAILABLE] as Boolean);
+
+            // Update menu items
+            var selectionType:String = status[ViewKeys.SELECTION_TYPE] as String;
+            var haveSelection:Boolean = (selectionType != null);
+            var haveEmptySelection:Boolean = haveSelection && (status[ViewKeys.ELEMENT_EMPTY] as Boolean);
+            var haveNonDeletableSelection:Boolean = haveSelection && !(status[ViewKeys.REMOVE_ELEMENT_AVAILABLE] as Boolean);
+
+            // Update items in the Copy/Cut/Paste menu
+            var pasteSrcType:String = status[ViewKeys.PASTE_SOURCE_TYPE] as String;
+            var havePasteSrc:Boolean = (pasteSrcType != null);
+            var canCopy:Boolean = status[ViewKeys.COPY_ELEMENT_AVAILABLE] as Boolean;
+            var canCut:Boolean = status[ViewKeys.CUT_ELEMENT_AVAILABLE] as Boolean;
+            var canPaste:Boolean = status[ViewKeys.PASTE_ELEMENT_AVAILABLE] as Boolean;
+            _updateMenuItem(MenuIds.COPY_ITEM,
+                    canCopy ? Strings.sprintf(StaticTokens.COPY_LABEL, selectionType) : StaticTokens.CANNOT_COPY,
+                    canCopy
+            );
+            _updateMenuItem(MenuIds.CUT_ITEM,
+                    canCut ? Strings.sprintf(StaticTokens.CUT_LABEL, selectionType) : StaticTokens.CANNOT_CUT,
+                    canCut
+            );
+            _updateMenuItem(MenuIds.PASTE_ITEM,
+                    canPaste ? Strings.sprintf(StaticTokens.PASTE_LABEL, pasteSrcType) : StaticTokens.CANNOT_PASTE,
+                    canPaste
+            );
+
+            // Update items in the Macros menu
+            var haveTransposableSelection:Boolean = haveSelection && !haveEmptySelection && (
+                    selectionType == DataFields.SECTION || selectionType == DataFields.PART || selectionType == DataFields.MEASURE ||
+                    selectionType == DataFields.VOICE || selectionType == DataFields.CLUSTER
+            );
+            _updateMenuItem(MenuIds.TRANSPOSE_ITEM, null, haveTransposableSelection);
+            var haveScaleableSelection:Boolean = (haveTransposableSelection && selectionType != DataFields.CLUSTER);
+            _updateMenuItem(MenuIds.SCALE_INTERVALS_ITEM, null, haveScaleableSelection);
+        }
+
+        private function _onNavigationStateChange(state:Object):void {
+            prevPageButton.enabled = state[ViewKeys.PREV_PAGE_ENABLED] as Boolean;
+            nextPageButton.enabled = state[ViewKeys.NEXT_PAGE_ENABLED] as Boolean;
+            _currPageNumber = state[ViewKeys.CURRENT_PAGE] as int;
+            _numPages = state[ViewKeys.PAGES_NUMBER] as int;
+            _noScore = (state[ViewKeys.NO_SCORE] === true);
+        }
+
+        /**
+         * Triggered when the score rendering area has been resized.
+         */
+        private function _onScoreResized(sizes:Object):void {
+            var scoreContainer:Object = sizes[ViewKeys.SCORE_CONTAINER] as Object;
+            var scorePage:Object = sizes[ViewKeys.SCORE_PAGE] as Object;
+            _minimumZoomFactor = Math.min(scoreContainer.height / scorePage.height,
+                    scoreContainer.width / scorePage.width) * 0.95;
+            ptt.send(ViewKeys.MINIMUM_ZOOM_CHANGE, _minimumZoomFactor);
+        }
+
+        /**
+         * Triggered when a notification is received that requests a prompt to be displayed
+         */
+        private function _onPromptRequested(promptData:Object):void {
+            if (PromptKeys.TEXT in promptData) {
+                promptsUi.text = promptData[PromptKeys.TEXT];
+                promptsUi.backgroundColor = (promptData[PromptKeys.BACKGROUND_COLOR] ||
+                        PromptColors.NOTICE);
+                promptsUi.buttonUids = (promptData[PromptKeys.BUTTONS] || null);
+                promptsUi.callback = (promptData[PromptKeys.CALLBACK] || null);
+                promptsUi.show();
+            }
+        }
+
+        /**
+         * Triggered when the "zoom" slider is dragged by the user.
+         */
+        private function _onZoomChange(factor:Number):void {
+            GLOBAL_PIPE.send(ViewKeys.ZOOM_EXTERNAL_CHANGE, factor);
+        }
+
+        /**
+         * Triggered when the zoom factor has been internally set inside the score renderer
+         * component.
+         */
+        private function _onZoomInternalChange(factor:Number):void {
+            zoomFactorSlider.value = factor;
+        }
+
+        /**
+         * Formatting function used to display the scalling factor as a percent number.
+         */
+        private function _scaleValueFormatter(rawValue:Number):String {
+            return (Math.round(rawValue * 100) + CommonStrings.PERCENT);
+        }
+
+        /**
+         * Triggered when in-score selection occurs. Despite the fact that score selection
+         * always maps to a project hierarchy selection, the reverse is not always true.
+         * There are situations when selecting an element (e.g., Project) in the hierarchy
+         * does not result in a score selection.
+         */
+        private function _onScoreSelectionChange(scoreSelection:Object):void {
+            _haveScoreSelection = (scoreSelection != null);
+        }
+
+        /**
+         * Triggered when a mouse wheel movement is detected while hovering the zoom
+         * slider. According to documentation, this is only availabl eon Windows.
+         * Scrolls the slider by the smallest increments possible.
+         */
+        private function _onMouseWheelZoom(event:MouseEvent):void {
+            var direction:int = (event.delta > 0) ? 1 : (event.delta < 0) ? -1 : 0;
+            if (direction) {
+                var step:Number = zoomFactorSlider.snapInterval;
+                var currVal:Number = zoomFactorSlider.value;
+                var minVal:Number = zoomFactorSlider.minimum;
+                var maxVal:Number = zoomFactorSlider.maximum;
+                var newVal:Number = currVal + (step * direction);
+                if (newVal <= maxVal && newVal >= minVal) {
+                    zoomFactorSlider.value = newVal;
+                    GLOBAL_PIPE.send(ViewKeys.ZOOM_EXTERNAL_CHANGE, newVal);
+                }
+            }
+
+        }
+
+        /**
+         * Triggered when the "fit to width" button is clicked.
+         */
+        private function _onFitToWidthClick(event:MouseEvent):void {
+            GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_TO_WIDTH_REQUEST);
+        }
+
+        /**
+         * Triggered when the "fit selection" button is clicked.
+         */
+        private function _onFitSelectionClick(event:MouseEvent):void {
+            GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_SELECTION_REQUEST);
+        }
+
+        /**
+         * Causes the "call to action" carousel to deliver the next message in queue.
+         */
+        private function _showNextCta():void {
+            var nextIdx:int = _currentCtaIdx + 1;
+            var numMessages:int = _ctaMessages.length;
+            if (nextIdx > numMessages - 1) {
+                nextIdx %= numMessages;
+            }
+            _currentCtaIdx = nextIdx;
+            _hideCtaMessage(_showCtaMessage);
+        }
+
+        /**
+         * Hides the currently displaying "call to action" message.
+         */
+        private function _hideCtaMessage(callback:Function):void {
+            TweenMax.to(callToAction, StaticFieldValues.CTA_HIDE_TIME, {alpha: 0, onComplete: callback});
+        }
+
+        /**
+         * Loads and displays the next message in queue in the "call to action" carousel.
+         */
+        private function _showCtaMessage():void {
+            var message:String = _ctaMessages[_currentCtaIdx] as String;
+            callToAction.htmlText = message;
+            TweenMax.to(callToAction, StaticFieldValues.CTA_SHOW_TIME, {alpha: 1, onComplete: _scheduleNextCta});
+        }
+
+        /**
+         * Initializes a timeout for the next call to action message to be shown
+         */
+        private function _scheduleNextCta():void {
+            Time.delay(StaticFieldValues.CTA_SPIN_DELAY, _showNextCta);
+        }
+        ]]>
+	</fx:Script>
+
+    <!-- Application level toolbar -->
+    <mx:Box horizontalAlign="center"
+            verticalAlign="middle"
+            id="appCtrlBar"
+            direction="horizontal"
+            horizontalGap="{Sizes.SMALL_BUTTON_WIDTH * 0.1}"
+            paddingLeft="{Sizes.MAIN_UI_HORIZONTAL_MARGIN}"
+            paddingRight="{Sizes.MAIN_UI_HORIZONTAL_MARGIN}"
+            paddingTop="0"
+            paddingBottom="0"
+            width="{width}"
+            height="{Sizes.CONTROL_BAR_HEIGHT + 2 * Sizes.MAIN_TOOLBAR_VERTICAL_MARGIN}"
+            backgroundColor="{Colors.MAIN_CONTROL_BAR_COLOR}"
+            backgroundAlpha="{Colors.CHROME_CONTROLS_BG_ALPHA}">
+
+        <!-- ADD -->
+        <mx:Button click="_onAppToolbarItemClick(event, MenuCommandNames.ADD_ITEM)"
+                   enabled="false"
+                   id="addButton"
+                   toolTip="{StaticTokens.CREATE_ELEMENT}"
+                   skin="{CreateElementSkin}"/>
+
+        <!-- REMOVE -->
+        <mx:Button click="_onAppToolbarItemClick(event, MenuCommandNames.DELETE_ITEM)"
+                   enabled="false"
+                   id="removeButton"
+                   skin="{DeleteElementSkin}"
+                   toolTip="{StaticTokens.DELETE_ELEMENT}"/>
+
+        <!-- NUDGE UP -->
+        <mx:Button click="_onAppToolbarItemClick(event, MenuCommandNames.NUDGE_ITEM_BEFORE)"
+                   enabled="false"
+                   id="moveUpButton"
+                   toolTip="{StaticTokens.NUDGE_ELEMENT_BEFORE}"
+                   skin="{NudgeUpSkin}"/>
+
+        <!-- NUDGE DOWN -->
+        <mx:Button click="_onAppToolbarItemClick(event, MenuCommandNames.NUDGE_ITEM_AFTER)"
+                   enabled="false"
+                   id="moveDownButton"
+                   toolTip="{StaticTokens.NUDGE_ELEMENT_AFTER}"
+                   skin="{NudgeDownSkin}"/>
+
+        <mx:Spacer width="{Sizes.SEPARATOR_WIDTH}"/>
+
+        <!-- Playback -->
+        <mx:Button skin="{PlaybackSkin}"
+                   click="_updatePlaybackButtons(MIDI.UNKNOWN_STATE);_onAppToolbarItemClick(event, MenuCommandNames.START_PLAYBACK)"
+                   enabled="true"
+                   id="playButton"
+                   toolTip="Play"/>
+
+        <mx:Button skin="{StopSkin}"
+                   click="_updatePlaybackButtons(MIDI.UNKNOWN_STATE);_onAppToolbarItemClick(event, MenuCommandNames.STOP_PLAYBACK)"
+                   enabled="false"
+                   id="stopButton"
+                   toolTip="Stop"/>
+
+        <mx:Spacer width="{Sizes.SEPARATOR_WIDTH}"/>
+
+        <!-- Page navigation -->
+        <mx:Label id="pageNavLabel"
+                  visible="{!_noScore}"
+                  text="Page: {_currPageNumber} of {_numPages}"/>
+
+        <mx:Button skin="{PrevPageSkin}"
+                   click="_onAppToolbarItemClick(event, MenuCommandNames.PREVIOUS_PAGE)"
+                   enabled="false"
+                   id="prevPageButton"
+                   toolTip="Previous page"/>
+
+        <mx:Button skin="{NextPageSkin}"
+                   click="_onAppToolbarItemClick(event, MenuCommandNames.NEXT_PAGE)"
+                   enabled="false"
+                   id="nextPageButton"
+                   toolTip="Next page"/>
+
+        <mx:Spacer width="{Sizes.SEPARATOR_WIDTH}"/>
+
+        <!-- Zoom -->
+        <mx:Label id="zoomSliderLabel"
+                  text="Zoom:"/>
+
+        <mx:Box direction="vertical"
+                paddingBottom="10"
+                paddingTop="0"
+                paddingLeft="0"
+                paddingRight="0">
+            <mx:HSlider change="_onZoomChange(zoomFactorSlider.value)"
+                        id="zoomFactorSlider"
+                        liveDragging="false"
+                        maximum="4"
+                        minimum="{_minimumZoomFactor}"
+                        showDataTip="true"
+                        dataTipFormatFunction="{_scaleValueFormatter}"
+                        value="1"
+                        width="{Sizes.MEDIUM_SLIDER_WIDTH}"
+                        mouseWheel="_onMouseWheelZoom (event)"
+                        snapInterval="0.01"/>
+        </mx:Box>
+        <mx:Label id="zoomSliderValue"
+                  width="{Sizes.SMALL_BUTTON_WIDTH * 1.5}"
+                  textAlign="left"
+                  text="{ _scaleValueFormatter(zoomFactorSlider.value) }"/>
+
+        <!-- Fit to width -->
+        <mx:Button skin="{FitToWidthSkin}"
+                   id="fitToWidthBtn"
+                   toolTip="Fit width"
+                   click="_onFitToWidthClick(event)"/>
+
+        <!-- Fit selection in screen -->
+        <mx:Button skin="{FitSelectionSkin}"
+                   enabled="{_haveScoreSelection}"
+                   id="fitSelectedBtn"
+                   toolTip="Fit selection"
+                   click="_onFitSelectionClick(event)"/>
+    </mx:Box>
+
+    <!-- Carousel of "call to action" messages -->
+    <mx:Text id="callToAction"
+             y="{appMainContent.y + appMainContent.height + ((Sizes.MAIN_UI_BOTTOM_MARGIN - callToAction.height) * 0.4)}"
+             width="{width - Sizes.MAIN_UI_HORIZONTAL_MARGIN * 2}"
+             styleName="callToActionText">
+    </mx:Text>
+
+    <!-- The main UI -->
+    <mx:TabNavigator id="appMainContent"
+                     y="{appCtrlBar.y + appCtrlBar.height + Sizes.MAIN_UI_TOP_MARGIN}"
+                     height="{height - appMainContent.y - Sizes.MAIN_UI_BOTTOM_MARGIN}"
+                     x="{Sizes.MAIN_UI_HORIZONTAL_MARGIN}"
+                     paddingBottom="0"
+                     paddingLeft="0"
+                     paddingRight="0"
+                     paddingTop="0"
+                     styleName="blockSection"
+                     width="{width - Sizes.MAIN_UI_HORIZONTAL_MARGIN * 2}"
+                     backgroundAlpha="0.75">
+        <view1:TabView id="tabView"
+                       verticalScrollPolicy="off"
+                       horizontalScrollPolicy="off"/>
+    </mx:TabNavigator>
+
+    <!-- The component displaying application-wide prompts, e.g. warnings -->
+    <components:PromptUI height="100%"
+                         id="promptsUi"
+                         width="100%"
+                         x="0"
+                         y="0"/>
+</windows:BasicWindowRootContainer>

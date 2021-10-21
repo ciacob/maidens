@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication autoExit="false"
+                       frameRate="30"
+                       usePreloader="false"
+                       showStatusBar="false"
+                       width="580"
+                       height="300"
+                       preinitialize="_onPreinitialize(event)"
+                       initialize="_onInitialize (event)"
+                       xmlns:s="library://ns.adobe.com/flex/spark"
+                       xmlns:fx="http://ns.adobe.com/mxml/2009"
+                       xmlns:mx="library://ns.adobe.com/flex/mx">
+
+    <fx:Declarations>
+        <!-- Menu structure to serve as source of menu items -->
+        <fx:XML id="appMenudata">
+            <item>
+                <!-- File -->
+                <item label="{StaticTokens.FILE}">
+                    <item commandName="{MenuCommandNames.CREATE_NEW_PROJECT}"
+                          label="{StaticTokens.NEW}"/>
+                    <item commandName="{MenuCommandNames.CREATE_PROJECT_FROM_TEMPLATE}"
+                          label="{StaticTokens.NEW_FROM_TEMPLATE}"/>
+                    <item commandName="{MenuCommandNames.OPEN_EXISTING_PROJECT}"
+                          label="{StaticTokens.OPEN}..."/>
+                    <item type="separator"/>
+                    <item commandName="{MenuCommandNames.SAVE_PROJECT}"
+                          label="{StaticTokens.SAVE}"/>
+                    <item commandName="{MenuCommandNames.SAVE_PROJECT_AS}"
+                          label="{StaticTokens.SAVE_AS}..."/>
+                    <item type="separator"/>
+                    <item label="{StaticTokens.EXPORT}">
+                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_MIDI}"
+                              label="{StaticTokens.TO_MIDI_FILE}..."/>
+                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_ABC}"
+                              label="{StaticTokens.TO_ABC_NOTATION_FILE}..."/>
+                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_XML}"
+                              label="{StaticTokens.TO_XML_NOTATION_FILE}..."/>
+                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_PDF}"
+                              label="{StaticTokens.TO_PDF_FILE}..."/>
+                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_WAV}"
+                              label="{StaticTokens.TO_WAV_FILE}..."/>
+                    </item>
+                    <item type="separator"/>
+                    <item id="{MenuIds.QUIT_MENU_ITEM}" commandName="{MenuCommandNames.EXIT_APPLICATION}"
+                          label="{StaticTokens.EXIT}"/>
+                </item>
+
+                <!-- Edit -->
+                <item label="{StaticTokens.EDIT}">
+                    <item id="{MenuIds.UNDO_ITEM}" commandName="{MenuCommandNames.UNDO}" label=""/>
+                    <item id="{MenuIds.REDO_ITEM}" commandName="{MenuCommandNames.REDO}" label=""/>
+                    <item type="separator"/>
+                    <item id="{MenuIds.COPY_ITEM}" commandName="{MenuCommandNames.COPY}" label=""/>
+                    <item id="{MenuIds.CUT_ITEM}" commandName="{MenuCommandNames.CUT}" label=""/>
+                    <item id="{MenuIds.PASTE_ITEM}" commandName="{MenuCommandNames.PASTE}" label=""/>
+                </item>
+
+                <!-- View -->
+                <item label="{StaticTokens.VIEW}">
+                    <item id="{MenuIds.THEME_SUBMENU}" label="{StaticTokens.THEME}">
+                    </item>
+                </item>
+
+                <!-- Macros -->
+                <item label="{StaticTokens.MACROS}">
+                    <item id="{MenuIds.TRANSPOSE_ITEM}" commandName="{MenuCommandNames.TRANSPOSE}"
+                          label="{StaticTokens.TRANSPOSE}..."/>
+                    <item id="{MenuIds.SCALE_INTERVALS_ITEM}" commandName="{MenuCommandNames.SCALE_INTERVALS}"
+                          label="{StaticTokens.SCALE_INTERVALS}..."/>
+                </item>
+
+                <!-- Help -->
+                <item label="{StaticTokens.HELP}">
+                    <item id="{MenuIds.DOC_ITEM}" commandName="{MenuCommandNames.OPEN_DOCUMENTATION_URL}"
+                          label="{StaticTokens.DOCUMENTATION}"/>
+                    <item id="{MenuIds.CONTACT_ITEM}" commandName="{MenuCommandNames.OPEN_CONTACT_URL}"
+                          label="{StaticTokens.SEND_FEEDBACK}"/>
+                    <item type="separator"/>
+                    <item id="{MenuIds.NEWS_ITEM}" commandName="{MenuCommandNames.OPEN_NEWS_URL}"
+                          label="{StaticTokens.WHATS_NEW}"/>
+                </item>
+
+                <!-- DEBUG. Remove upon release -->
+                <!--
+                <item label="DEBUG">
+                    <item label="Show playback score" commandName="{MenuCommandNames.DEBUG_SHOW_PLAYBACK_SCORE}"/>
+                </item>
+                -->
+            </item>
+        </fx:XML>
+    </fx:Declarations>
+
+    <!-- Application Style -->
+    <fx:Style source="../../../maidens-ui-commons/src/eu/claudius/iacob/maidens/assets/common.css"/>
+
+    <fx:Script>
+        <![CDATA[
+        import com.greensock.TweenMax;
+
+        import mx.core.FlexGlobals;
+        import mx.events.FlexEvent;
+
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.desktop.windows.IWindowContent;
+        import ro.ciacob.desktop.windows.WindowActivity;
+        import ro.ciacob.desktop.windows.WindowStyle;
+        import ro.ciacob.desktop.windows.WindowsManager;
+        import ro.ciacob.maidens.controller.Controller;
+        import ro.ciacob.maidens.model.constants.StaticTokens;
+        import ro.ciacob.maidens.view.MainUi;
+
+        import eu.claudius.iacob.maidens.Colors;
+
+        import ro.ciacob.maidens.view.constants.MenuCommandNames;
+        import ro.ciacob.maidens.view.constants.MenuIds;
+
+        import eu.claudius.iacob.maidens.Sizes;
+
+        import ro.ciacob.maidens.view.constants.UiColorizationThemes;
+
+        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.math.Fraction;
+        import ro.ciacob.utils.Descriptor;
+        import ro.ciacob.utils.ScreenUtils;
+        import ro.ciacob.utils.Strings;
+        import ro.ciacob.utils.Time;
+
+        private var _mainWinUid:String;
+        private var _rootContent:Object
+        private var _wManager:WindowsManager;
+        private var _screenBounds:Rectangle;
+
+        /**
+         * Equivalent of a constructor function for MXML classes.
+         * @param event
+         */
+        private function _onPreinitialize(event:FlexEvent):void {
+
+            // Start loading the application after the splash screen has been drawn
+            addEventListener(FlexEvent.UPDATE_COMPLETE, _onUpdateComplete);
+
+            // Initialize the menu
+            // We use a custom menu. The custom menu is attached in class MainUi,
+            // in method `onInitialize()`.
+            FlexGlobals.topLevelApplication.appMenudata = appMenudata;
+
+            // Create root window content
+            _rootContent = new MainUi;
+
+            // Create main window.
+            _wManager = new WindowsManager;
+            _mainWinUid = _wManager.createWindow(IWindowContent(_rootContent), WindowStyle.MAIN_NO_FOOTER);
+            if (_mainWinUid != null) {
+                _wManager.observeWindowActivity(_mainWinUid, WindowActivity.BEFORE_DESTROY, _onDirectWindowClose, this);
+                _wManager.observeWindowActivity(_mainWinUid, WindowActivity.FOCUS, _onMainWindowShown, this);
+                _wManager.updateWindowMinSize(_mainWinUid, Sizes.MIN_MAIN_WINDOW_BOUNDS.width, Sizes.MIN_MAIN_WINDOW_BOUNDS.height);
+            } else {
+                throw(new Error('Window Manager could not create the main window.'));
+            }
+
+            // Listen for title change requests
+            PTT.getPipe().subscribe(ViewKeys.UPDATE_MAIN_TITLE, _onTitleUpdateRequested);
+        }
+
+        /**
+         * Executed when the main window content has been initialized but not laid out. The window is not
+         * visible at this point.
+         */
+        private function _onInitialize(event:FlexEvent):void {
+        }
+
+        /**
+         * Executed after the splash screen has been successfully drawn
+         */
+        private function _onUpdateComplete(event:FlexEvent):void {
+            removeEventListener(FlexEvent.UPDATE_COMPLETE, _onUpdateComplete);
+            _screenBounds = ScreenUtils.getAvailableScreenBoundsFor(this, true);
+
+            // Center the splash screen window
+            var winX:Number = _screenBounds.x + (_screenBounds.width - nativeWindow.width) * 0.5;
+            var winY:Number = _screenBounds.y + (_screenBounds.height - nativeWindow.height) * 0.5;
+            nativeWindow.x = winX;
+            nativeWindow.y = winY;
+
+            // Fit and center main app window to the main screen.
+            Time.delay(2, function ():void {
+
+                var appBounds:Rectangle = Sizes.FULL_HD_THRESHOLD_BOUNDS.clone();
+                if (appBounds.width > _screenBounds.width) {
+                    appBounds.width = _screenBounds.width;
+                }
+                if (appBounds.height > _screenBounds.height) {
+                    appBounds.height = _screenBounds.height;
+                }
+                appBounds.x = (_screenBounds.x + (_screenBounds.width - appBounds.width) * 0.5);
+                appBounds.y = (_screenBounds.y + (_screenBounds.height - appBounds.height) * 0.5);
+                _wManager.updateWindowBounds(_mainWinUid, appBounds);
+                _setMainWindowTitle();
+
+                // Initialize the application
+                // and show the main window
+                var controller:Controller = new Controller(DisplayObjectContainer(_rootContent), _wManager, _mainWinUid);
+
+                // Add the list of available themes to the View -> Themes menu
+                var themes:Array = UiColorizationThemes.getAllThemes();
+                _generateMenuItems (MenuIds.THEME_SUBMENU, themes.map (
+                        function (themeInfo:Object, ...etc):Object {
+                            return {
+                                'label': themeInfo.name,
+                                'command': MenuCommandNames.APPLY_THEME,
+                                'commandArguments': [themeInfo.key],
+                                'checked': (controller.currColorMatrix == themeInfo.matrix)
+                            };
+                        }
+                ));
+                _rootContent.alpha = 0;
+                _wManager.showWindow(_mainWinUid);
+                Time.delay(2, function ():void {
+                    TweenMax.to(_rootContent, 0.3, {alpha: 1});
+                });
+            });
+        }
+
+        /**
+         * Dynamically generates the items of a given sub-menu.
+         * @param   menuId
+         *          The "id" of the target sub-menu.
+         * @param   itemDescriptors
+         *          An Array with Objects having the following structure:
+         *          - 'label': String; value for the "label" attribute of the new menu item;
+         *          - 'checked': Boolean; whether to assign "true" to the item's "toggled" attribute;
+         *          - 'command': String; value for the "commandName" attribute;
+         *          - 'commandArguments': Array; will be joined with comma and set as the value of the
+         *             "commandArguments" attribute.
+         * This method changes the `appMenudata` XML structure in place; no value is returned.
+         */
+        private function _generateMenuItems (menuId:String, itemDescriptors:Array) : void {
+            var submenu:XML = appMenudata.descendants().(hasOwnProperty('@id') && @id == menuId)[0];
+            if (submenu) {
+                var i : int;
+                for (i = 0; i < itemDescriptors.length; i++) {
+                    var descriptor : Object = itemDescriptors[i];
+                    var itemSrc : String = '<item label="' + descriptor.label + '" commandName="' +
+                            descriptor.command + '" commandArguments="' +
+                            descriptor.commandArguments.join(',') + '" toggled="' +
+                            (descriptor.checked? 'true" type="check': 'false') + '" />';
+                    var itemXML : XML = XML(itemSrc);
+                    submenu.appendChild(itemXML);
+                }
+            }
+        }
+
+        private static function _onDirectWindowClose(uid:String):Boolean {
+            PTT.getPipe().send(ViewKeys.APP_EXIT_BUTTON_CLICK);
+            return false;
+        }
+
+        private function _onTitleUpdateRequested(title:String):void {
+            _setMainWindowTitle(title);
+        }
+
+        private function _setMainWindowTitle(title:String = null):void {
+            if (_wManager.isWindowAvailable(_mainWinUid)) {
+                title = Strings.trim(title);
+                title = title || _getDefaultTitle();
+                _wManager.updateWindowTitle(_mainWinUid, title);
+            }
+        }
+
+        /**
+         * Helper, returns the application title set in its descriptor XML file
+         */
+        private static function _getDefaultTitle():String {
+            return Descriptor.getAppSignature(true);
+        }
+
+        /**
+         * Executed when the main window is shown. Used to close the splash screen.
+         */
+        private function _onMainWindowShown(uid:String):void {
+            _wManager.stopObservingWindowActivity(_mainWinUid, WindowActivity.FOCUS, _onMainWindowShown);
+            Time.delay(1, nativeWindow.close);
+        }
+        ]]>
+    </fx:Script>
+
+    <!-- UI for the splash screen: background image and basic app info -->
+    <mx:Canvas id="splashImage"
+               width="{width}"
+               height="{height}"
+               styleName="tintorettoBackground"
+               chromeColor="{Colors.SPLASH_TEXT_BACKROUND}"/>
+    <mx:Label id="copyrightLabel"
+              text="by {Descriptor.getAppCopyright(false)}"
+              bottom="{Sizes.SPLASH_BOTTOM_MARGIN}"
+              right="{Sizes.SPLASH_RIGHT_MARGIN}"
+              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE}"
+              color="{Colors.SPLASH_TEXT_FOREGROUND}"/>
+    <mx:Label id="versionLabel"
+              text="{Descriptor.getAppVersion()}"
+              y="{copyrightLabel.y - versionLabel.height}"
+              right="{Sizes.SPLASH_RIGHT_MARGIN}"
+              color="{Colors.SPLASH_TEXT_FOREGROUND}"
+              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 1.5}"/>
+    <mx:Label id="appNameLabel"
+              text="{Descriptor.getAppSignature()}"
+              color="{Colors.SPLASH_TEXT_FOREGROUND}"
+              x="{versionLabel.x - appNameLabel.width}"
+              y="{copyrightLabel.y - appNameLabel.height * 0.9}"
+              fontWeight="bold"
+              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 4}"/>
+</s:WindowedApplication>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:NumericStepper xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:s="library://ns.adobe.com/flex/spark">
+	<fx:Declarations/>
+
+	<fx:Script>
+		<![CDATA[
+			import mx.core.IUITextField;
+			import mx.core.mx_internal;
+			import mx.events.FlexEvent;
+
+			use namespace mx_internal;
+
+			private var _formattingChanged:Boolean;
+			private var _formattingFunction:Function;
+
+			public function get formattingFunction():Function {
+				return _formattingFunction;
+			}
+
+			public function set formattingFunction(value:Function):void {
+				if (_formattingFunction != value) {
+					_formattingFunction = value;
+					_formattingChanged = true;
+					invalidateProperties();
+				}
+			}
+
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if (_formattingChanged) {
+					_formattingChanged = false;
+					if (_formattingFunction == null) {
+						removeEventListener(FlexEvent.VALUE_COMMIT, _onValueCommit);
+					} else {
+						addEventListener(FlexEvent.VALUE_COMMIT, _onValueCommit);
+					}
+					_formatValue();
+				}
+			}
+
+			override protected function createChildren():void {
+				super.createChildren();
+				mx_internal::inputField.editable = false;
+				prevButton.addEventListener(MouseEvent.CLICK, _onPrevClicked, false, 1000);
+				prevButton.addEventListener(FlexEvent.BUTTON_DOWN, _onPrevClicked, false, 1000);
+				nextButton.addEventListener(MouseEvent.CLICK, _onNextClicked, false, 1000);
+				nextButton.addEventListener(FlexEvent.BUTTON_DOWN, _onNextClicked, false, 1000);
+				inputField.addEventListener(FocusEvent.FOCUS_OUT, _onFocusOut, false, 1000);
+			}
+			
+			private function _onPrevClicked (event : Event) : void {
+				if (value <= minimum) {
+					event.stopImmediatePropagation();
+					event.preventDefault();
+				}
+			}
+			private function _onNextClicked (event : Event) : void {
+				if (value >= maximum) {
+					event.stopImmediatePropagation();
+					event.preventDefault();
+				}
+			}
+			
+			private function _onFocusOut (event : Event) : void {
+				if (value >= maximum || value <= minimum) {
+					event.stopImmediatePropagation();
+//					event.preventDefault();
+				}
+			}
+
+			private function _formatValue():void {
+				if (_formattingFunction != null) {
+					inputField.text = _formattingFunction(value);
+				}
+			}
+
+			private function _onValueCommit(event:FlexEvent):void {
+				_formatValue();
+			}
+		]]>
+	</fx:Script>
+</mx:NumericStepper>

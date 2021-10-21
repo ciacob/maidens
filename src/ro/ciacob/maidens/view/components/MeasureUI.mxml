@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<components:UIBase initialize="_onInitialize(event)"
+				   xmlns:components="ro.ciacob.maidens.view.components.*"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:s="library://ns.adobe.com/flex/spark">
+	<fx:Script>
+		<![CDATA[
+        import mx.core.UIComponent;
+        import mx.events.FlexEvent;
+        import mx.events.SliderEvent;
+
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.model.ProjectData;
+        import ro.ciacob.maidens.model.constants.DataFields;
+
+        import eu.claudius.iacob.maidens.Sizes;
+
+        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.math.Fraction;
+        import ro.ciacob.utils.constants.CommonStrings;
+
+        private static const DENOMINATORS_LIST:Array = [1, 2, 4, 8, 16, 32];
+        private static const NUMERATOR_MAXIMUM:Number = 16;
+        private static const NUMERATOR_MINIMUM:Number = 1;
+        private static const TIME_LABEL_WIDTH:Number = 42;
+
+        private var _barType:String;
+        private var _barTypes:Array;
+        private var _barTypesChanged:Boolean;
+        private var _beatDuration:uint;
+        private var _currentMeasureUid:String;
+        private var _hasOwnTimeSignature:Boolean;
+
+        private var _numBeats:uint;
+        private var _timeFractionChanged:Boolean;
+
+        override protected function applyOrigDataRoute(value:Object):void {
+            super.applyOrigDataRoute(value);
+            if (value is String) {
+                _currentMeasureUid = (value as String);
+            }
+        }
+
+        override protected function commitProperties():void {
+            super.commitProperties();
+
+            if (_barTypesChanged) {
+                _barTypesChanged = false;
+                var barTypesList:HorizontalList = HorizontalList(getControlByName(DataFields.BAR_TYPE));
+                barTypesList.dataProvider = _barTypes;
+                _updateBarTypesList();
+            }
+
+            if (_timeFractionChanged) {
+                _timeFractionChanged = false;
+                timeSignatureCheckbox.selected = _hasOwnTimeSignature;
+                _updateFractionSliders();
+                _updateFractionLabels();
+            }
+        }
+
+        override protected function populateUI(workingData:ProjectData):void {
+            // Populate the bar type
+            _barType = (workingData.getContent(DataFields.BAR_TYPE) as String);
+            _updateBarTypesList();
+
+            // Populate the time signature
+            _requireTimeSignatureData(_currentMeasureUid);
+        }
+
+        private function _commitMeasureTime(event:Event):void {
+            if (!isNaN(_numBeats) && !isNaN(_beatDuration) && timeSignatureCheckbox.selected) {
+                // Case (A): we HAVE a time signature explicitly defined for this
+                // measure
+                var fractionVal:String = (new Fraction(_numBeats, _beatDuration)).toString();
+                updateWorkingData(fractionVal, DataFields.TIME_FRACTION);
+                updateWorkingData(_numBeats, DataFields.BEATS_NUMBER);
+                updateWorkingData(_beatDuration, DataFields.BEAT_DURATION);
+            } else {
+                // Case (B): we DO NOT HAVE a time signature explicitly defined for
+                // this measure
+                updateWorkingData(DataFields.VALUE_NOT_SET, DataFields.TIME_FRACTION);
+                updateWorkingData(DataFields.VALUE_NOT_SET, DataFields.BEATS_NUMBER);
+                updateWorkingData(DataFields.VALUE_NOT_SET, DataFields.BEAT_DURATION);
+            }
+            onControlChanged(event);
+        }
+
+        private function _getDenSnapInterval():Number {
+            return ((denominatorSlider.maximum - denominatorSlider.minimum) / (DENOMINATORS_LIST.length - 1));
+        }
+
+        private function _getNumSnapInterval():Number {
+            return ((numeratorSlider.maximum - numeratorSlider.minimum) / (NUMERATOR_MAXIMUM - 1));
+        }
+
+        private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
+            if (subpanel == this) {
+                removeStandardControls();
+                PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+                PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+                PTT.getPipe().unsubscribe(ViewKeys.BAR_TYPES_LIST, _onBarTypesListReady);
+                PTT.getPipe().unsubscribe(ViewKeys.TIME_SIGNATURE_DATA_READY, _onTimeSignatureDataReady);
+                PTT.getPipe().unsubscribe(ViewKeys.MEASURE_NUMBER_CONVERTED_TO_UID, _onMsNumToUidReady);
+            }
+        }
+
+        private function _onBarTypesListReady(barTypes:Array):void {
+            _barTypes = barTypes;
+            _barTypesChanged = true;
+            invalidateProperties();
+        }
+
+        private function _onDenSliderChange(event:SliderEvent):void {
+            if (event.clickTarget != null) {
+                var slider:HSlider = (event.target as HSlider);
+                var percentage:Number = slider.value;
+                _beatDuration = _computeDenominator(percentage);
+                _updateFractionLabels();
+                _commitMeasureTime(event);
+            }
+        }
+
+        /**
+         * Converts a given percentage (expressed as a Number from 0 to 1)
+         * into a fraction denominator that can be used to express the
+         * nominal time signature of the current measure.
+         */
+        private function _computeDenominator(percentage:Number):uint {
+            var index:int = Math.round(percentage * (DENOMINATORS_LIST.length - 1));
+            return (DENOMINATORS_LIST[index] as Number);
+        }
+
+        /**
+         * Formats the "tip", or hint that is displayed above the denominator slider, as it is dragged
+         */
+        private function _denominatorDataTipFunction(currentValue:Number):String {
+            return _computeDenominator(currentValue).toString();
+        }
+
+        private function _onInitialize(event:FlexEvent):void {
+            addStandardControls();
+
+            // Subscribe to termination signal
+            PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+
+            // Subscribe to data regarding the current project tree selection
+            PTT.getPipe().subscribe(ViewKeys.RESET, reset);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+
+            // Subscribe to data responses
+            PTT.getPipe().subscribe(ViewKeys.BAR_TYPES_LIST, _onBarTypesListReady);
+            PTT.getPipe().subscribe(ViewKeys.MEASURE_NUMBER_CONVERTED_TO_UID, _onMsNumToUidReady);
+
+            // Request static data
+            PTT.getPipe().send(ViewKeys.NEED_BAR_TYPES_LIST);
+        }
+
+        private function _onMsNumToUidReady(data:Object):void {
+            var measureUid:String = data[ViewKeys.RESULTING_MEASURE_UID];
+            if (measureUid == null) {
+                measureUid = DataFields.VALUE_NOT_SET;
+            }
+            var targetFieldName:String = data[ViewKeys.TARGET_FIELD_NAME];
+            updateWorkingData(measureUid, targetFieldName);
+        }
+
+        private function _onNumSliderChange(event:SliderEvent):void {
+            if (event.clickTarget != null) {
+                var slider:HSlider = (event.target as HSlider);
+                var percentage:Number = slider.value;
+                _numBeats = _computeNumerator(percentage);
+                _updateFractionLabels();
+                _commitMeasureTime(event);
+            }
+        }
+
+        /**
+         * Converts a given percentage (expressed as a Number from 0 to 1)
+         * into a fraction numerator that can be used to express the
+         * nominal time signature of the current measure.
+         */
+        private function _computeNumerator(percentage:Number):uint {
+            var range:Number = (NUMERATOR_MAXIMUM - NUMERATOR_MINIMUM);
+            return NUMERATOR_MINIMUM + Math.round(range * percentage);
+        }
+
+        /**
+         * Formats the "tip", or hint that is displayed above the numerator slider, as it is dragged
+         */
+        private function _numeratorDataTipFunction(currentValue:Number):String {
+            return _computeNumerator(currentValue).toString()
+        }
+
+        private function _onTimeSignatureDataReady(data:Object):void {
+            PTT.getPipe().unsubscribe(ViewKeys.TIME_SIGNATURE_DATA_READY, _onTimeSignatureDataReady);
+            _hasOwnTimeSignature = (data[ViewKeys.HAS_OWN_TIME_SIGNATURE]);
+            _numBeats = (data[DataFields.BEATS_NUMBER] as uint);
+            _beatDuration = (data[DataFields.BEAT_DURATION] as uint);
+            _timeFractionChanged = true;
+            invalidateProperties();
+        }
+
+        private function _requireMsNumConversion(targetFieldName:String, measureNumber:int):void {
+            var data:Object = {};
+            data[ViewKeys.TARGET_FIELD_NAME] = targetFieldName;
+            data[ViewKeys.MEASURE_NUMBER_TO_CONVERT] = measureNumber;
+            PTT.getPipe().send(ViewKeys.CONVERT_MEASURE_NUMBER_TO_UID, data);
+        }
+
+        private function _requireMsUidConversion(targetFieldName:String, measureUid:String):void {
+            var data:Object = {};
+            data[ViewKeys.TARGET_FIELD_NAME] = targetFieldName;
+            data[ViewKeys.MEASURE_UID_TO_CONVERT] = measureUid;
+            PTT.getPipe().send(ViewKeys.CONVERT_UID_TO_MEASURE_NUMBER, data);
+        }
+
+        private function _requireTimeSignatureData(measureDataUid:String):void {
+            PTT.getPipe().subscribe(ViewKeys.TIME_SIGNATURE_DATA_READY, _onTimeSignatureDataReady);
+            PTT.getPipe().send(ViewKeys.NEED_TIME_SIGNATURE_DATA, measureDataUid);
+        }
+
+        private function _updateBarTypesList():void {
+            var barTypesList:HorizontalList = HorizontalList(getControlByName(DataFields.BAR_TYPE));
+            if (barTypesList.dataProvider != null && _barType != null) {
+                barTypesList.selectedItem = _barType;
+            }
+        }
+
+        private function _updateFractionLabels():void {
+            numeratorLabel.text = (!isNaN(_numBeats)) ? _numBeats.toString() : CommonStrings.ELLIPSIS;
+            denominatorLabel.text = (!isNaN(_beatDuration)) ? _beatDuration.toString() : CommonStrings.ELLIPSIS;
+        }
+
+        private function _updateFractionSliders():void {
+            if (!isNaN(_numBeats)) {
+                var numeratorRange:Number = (NUMERATOR_MAXIMUM - NUMERATOR_MINIMUM);
+                var numPercentage:Number = ((_numBeats - NUMERATOR_MINIMUM) / numeratorRange);
+                numeratorSlider.value = numPercentage;
+            }
+            if (!isNaN(_beatDuration)) {
+                var equivalentIndex:int = DENOMINATORS_LIST.indexOf(_beatDuration);
+                var denPercentage:Number = (equivalentIndex / (DENOMINATORS_LIST.length - 1));
+                denominatorSlider.value = denPercentage;
+            }
+        }
+        ]]>
+	</fx:Script>
+	<fx:Declarations/>
+
+	<mx:Label styleName="editorHeader"
+			  text="Measure"
+			  width="100%"/>
+
+	<!-- Bar type -->
+	<mx:Label styleName="editorLabel"
+			  text="Bar type:"/>
+	<mx:HorizontalList change="{onControlChanged(event)}"
+					   columnWidth="{Sizes.SMALL_TILE_SIZE}"
+					   fontSize="{Sizes.SMALL_TILE_SIZE * 0.72}"
+					   initialize="{registerUIControl(event, DataFields.BAR_TYPE)}"
+					   paddingBottom="0"
+					   paddingLeft="0"
+					   paddingRight="0"
+					   paddingTop="0"
+					   rowHeight="{Sizes.SMALL_TILE_SIZE}"
+					   styleName="thickText"
+					   width="100%"/>
+
+	<!-- Time signature -->
+	<mx:Label styleName="editorLabel"
+			  text="Time Signature"/>
+	<mx:CheckBox change="{_commitMeasureTime(event)}"
+				 id="timeSignatureCheckbox"
+				 label="Set explicit time signature:"
+				 styleName="editorLabel"/>
+
+	<mx:HBox horizontalGap="0"
+			 verticalAlign="top"
+			 width="100%">
+		<mx:HSlider change="_onNumSliderChange(event)"
+					enabled="{timeSignatureCheckbox.selected}"
+					id="numeratorSlider"
+					liveDragging="false"
+					maximum="1"
+					minimum="0"
+					showDataTip="true"
+					snapInterval="{_getNumSnapInterval()}"
+					dataTipFormatFunction="_numeratorDataTipFunction"
+					width="100%"/>
+		<mx:Label id="numeratorLabel"
+				  enabled="{timeSignatureCheckbox.selected}"
+				  styleName="timeSignatureDigit"
+				  text="{CommonStrings.ELLIPSIS}"
+				  textAlign="center"
+				  width="{TIME_LABEL_WIDTH}"/>
+
+	</mx:HBox>
+	<mx:HBox horizontalGap="0"
+			 verticalAlign="top"
+			 width="100%">
+		<mx:HSlider change="_onDenSliderChange(event)"
+					enabled="{timeSignatureCheckbox.selected}"
+					id="denominatorSlider"
+					liveDragging="false"
+					maximum="1"
+					minimum="0"
+					showDataTip="true"
+					snapInterval="{_getDenSnapInterval()}"
+					dataTipFormatFunction="_denominatorDataTipFunction"
+					width="100%"/>
+		<mx:Label id="denominatorLabel"
+				  enabled="{timeSignatureCheckbox.selected}"
+				  styleName="timeSignatureDigit"
+				  text="{CommonStrings.ELLIPSIS}"
+				  textAlign="center"
+				  width="{TIME_LABEL_WIDTH}"/>
+	</mx:HBox>
+
+</components:UIBase>

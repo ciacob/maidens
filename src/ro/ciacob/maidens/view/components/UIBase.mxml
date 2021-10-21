@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 initialize="_onInitialize(event)"
+		 paddingTop="5"
+		 paddingBottom="5"
+		 paddingLeft="5"
+		 paddingRight="5"
+		 width="100%"
+		 verticalGap="2"
+		 height="100%">
+	<fx:Declarations/>
+
+	<fx:Script>
+		<![CDATA[
+			import mx.controls.CheckBox;
+			import mx.controls.ComboBox;
+			import mx.controls.HorizontalList;
+			import mx.controls.Label;
+			import mx.controls.RadioButtonGroup;
+			import mx.controls.TextArea;
+			import mx.controls.TextInput;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			
+			import ro.ciacob.desktop.data.constants.DataKeys;
+			import ro.ciacob.desktop.operation.Procrastinator;
+			import ro.ciacob.desktop.signals.PTT;
+			import ro.ciacob.maidens.model.ProjectData;
+			import ro.ciacob.maidens.model.constants.Common;
+			import ro.ciacob.maidens.view.constants.ViewKeys;
+
+			private static const QUICK_CHANGES_DELAY:int=1000;
+
+			private var _dataSetChanged:Boolean;
+			private var _originatingDataRoute:String;
+			private var _standardControls:UIComponent;
+			private var _quickChangesProcrastinator:Procrastinator;
+			private var _uiControls:Object={};
+			private var _workingDataSet:ProjectData;
+
+			public function get standardControls():UIComponent
+			{
+				return _standardControls;
+			}
+
+			/**
+			 * Adds and hooks up a group of controls that provide common features,
+			 * such as the ability to apply changes or reset all controls to the
+			 * values currently in the dataset.
+			 *
+			 * Not overridable.
+			 */
+			protected final function addStandardControls():void
+			{
+			}
+
+			/**
+			 * Call this from your superclass if you get sent data with the key
+			 * ViewKeys.ORIGINATING_DATA_ROUTE;
+			 */
+			protected function applyOrigDataRoute(value:Object):void
+			{
+				_originatingDataRoute=(value as String);
+			}
+
+			/**
+			 * Use in subclasses, as a subscriber to the pipe(s) that circulate elements
+			 * from the Controller to the editor.
+			 */
+			protected function applyWorkingData(value:Object):void
+			{
+				if (_workingDataSet == null)
+				{
+					_workingDataSet=ProjectData(value);
+
+				}
+				_dataSetChanged=true;
+				invalidateProperties();
+			}
+
+			/**
+			 * Lets subclasses directly cause any pending changes to the datamodel to update the
+			 * MusicViewer, Editor and ProjectStructure.
+			 */
+			protected function applyChanges() : void {
+				_applyChanges()
+			}
+
+			override protected function commitProperties():void
+			{
+				super.commitProperties();
+				if (_dataSetChanged)
+				{
+					_dataSetChanged=false;
+					populateUI(_workingDataSet);
+				}
+			}
+
+			/**
+			 * Returns a previously registered control, by the name used at its
+			 * registration.
+			 *
+			 * Not overridable.
+			 */
+			protected final function getControlByName(name:String):*
+			{
+				return _uiControls[name];
+			}
+
+			/**
+			 * Returns the name of a previously registered control (the reverse of
+			 * `getControlByName`).
+			 *
+			 * Not overridable.
+			 */
+			protected final function getControlName(control:Object):String
+			{
+				for (var key:String in _uiControls)
+				{
+					var currControl:Object=_uiControls[key];
+					if (currControl === control)
+					{
+						return key;
+					}
+				}
+				return null;
+			}
+
+			protected final function notifyDataSetChanged():void
+			{
+				_dataSetChanged=true;
+				invalidateProperties();
+			}
+
+			/**
+			 * Intended to be used as listener function to the relevant event
+			 * of each and every control employed by an UI, e.g., as the listener
+			 * to the `change` event of a TextInput control.
+			 *
+			 * Not overridable.
+			 */
+			protected final function onControlChanged(event:Event, quickFire : Boolean = false):void
+			{
+				var controlUI:Object=event.target;
+				var controlName:String=getControlName(controlUI);
+				_storeControlValue(controlUI, controlName);
+				
+				if (!quickFire) {
+					// We want to back-off from swiftly responding to quick changes, especially 
+					// those coming from a few types of controls that are prone to produce them.
+					var ctrlClass : Object = controlUI.constructor;
+					if (ctrlClass == TextInput || 
+						ctrlClass == TextArea || 
+						ctrlClass == NonEditableNumericStepper ||
+						ctrlClass == ComboBox) {
+						_quickChangesProcrastinator.procrastinate();
+						return;
+					}
+				}
+				_applyChanges();
+			}
+
+			/**
+			 * Intended to be used for rendering the dataset to the end user.
+			 * A typical implementation will populate each control with its
+			 * current, appropriate value from the dataset.
+			 */
+			protected function populateUI(data:ProjectData):void
+			{
+				// SUBCLASSES must override.
+			}
+
+			/**
+			 * Registeres a control to a given name. It is expected to use the
+			 * name of the dataset field the control relates to.
+			 *
+			 * Not overridable.
+			 */
+			protected final function registerUIControl(event:Event, name:String):void
+			{
+				var control:*=event.target;
+				_uiControls[name]=control;
+			}
+
+			/**
+			 * Un-hooks and removes the `standard controls` group, explicitely. To
+			 * be called before disposing off the component, to ensure proper operation
+			 * of PTT in the future (or else, ghost subscriptions may still remain
+			 * active and cause erratic behavior).
+			 */
+			protected final function removeStandardControls():void
+			{
+			}
+
+			protected function reset(... args):void
+			{
+				_workingDataSet=null;
+				_originatingDataRoute=null;
+				_dataSetChanged=true;
+				invalidateProperties();
+			}
+
+			/**
+			 * @deprecate
+			 * NOT USED ANYMORE, TO BE REMOVED
+			 * 
+			 * Triggered when the status of the UI changes data-wise. There are two
+			 * possible statuses:
+			 * 1) There is no modification: all controls reflect the data contained
+			 *    by the dataset.
+			 * 2) There are modifications: at least one control reflect data that
+			 *    is different from what the dataset contains.
+			 *
+			 * Overridable. The typical implementation will enable the "commit"
+			 * command when there are changes to be commited, or disable it when
+			 * they aren't.
+			 *
+			 * @param	status
+			 * 			One of DataStatus.UNCHANGED, DataStatus.CHANGED_AND_VALID,
+			 * 			DataStatus.CHANGED_BUT_INVALID.
+			 */
+			protected function updateStatus(status:String):void
+			{
+				// SUBCLASSES must override.
+			}
+
+			/**
+			 * Triggered when user's interraction with a control produces a data
+			 * change that needs to be sent into the working dataset (the working
+			 * dataset is a copy of the original dataset that permanently reflects
+			 * all user changes).
+			 *
+			 * Not overridable.
+			 */
+			protected final function updateWorkingData (data : Object, key : String) : void {
+				if (_workingDataSet.hasContentKey(key)) {
+					_workingDataSet.setContent(key, data);
+				}
+			}
+
+			/**
+			 * Updates the underlying dataset with given values.
+			 * 
+			 * Especially relevant when a Generator gets selected inside the "Binding"
+			 * combo box. In this scenario it causes the "blank", or "generic" generator
+			 * record to be updated with the specifics of the selected Generator.
+			 */
+			protected final function updateWorkingDataSet(dataset:ProjectData):void {
+				var keysList : Array = dataset.getContentKeys();
+				for (var i:int = 0; i < keysList.length; i++) {
+					var key : String = keysList[i];
+					var data : Object = dataset.getContent(key);
+					updateWorkingData (data, key);
+				}
+			}
+
+			/**
+			 * Commits user changes into the data model
+			 */
+			private function _applyChanges(... args):void
+			{	
+				var content:Object={};
+				content[ViewKeys.COMMITTED_DATA]=_workingDataSet;
+				content[ViewKeys.EDITED_ELEMENT_ROUTE]=_originatingDataRoute;
+				PTT.getPipe().send(ViewKeys.COMMITTING_USER_CHANGES, content);
+			}
+
+			private function _onInitialize(event:FlexEvent):void {
+				_quickChangesProcrastinator=new Procrastinator(_applyChanges, QUICK_CHANGES_DELAY);
+			}
+
+			private function _storeControlValue(controlUI:*, storageKey:String):void
+			{
+				var controlType:Class=Object(controlUI).constructor;
+				var userData:Object=null;
+				var selItem:Object;
+				switch (controlType)
+				{
+					case Label:
+						userData=Label(controlUI).data;
+						break;
+					case TextInput:
+						userData=TextInput(controlUI).text;
+						break;
+					case TextArea:
+						userData=TextArea(controlUI).text;
+						break;
+					case ComboBox:
+						selItem=ComboBox(controlUI).selectedItem;
+						if (DataKeys.METADATA in selItem)
+						{
+							userData=selItem[DataKeys.METADATA];
+						}
+						else if (Common.VALUE in selItem)
+						{
+							userData=selItem[Common.VALUE];
+						}
+						else
+						{
+							userData=selItem;
+						}
+						break;
+					case NonEditableNumericStepper:
+						userData=NonEditableNumericStepper(controlUI).value;
+						break;
+					case HorizontalList:
+					case CustomHorizontalList:
+						selItem=HorizontalList(controlUI).selectedItem;
+						if (Common.VALUE in selItem)
+						{
+							userData=selItem[Common.VALUE];
+						}
+						else
+						{
+							userData=selItem;
+						}
+						break;
+					case PickupComponent:
+						userData=PickupComponent(controlUI).pickedUpItems;
+						break;
+					case RadioButtonGroup:
+						userData=RadioButtonGroup(controlUI).selectedValue;
+						break;
+					case CheckBox:
+						userData=CheckBox(controlUI).selected;
+						break;
+				}
+				updateWorkingData(userData, storageKey);
+			}
+		]]>
+	</fx:Script>
+</mx:VBox>

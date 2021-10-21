@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas horizontalScrollPolicy="off"
+           verticalScrollPolicy="off"
+           xmlns:fx="http://ns.adobe.com/mxml/2009"
+           xmlns:mx="library://ns.adobe.com/flex/mx">
+    <fx:Declarations/>
+
+    <fx:Style>
+        @namespace s "library://ns.adobe.com/flex/spark";
+        @namespace mx "library://ns.adobe.com/flex/mx";
+
+        .utils {
+            cornerRadius: 0;
+        }
+    </fx:Style>
+
+    <fx:Script>
+		<![CDATA[
+        import com.greensock.TweenLite;
+
+        import mx.controls.Button;
+        import mx.events.FlexEvent;
+
+        import ro.ciacob.maidens.view.constants.ButtonLabels;
+        import ro.ciacob.maidens.view.constants.ButtonUids;
+
+        import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Sizes;
+
+        import ro.ciacob.utils.Time;
+
+        private static const ANIMATION_TIME:Number = Time.SHORT_DURATION / 1000;
+        private static const AUTOCLOSE_CHECK_DELAY:int = 80;
+        private static const AUTO_CLOSE_MONITOR_HEIGHT:Number = 6;
+        private static const AUTO_CLOSE_MONITOR_WIDTH:Number = 18;
+        private static const MARGIN:Number = 12;
+        private static const MONITOR_MARGIN:Number = 10;
+        private static const MIN_TIME_TO_SHOW:int = 4250;
+        private static const TIME_NEEDED_PER_CHAR:int = 70;
+
+        [Bindable]
+        public var percentVisible:Number = 0;
+
+        [Bindable]
+        private var _autoCloseTimer:Timer;
+
+        [Bindable]
+        private var _haveButtons:Boolean;
+
+        [Bindable]
+        private var _buttonUids:Array = [];
+        private var _backgroundChanged:Boolean;
+        private var _backgroundColor:uint;
+        private var _buttonUidsChanged:Boolean;
+        private var _callback:Function;
+        private var _text:String;
+        private var _textChanged:Boolean;
+
+        /**
+         * Accepts one of the constant values defined in class PromptColors.
+         */
+        public function set backgroundColor(colorUid:String):void {
+            _backgroundColor = (Colors[colorUid] || 0);
+            _backgroundChanged = true;
+            invalidateProperties();
+        }
+
+        public function set buttonUids(value:Array):void {
+            _buttonUids = value || [];
+            _buttonUidsChanged = true;
+            invalidateProperties();
+        }
+
+        public function set callback(value:Function):void {
+            _callback = value;
+        }
+
+        public function hide(bypassAnimation:Boolean = false):void {
+            _collapse();
+            if (bypassAnimation) {
+                percentVisible = 0;
+            }
+        }
+
+        public function show(bypassAnimation:Boolean = false):void {
+            hide(true);
+            _expand();
+            if (bypassAnimation) {
+                percentVisible = 1;
+            }
+        }
+
+        public function set text(value:String):void {
+            _text = value;
+            _textChanged = true;
+            invalidateProperties();
+        }
+
+        protected function _onButtonClick(event:MouseEvent):void {
+            var target:Button = (event.target as Button);
+            if (target != null) {
+                if (target.label == ButtonLabels.OK_BUTTON || target.label ==
+                        ButtonLabels.YES_BUTTON) {
+                    if (_callback != null) {
+                        _callback();
+                    }
+                }
+                _collapse();
+            }
+        }
+
+        protected function _onPinClick(event:MouseEvent):void {
+            _uninitializeTimer();
+        }
+
+        override protected function commitProperties():void {
+            super.commitProperties();
+            var isChanged:Boolean = false;
+            if (_backgroundChanged) {
+                _backgroundChanged = false;
+                displayPanel.setStyle('backgroundColor', _backgroundColor);
+                isChanged = true;
+            }
+            if (_buttonUidsChanged) {
+                _buttonUidsChanged = false;
+                _rebuildButtons(_buttonUids);
+                isChanged = true;
+            }
+            if (_textChanged) {
+                _textChanged = false;
+                message.text = _text;
+                isChanged = true;
+            }
+            if (isChanged) {
+                _handleAutoClosing();
+            }
+        }
+
+        private function _collapse():void {
+            TweenLite.to(this, ANIMATION_TIME, {'percentVisible': 0});
+        }
+
+        private function _expand():void {
+            TweenLite.to(this, ANIMATION_TIME, {'percentVisible': 1, 'delay': 0.1});
+        }
+
+        private function _handleAutoClosing():void {
+            if (!_haveButtons) {
+                var alphaNumChars:Array = message.text.match(/\w/g);
+                var timeNeededToRead:int = Math.max(alphaNumChars.length * TIME_NEEDED_PER_CHAR,
+                        MIN_TIME_TO_SHOW)
+                _resetTimer(timeNeededToRead);
+            }
+        }
+
+        private function _initializeTimer(delay:int):void {
+            var numCounts:Number = Math.ceil(delay / AUTOCLOSE_CHECK_DELAY);
+            _autoCloseTimer = new Timer(AUTOCLOSE_CHECK_DELAY, numCounts);
+            _autoCloseTimer.addEventListener(TimerEvent.TIMER, _onAutoCloseTimerTick);
+            _autoCloseTimer.addEventListener(TimerEvent.TIMER_COMPLETE, _onAutoCloseTimerComplete);
+            _autoCloseTimer.start();
+        }
+
+        private function _onAutoCloseTimerComplete(event:TimerEvent):void {
+            _uninitializeTimer();
+            _collapse();
+        }
+
+        private function _onAutoCloseTimerTick(event:Event):void {
+            var percentCompleted:Number = (_autoCloseTimer.currentCount / _autoCloseTimer.repeatCount);
+            _redrawAutoCloseMonitor(percentCompleted);
+        }
+
+        private function _onButtonsContainerRedrawn(event:FlexEvent):void {
+            buttonsContainer.removeEventListener(FlexEvent.UPDATE_COMPLETE, _onButtonsContainerRedrawn);
+            var button:Button;
+            var maxW:Number = 0;
+            for (var i:int = 0; i < buttonsContainer.numChildren; i++) {
+                button = (buttonsContainer.getChildAt(i) as Button);
+                if (button != null) {
+                    var buttonW:Number = button.width;
+                    if (buttonW > maxW) {
+                        maxW = buttonW;
+                    }
+                }
+            }
+            for (var j:int = 0; j < buttonsContainer.numChildren; j++) {
+                button = (buttonsContainer.getChildAt(j) as Button);
+                if (button != null) {
+                    button.width = maxW;
+                }
+            }
+        }
+
+        private function _onForceCloseClick(event:MouseEvent):void {
+            _uninitializeTimer();
+            _collapse();
+        }
+
+        private function _rebuildButtons(buttonUids:Array):void {
+            _haveButtons = false;
+            buttonsContainer.removeAllChildren();
+            if (buttonUids != null) {
+                buttonUids.sort();
+                for (var i:int = 0; i < buttonUids.length; i++) {
+                    var buttonUid:String = buttonUids[i];
+                    var label:String;
+                    switch (buttonUid) {
+                        case ButtonUids.YES_BUTTON:
+                            _haveButtons = true;
+                            label = ButtonLabels.YES_BUTTON;
+                            break;
+                        case ButtonUids.OK_BUTTON:
+                            _haveButtons = true;
+                            label = ButtonLabels.OK_BUTTON;
+                            break;
+                        case ButtonUids.NO_BUTTON:
+                            _haveButtons = true;
+                            label = ButtonLabels.NO_BUTTON;
+                            break;
+                        case ButtonUids.CANCEL_BUTTON:
+                            _haveButtons = true;
+                            label = ButtonLabels.CANCEL_BUTTON;
+                            break;
+                    }
+                    var button:Button = new Button;
+                    button.label = label;
+                    button.styleName = 'skinnedButton';
+                    buttonsContainer.addChild(button);
+                }
+                buttonsContainer.addEventListener(FlexEvent.UPDATE_COMPLETE,
+                        _onButtonsContainerRedrawn);
+            }
+        }
+
+        private function _redrawAutoCloseMonitor(percent:Number):void {
+            var color:uint = Colors.PROMPT_UI_FRONT_COLOR;
+            var maxFillW:Number = (AUTO_CLOSE_MONITOR_WIDTH - 4);
+            var fillW:Number = maxFillW - maxFillW * percent;
+            var fillH:Number = (AUTO_CLOSE_MONITOR_HEIGHT - 4);
+            var g:Graphics = autoCloseMonitor.graphics;
+            g.clear();
+            g.lineStyle(1, color);
+            g.drawRect(0, 0, AUTO_CLOSE_MONITOR_WIDTH, AUTO_CLOSE_MONITOR_HEIGHT);
+            g.beginFill(color);
+            g.drawRect(2, 2, fillW, fillH);
+            g.endFill();
+        }
+
+        private function _resetTimer(delay:int):void {
+            if (_autoCloseTimer != null) {
+                _uninitializeTimer();
+            }
+            _initializeTimer(delay);
+        }
+
+        private function _uninitializeTimer():void {
+            if (_autoCloseTimer != null) {
+                _autoCloseTimer.stop();
+                _autoCloseTimer.removeEventListener(TimerEvent.TIMER, _onAutoCloseTimerTick);
+                _autoCloseTimer.removeEventListener(TimerEvent.TIMER_COMPLETE,
+                        _onAutoCloseTimerComplete);
+                _autoCloseTimer = null;
+            }
+        }
+        ]]>
+	</fx:Script>
+
+    <mx:Canvas horizontalScrollPolicy="off"
+               id="displayPanel"
+               minHeight="{Sizes.MAIN_UI_BOTTOM_MARGIN}"
+               verticalScrollPolicy="off"
+               width="{width}"
+               x="0"
+               y="{height - displayPanel.height * percentVisible}">
+
+        <!-- Close button -->
+        <mx:LinkButton click="_onForceCloseClick(event)"
+                       id="forceCloseButton"
+                       label="Ł"
+                       styleName="utils"
+					   color="{Colors.PROMPT_UI_FRONT_COLOR}"
+                       visible="{!_haveButtons}"
+                       x="{displayPanel.width - MARGIN - forceCloseButton.width}"
+                       y="0"/>
+
+        <!-- Pin button -->
+        <mx:LinkButton click="_onPinClick(event)"
+                       id="pinButton"
+                       label="ł"
+                       styleName="utils"
+					   color="{Colors.PROMPT_UI_FRONT_COLOR}"
+                       visible="{_autoCloseTimer &amp;&amp; !_haveButtons}"
+                       x="{displayPanel.width - MARGIN * 0.5 - forceCloseButton.width - pinButton.width}"
+                       y="0"/>
+
+        <!-- Auto-close timer monitor -->
+        <mx:Canvas height="{AUTO_CLOSE_MONITOR_HEIGHT}"
+                   id="autoCloseMonitor"
+                   visible="{_autoCloseTimer &amp;&amp; !_haveButtons}"
+                   width="{AUTO_CLOSE_MONITOR_WIDTH}"
+                   x="{displayPanel.width - MARGIN - forceCloseButton.width - pinButton.width - autoCloseMonitor.width - MONITOR_MARGIN}"
+                   y="{pinButton.y + (pinButton.height - autoCloseMonitor.height) * 0.5}">
+        </mx:Canvas>
+
+        <mx:Label text="timer"
+                  color="{Colors.PROMPT_UI_FRONT_COLOR}"
+                  id="autoCloseLabel"
+                  visible="{_autoCloseTimer &amp;&amp; !_haveButtons}"
+                  x="{autoCloseMonitor.x - autoCloseLabel.width}"
+                  y="{pinButton.y + (pinButton.height - autoCloseLabel.height) * 0.5}"/>
+
+        <mx:Text click="{Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, message.text)}"
+                 color="{Colors.PROMPT_UI_FRONT_COLOR}"
+                 id="message"
+                 selectable="false"
+                 textAlign="left"
+                 toolTip="click to copy to clipboard"
+                 maxWidth="{displayPanel.width - buttonsContainer.width - MARGIN * 3}"
+                 x="{((displayPanel.width - buttonsContainer.width - MARGIN * 3) - message.width) * 0.5}"
+                 y="{Math.max(MARGIN, (displayPanel.height - message.height) * 0.5)}"/>
+
+        <mx:HBox click="_onButtonClick(event)"
+                 id="buttonsContainer"
+                 x="{message.x + message.width + MARGIN}"
+                 y="{Math.max(MARGIN, (displayPanel.height - buttonsContainer.height) * 0.5)}"/>
+        <mx:Spacer height="{MARGIN}"
+                   x="0"
+                   y="{message.y + message.height}"/>
+    </mx:Canvas>
+</mx:Canvas>

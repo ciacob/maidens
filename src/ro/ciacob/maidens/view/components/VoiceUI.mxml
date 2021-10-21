@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<components:UIBase initialize="_onInitialize(event)"
+				   xmlns:components="ro.ciacob.maidens.view.components.*"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:s="library://ns.adobe.com/flex/spark">
+	<fx:Script>
+		<![CDATA[
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			
+			import ro.ciacob.desktop.signals.PTT;
+			import ro.ciacob.maidens.model.ProjectData;
+			import ro.ciacob.maidens.model.constants.Common;
+			import ro.ciacob.maidens.model.constants.DataFields;
+			import ro.ciacob.maidens.model.constants.StaticTokens;
+			import ro.ciacob.maidens.view.constants.ViewKeys;
+			import ro.ciacob.utils.NumberUtil;
+			import ro.ciacob.utils.constants.CommonStrings;
+
+			[Bindable]
+			private var _numMaxVoices : int = 0;
+			
+			[Bindable]
+			private var _staffIndex : String;
+			
+			[Bindable]
+			private var _voiceIndex : String;
+			
+			private var _stavesList : Array;
+			private var _voicesList : Array;
+			private var _voice : ProjectData;
+
+			override protected function populateUI(workingData:ProjectData):void {
+				_voice = workingData;
+				
+				// Staff index
+				var staffIndex : int = workingData.getContent(DataFields.STAFF_INDEX);
+				_updateStaffIndexInfo (staffIndex);
+
+				// Voice index
+				var voiceIndex:int = workingData.getContent(DataFields.VOICE_INDEX);
+				_updateVoiceIndexInfo (voiceIndex);
+			}
+
+			private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
+				if (subpanel == this) {
+					removeStandardControls();
+					PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+					PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+					PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+					PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, _onOrigDataRoute);
+					PTT.getPipe().unsubscribe(ViewKeys.CURRENT_PART_STAFFS_NUMBER, _onNumStavesReceived);
+					PTT.getPipe().unsubscribe(ViewKeys.MAX_VOICES_PER_STAFF_NUMBER, _onnumVoiceSlotsReceived);
+				}
+			}
+
+			private function _onNumStavesReceived (data:Object):void {
+				var numStaves : int = (data as int);
+				_buildStaffsList (numStaves);
+			}
+
+			private function _onInitialize(event:FlexEvent):void {
+				addStandardControls();
+
+				// Subscribe to termination signal
+				PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+
+				// Subscribe to new data
+				PTT.getPipe().subscribe(ViewKeys.RESET, reset);
+				PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+				PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, _onOrigDataRoute);
+
+				// Subscribe to static data responses
+				PTT.getPipe().subscribe(ViewKeys.CURRENT_PART_STAFFS_NUMBER, _onNumStavesReceived);
+				PTT.getPipe().subscribe(ViewKeys.MAX_VOICES_PER_STAFF_NUMBER, _onnumVoiceSlotsReceived);
+
+				// Request static data
+				PTT.getPipe().send(ViewKeys.NEED_CURRENT_PART_STAFFS_NUMBER);
+				PTT.getPipe().send(ViewKeys.NEED_MAX_VOICES_PER_STAFF_NUMBER);
+			}
+			
+			private function _onOrigDataRoute (route : String) : void {
+				applyOrigDataRoute (route);
+			}
+
+			private function _onnumVoiceSlotsReceived (data : Object):void {
+				_numMaxVoices = (data as int);
+				_buildVoiceOrderList (_numMaxVoices);
+			}
+			
+			private function _buildStaffsList (numStaves : int) : void {
+				_stavesList = [];
+				for (var i:int=0; i < numStaves; i++) {
+					var obj:Object={};
+					var idx:int=(i + 1);
+					obj[Common.LABEL]=NumberUtil.ordinalise(idx) + CommonStrings.SPACE + StaticTokens.STAFF;
+					obj[Common.VALUE]=idx;
+					_stavesList.push(obj);
+				}
+			}
+			
+			private function _buildVoiceOrderList (numMaxVoices : int) : void {
+				_voicesList = [];
+				for (var i : int = 0; i < numMaxVoices; i++) {
+					var obj : Object = {};
+					var idx : int = (i + 1);
+					obj[Common.LABEL] = NumberUtil.ordinalise (idx) + CommonStrings.SPACE + StaticTokens.VOICE;
+					obj[Common.VALUE] = idx;
+					_voicesList.push (obj);
+				}
+			}
+
+			private function _updateStaffIndexInfo (index:int) : void {
+				_staffIndex = CommonStrings.ELLIPSIS;
+				for (var i : int = 0; i < _stavesList.length; i++) {
+					var item : Object =_stavesList[i];
+					var val : int = item[Common.VALUE];
+					if (index == val) {
+						_staffIndex = item[Common.LABEL];
+						break;
+					}
+				}
+			}
+
+			private function _updateVoiceIndexInfo (voiceIndex : int) : void {
+				_voiceIndex = CommonStrings.ELLIPSIS;
+				for (var i : int = 0; i < _voicesList.length; i++) {
+					var item : Object =_voicesList[i];
+					var val : int = item[Common.VALUE];
+					if (voiceIndex == val) {
+						_voiceIndex = item[Common.LABEL];
+						break;
+					}
+				}
+			}
+			
+		]]>
+	</fx:Script>
+
+	<!-- Header -->
+	<mx:Label styleName="editorHeader"
+			  text="Voice"
+			  width="100%"/>
+
+	<!-- Voice order -->
+	<mx:Text selectable="false"
+			 styleName="editorLabel"
+			 htmlText="Voice position: &lt;b&gt;{_voiceIndex}&lt;/b&gt;"
+			 width="100%" />
+
+	<!-- Staff index -->
+	<mx:Text selectable="false"
+			 styleName="editorLabel"
+			  width="100%"
+			  htmlText="Voice staff: &lt;b&gt;{_staffIndex}&lt;/b&gt;"/>
+
+	<!-- Notes -->
+	<mx:Text selectable="false"
+			 paddingTop="15"
+			 styleName="editorNote"
+			 condenseWhite="true"
+			 width="100%">
+		<mx:htmlText>
+			<![CDATA[
+			<p>There are two Voices per staff, which are always available.</p><br>
+			<p>You cannot manually add, remove or cut Voices. You can use nudging to move a voice up and down, across all the staves available for the current Part.</p><br>
+			]]>
+		</mx:htmlText>
+	</mx:Text>
+
+</components:UIBase>

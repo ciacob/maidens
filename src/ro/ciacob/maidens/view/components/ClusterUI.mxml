@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8"?>
+<components:UIBase initialize="_onInitialize(event)"
+				   xmlns:components="ro.ciacob.maidens.view.components.*"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:mx="library://ns.adobe.com/flex/mx">
+	
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace components "ro.ciacob.maidens.view.components.*";
+		
+		.tupletSetupElement {
+			paddingLeft: 0;
+			paddingRight: 0;
+		}
+		
+	</fx:Style>
+	
+	<fx:Script>
+		<![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.controls.listClasses.ListBase;
+        import mx.core.ScrollPolicy;
+        import mx.core.UIComponent;
+        import mx.events.DropdownEvent;
+        import mx.events.FlexEvent;
+
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.generators.constants.duration.DotTypes;
+        import ro.ciacob.maidens.model.ProjectData;
+        import ro.ciacob.maidens.model.constants.Common;
+        import ro.ciacob.maidens.model.constants.DataFields;
+        import ro.ciacob.maidens.model.constants.StaticFieldValues;
+
+        import eu.claudius.iacob.maidens.Sizes;
+
+        import ro.ciacob.maidens.view.constants.ViewKeys;
+
+        private const TUPLET_UI_SMALL_SIZE:Number = Sizes.SMALL_BUTTON_WIDTH * 1.05;
+        private const TUPLET_UI_LIST_SIZE:Number = Sizes.SMALL_BUTTON_WIDTH * 3.5;
+        private const TUPLET_UI_LIST_POPUP_LINE_HEIGHT:Number = 22;
+        private const TUPLET_INPUT_MIN:uint = 2;
+        private const TUPLET_INPUT_MAX:uint = 9; // Our dear score rendering library chokes at 10 :-\
+
+        private var _dotTypeGroupInitialized:Boolean;
+        private var _durationListChanged:Boolean;
+        private var _durations:Array;
+        private var _divisions:Array;
+        private var _selectedDotType:String;
+        private var _selectedDotTypeChanged:Boolean;
+        private var _selectedDuration:String;
+        private var _selectedDurationChanged:Boolean;
+        private var _startsTuplet:Boolean;
+        private var _srcNumBeats:int;
+        private var _targetNumBeats:int;
+        private var _beatDuration:String;
+        private var _tupletDataChanged:Boolean;
+        private var _currentCluster:ProjectData;
+        private var _isTupletRoot:Boolean;
+        private var _isTupletMember:Boolean;
+
+        override protected function commitProperties():void {
+            super.commitProperties();
+            if (_durationListChanged) {
+                _durationListChanged = false;
+
+                // Populate durations in horizontal, graphical list
+                var clusterDurationsList:CustomHorizontalList = (getControlByName(DataFields.CLUSTER_DURATION_FRACTION) as CustomHorizontalList);
+                clusterDurationsList.dataProvider = _durations;
+                _updateDurationSelection(_selectedDuration);
+
+                // Populate durations tuplet section drop down
+                var tupletDurationsList:ComboBox = (getControlByName(DataFields.TUPLET_BEAT_DURATION) as ComboBox);
+                tupletDurationsList.dataProvider = _durations;
+            }
+            if (_selectedDurationChanged) {
+                _selectedDurationChanged = false;
+                _updateDurationSelection(_selectedDuration);
+            }
+            if (_selectedDotTypeChanged) {
+                _selectedDotTypeChanged = false;
+                _updateDotTypeSelection(_selectedDotType);
+            }
+
+            // Update the tuplet section
+            tuppletToggle.enabled = _isTupletRoot || !_isTupletMember;
+            if (_tupletDataChanged) {
+                _tupletDataChanged = false;
+                _updateTupletData(_startsTuplet, _srcNumBeats, _targetNumBeats, _beatDuration);
+            }
+        }
+
+        override protected function populateUI(workingData:ProjectData):void {
+            _currentCluster = workingData;
+            _isTupletRoot = (_currentCluster.getContent(DataFields.STARTS_TUPLET) as Boolean);
+            _isTupletMember = ((_currentCluster.getContent(DataFields.TUPLET_ROOT_ID) as String) != DataFields.VALUE_NOT_SET);
+
+            // Duration
+            _selectedDuration = workingData.getContent(DataFields.CLUSTER_DURATION_FRACTION);
+            _selectedDurationChanged = true;
+            invalidateProperties();
+
+            // Dot type
+            _selectedDotType = workingData.getContent(DataFields.DOT_TYPE);
+            _selectedDotTypeChanged = true;
+            invalidateProperties();
+
+            // Tuplet
+            var startTupletSetting:Boolean = workingData.getContent(DataFields.STARTS_TUPLET) as Boolean;
+            if (_startsTuplet != startTupletSetting) {
+                _startsTuplet = startTupletSetting;
+                _tupletDataChanged = true;
+            }
+
+            var srcNumBeatsSetting:int = _isTupletRoot ?
+                    (workingData.getContent(DataFields.TUPLET_SRC_NUM_BEATS) as uint) :
+                    StaticFieldValues.DEFAULT_TUPLET_SRC_BEATS;
+            if (_srcNumBeats != srcNumBeatsSetting) {
+                _srcNumBeats = srcNumBeatsSetting;
+                _tupletDataChanged = true;
+            }
+
+            var targetNumBeatsSetting:int = _isTupletRoot ?
+                    (workingData.getContent(DataFields.TUPLET_TARGET_NUM_BEATS) as uint) :
+                    StaticFieldValues.DEFAULT_TUPLET_TARGET_BEATS;
+            if (_targetNumBeats != targetNumBeatsSetting) {
+                _targetNumBeats = targetNumBeatsSetting;
+                _tupletDataChanged = true;
+            }
+
+            var beatDurationSetting:String = _isTupletRoot ?
+                    (workingData.getContent(DataFields.TUPLET_BEAT_DURATION) as String) : _isTupletMember ? null :
+                            (workingData.getContent(DataFields.CLUSTER_DURATION_FRACTION) as String);
+            if (beatDurationSetting != DataFields.VALUE_NOT_SET && _beatDuration != beatDurationSetting) {
+                _beatDuration = beatDurationSetting;
+                _tupletDataChanged = true;
+            }
+
+            if (_tupletDataChanged) {
+                invalidateProperties();
+            }
+        }
+
+        /**
+         * Fired when the duration of this Cluster changes. If the Cluster is involved with a tuplet, then we need to rebuilt it.
+         */
+        private function _onClusterDurationChanged(event:Event):void {
+            if (_isTupletRoot || _isTupletMember) {
+                PTT.getPipe().send(ViewKeys.RESET_TUPLET, _currentCluster);
+            }
+            onControlChanged(event);
+        }
+
+        /**
+         * Fired when the "Begin a tuplet on this cluster" checkbox changes value. If going from
+         * "selected" to "unselected, then the current tuplet must be decomissioned.
+         */
+        private function _onTupletRootChange(event:Event):void {
+            var cb:CheckBox = event.target as CheckBox;
+            if (!cb.selected) {
+                // A tuplet is about to be decommissioned
+                PTT.getPipe().send(ViewKeys.DECOMISSION_TUPLET, _currentCluster);
+            }
+            onControlChanged(event, true);
+        }
+
+        /**
+         * Fired when any of the fields underneath "Begin a tuplet on this cluster" changes value.
+         * The current tuplet needs to be decomissioned before building another.
+         */
+        private function _onTupletMembersChange(event:Event):void {
+            PTT.getPipe().send(ViewKeys.RESET_TUPLET, _currentCluster);
+            onControlChanged(event)
+        }
+
+        private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
+            if (subpanel == this) {
+                removeStandardControls();
+                PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+                PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, _onOriginatingDataRouteAvailable);
+                PTT.getPipe().unsubscribe(ViewKeys.DURATIONS_LIST, _onDurationsListReceived);
+            }
+        }
+
+        private function _onDotTypeChanged(event:Event):void {
+            if (_isTupletRoot || _isTupletMember) {
+                PTT.getPipe().send(ViewKeys.RESET_TUPLET, _currentCluster);
+            }
+            if (!_dotTypeGroupInitialized) {
+                _dotTypeGroupInitialized = true;
+                registerUIControl(event, DataFields.DOT_TYPE);
+            } else {
+                onControlChanged(event);
+            }
+        }
+
+        private function _onDurationsListReceived(data:Array):void {
+            _durations = data;
+            _durationListChanged = true;
+            invalidateProperties();
+        }
+
+        private function _onDivisionsListReceived(data:Array):void {
+            _divisions = data;
+        }
+
+        private function _onInitialize(event:FlexEvent):void {
+            addStandardControls();
+            // Force registration of the RadioButtonGroup, which is
+            // NOT a UIComponent (why?)
+            dotType.dispatchEvent(new Event(Event.CHANGE));
+
+            // Subscribe to termination signal
+            PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+
+            // Subscribe to new data
+            PTT.getPipe().subscribe(ViewKeys.RESET, reset);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, _onOriginatingDataRouteAvailable);
+
+            // Subscribe to static data responses
+            PTT.getPipe().subscribe(ViewKeys.DURATIONS_LIST, _onDurationsListReceived);
+            PTT.getPipe().subscribe(ViewKeys.DIVISIONS_LIST, _onDivisionsListReceived);
+
+            // Request static data
+            PTT.getPipe().send(ViewKeys.NEED_DURATIONS_LIST);
+
+        }
+
+        private function _onOriginatingDataRouteAvailable(data:Object):void {
+            applyOrigDataRoute(data);
+            PTT.getPipe().send(ViewKeys.NEED_SUITABLE_DIVISIONS_LIST, data);
+        }
+
+        private function _updateDotTypeSelection(value:String):void {
+            var dotTypeGroup:RadioButtonGroup = (getControlByName(DataFields.DOT_TYPE) as RadioButtonGroup);
+            dotTypeGroup.selectedValue = value;
+        }
+
+        /**
+         * Updates the values displayed by the dedicated tuplet UI.
+         */
+        private function _updateTupletData(startsTuplet:Boolean, srcNumBeats:int, targetNumBeats:int, beatDuration:String):void {
+
+            // Set the "Begin tuplet..." checkbox as ticked or not
+            tuppletToggle.selected = startsTuplet;
+
+            // Set tuplet number of source (exceptional) beats
+            var srcField:NonEditableNumericStepper = getControlByName(DataFields.TUPLET_SRC_NUM_BEATS) as NonEditableNumericStepper;
+            srcField.value = srcNumBeats;
+
+            // Set tuplet number of target (regular) beats
+            var targetField:NonEditableNumericStepper = getControlByName(DataFields.TUPLET_TARGET_NUM_BEATS) as NonEditableNumericStepper;
+            targetField.value = targetNumBeats;
+
+            // Set tuplet beats duration
+            var durationField:ComboBox = getControlByName(DataFields.TUPLET_BEAT_DURATION) as ComboBox;
+            durationField.selectedItem = null;
+            var dp:ArrayCollection = ArrayCollection(durationField.dataProvider);
+            for (var i:int = 0; i < dp.length; i++) {
+                var someItem:Object = dp.getItemAt(i);
+                if (someItem[Common.VALUE] == beatDuration) {
+                    durationField.selectedItem = someItem;
+                    break;
+                }
+            }
+        }
+
+        private function _updateDurationSelection(value:String):void {
+            var durationsList:CustomHorizontalList = (getControlByName(DataFields.CLUSTER_DURATION_FRACTION) as CustomHorizontalList);
+            var dp:ArrayCollection = ArrayCollection(durationsList.dataProvider);
+            for (var i:int = 0; i < dp.length; i++) {
+                var someItem:Object = dp.getItemAt(i);
+                if (someItem[Common.VALUE] == value) {
+                    durationsList.selectedItem = someItem;
+                    break;
+                }
+            }
+        }
+
+        private function _onTupletDurationsOpen(event:DropdownEvent):void {
+            var comboBox:ComboBox = (event.target as ComboBox);
+            if (comboBox && comboBox.dataProvider) {
+                var dd:ListBase = comboBox.dropdown;
+                dd.height = (TUPLET_UI_LIST_POPUP_LINE_HEIGHT * comboBox.dataProvider.length);
+                dd.verticalScrollPolicy = ScrollPolicy.OFF;
+            }
+        }
+        ]]>
+	</fx:Script>
+	<fx:Declarations/>
+
+	<!-- Header -->
+	<mx:Label styleName="editorHeader"
+			  text="Cluster *"
+			  width="100%"/>
+
+	<!-- Duration -->
+	<mx:Label styleName="editorLabel" text="Duration:"/>
+	<components:CustomHorizontalList change="{_onClusterDurationChanged(event)}"
+									 columnWidth="{Sizes.SMALL_TILE_SIZE}"
+									 fontSize="{Sizes.SMALL_TILE_SIZE * 0.72}"
+									 height="{Sizes.SMALL_TILE_SIZE + (durationsHList.isHorizontalScrollBarVisible? 16 : 0)}"
+									 id="durationsHList"
+									 initialize="{registerUIControl(event, DataFields.CLUSTER_DURATION_FRACTION)}"
+									 labelField="{Common.LABEL}"
+									 paddingBottom="0"
+									 paddingLeft="0"
+									 paddingRight="0"
+									 paddingTop="0"
+									 rowHeight="{Sizes.SMALL_TILE_SIZE}"
+									 styleName="thickText"
+									 width="100%"/>
+
+	<!-- Dot type -->
+	<mx:Label styleName="editorLabel" text="Dot:"/>
+	<mx:HBox>
+		<mx:RadioButtonGroup change="{_onDotTypeChanged(event)}" id="dotType"/>
+		<mx:RadioButton group="{dotType}"
+						label="none"
+						value="{DotTypes.NONE}"/>
+		<mx:RadioButton group="{dotType}"
+						label="simple (♪.)"
+						toolTip="single dot"
+						value="{DotTypes.SINGLE}"/>
+		<mx:RadioButton group="{dotType}"
+						label="double (♪..)"
+						toolTip="double dot"
+						value="{DotTypes.DOUBLE}"/>
+	</mx:HBox>
+	
+	<!-- Tuplet section -->
+	<mx:Label styleName="editorLabel" text="Tuplet"/>
+	
+	<mx:CheckBox label="Begin a tuplet on this cluster" 
+				 id="tuppletToggle" 
+				 initialize="{registerUIControl(event, DataFields.STARTS_TUPLET)}"
+				 change="{_onTupletRootChange(event)}" />
+	
+	<mx:Spacer height="4" />
+	
+	<mx:HBox horizontalGap="4" enabled="{tuppletToggle.selected}" verticalAlign="middle">
+		<mx:Spacer width="-8" />
+		<mx:Label text="Put" styleName="tupletSetupElement"/>
+
+		<components:NonEditableNumericStepper
+			change="{_onTupletMembersChange(event)}"
+			initialize="{registerUIControl(event, DataFields.TUPLET_SRC_NUM_BEATS)}" 
+			width="{TUPLET_UI_SMALL_SIZE}"
+			minimum="{TUPLET_INPUT_MIN}"
+			maximum="{TUPLET_INPUT_MAX}"
+			styleName="tupletSetupElement" />
+
+		<mx:ComboBox change="{_onTupletMembersChange(event)}"
+					 initialize="{registerUIControl(event, DataFields.TUPLET_BEAT_DURATION)}"
+					 width="{TUPLET_UI_LIST_SIZE}"
+					 labelField="{ViewKeys.DESCRIPTION}"
+					 styleName="tupletSetupElement"
+					 open="_onTupletDurationsOpen (event)"
+		/>
+
+		<mx:Label text="for" styleName="tupletSetupElement"/>
+
+		<components:NonEditableNumericStepper
+			change="{_onTupletMembersChange(event)}"
+			initialize="{registerUIControl(event, DataFields.TUPLET_TARGET_NUM_BEATS)}" 
+			width="{TUPLET_UI_SMALL_SIZE}"
+			minimum="{TUPLET_INPUT_MIN}"
+			maximum="{TUPLET_INPUT_MAX}"
+			styleName="tupletSetupElement" />
+
+	</mx:HBox>
+	
+	<mx:Text paddingTop="35"
+			 selectable="false"
+			 styleName="editorNote"
+			 text="* empty clusters become rests; clusters having one or more children turn into notes or chords, respectively."
+			 width="100%"/>
+
+</components:UIBase>

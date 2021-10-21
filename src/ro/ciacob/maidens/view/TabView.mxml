@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas height="100%"
+           width="100%"
+           verticalScrollPolicy="off"
+           horizontalScrollPolicy="off"
+           label="{CommonStrings.ELLIPSIS}"
+           initialize="_onInitialize(event)"
+           xmlns:fx="http://ns.adobe.com/mxml/2009"
+           xmlns:mx="library://ns.adobe.com/flex/mx"
+           xmlns:components="ro.ciacob.maidens.view.components.*">
+
+    <fx:Script>
+		<![CDATA[
+        import com.greensock.TweenMax;
+
+        import mx.core.IContainer;
+        import mx.events.FlexEvent;
+
+        import ro.ciacob.desktop.signals.PTT;
+
+        import eu.claudius.iacob.maidens.Sizes;
+
+        import ro.ciacob.maidens.model.constants.PersistenceKeys;
+
+        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.utils.constants.CommonStrings;
+
+        private var _editorExpandedWidth:Number;
+        private var _editorCurrentAlpha:Number = 1;
+        private var _treeExpandedWidth:Number;
+        private var _treeCurrentAlpha:Number = 1;
+        private var ptt:PTT = PTT.getPipe();
+        private var on:Function = ptt.subscribe;
+        private var send:Function = ptt.send;
+
+        protected function _onInitialize(event:FlexEvent):void {
+            on(ViewKeys.TAB_LABEL_CHANGE, _onTabLabelChange);
+            on(ViewKeys.EDITOR_HEADER_CLICK, _onEditorHeaderClick);
+            on(ViewKeys.TREE_HEADER_CLICK, _onTreeHeaderClick);
+            retroactivelySubscribe(PersistenceKeys.PROJECT_TOGGLE_STATE, _initProjectSectionState);
+            retroactivelySubscribe(PersistenceKeys.EDITOR_TOGGLE_STATE, _initEditorSectionState);
+        }
+
+        /**
+         * Syntactic sugar. Subscribes given callback to given PTT key, also considering
+         * "cached notifications" (notifications that occurred before any subscribers were
+         * available; the last body/payload of such a notification gets cached and can
+         * be retrieved by late subscribers by using dedicated API).
+         */
+        private function retroactivelySubscribe(keyName:String, callback:Function):void {
+            on(keyName, callback);
+            if (ptt.hasBackupFor(keyName)) {
+                callback(ptt.recoverBackupFor(keyName));
+                ptt.deleteBackupFor(keyName);
+            }
+        }
+
+        private function _initEditorSectionState(state:int):void {
+            toggleSection('projectEditor', Sizes.EDITOR_MINIMUM_WIDTH, Sizes.EDITOR_INITIAL_WIDTH,
+                    "_editorExpandedWidth", "_editorCurrentAlpha", true, state);
+        }
+
+        private function _initProjectSectionState(state:int):void {
+            toggleSection('projectTree', Sizes.TREE_MINIMUM_WIDTH, Sizes.TREE_INITIAL_WIDTH,
+                    "_treeExpandedWidth", "_treeCurrentAlpha", true, state);
+        }
+
+        private function _onTabLabelChange(data:Object):void {
+            _changedTabIndex = (data[ViewKeys.TAB_INDEX] as int);
+            _changedTabLabel = (data[ViewKeys.TAB_LABEL] as String);
+            _tabLabelChanged = true;
+            invalidateProperties();
+        }
+
+        private var _changedTabIndex:int;
+        private var _changedTabLabel:String;
+        private var _tabLabelChanged:Boolean;
+
+        override protected function commitProperties():void {
+            super.commitProperties();
+            if (_tabLabelChanged) {
+                _tabLabelChanged = false;
+                var ownParent:IContainer = (parent as IContainer);
+                var ownIndex:int = ((ownParent != null) ? ownParent.getChildIndex(this) : -1);
+                if (_changedTabIndex == ownIndex) {
+                    label = _changedTabLabel;
+                }
+            }
+        }
+
+        /**
+         * Triggered when the user clicks the header icon of the "Project" section
+         */
+        private function _onTreeHeaderClick(...args):void {
+            toggleSection('projectTree', Sizes.TREE_MINIMUM_WIDTH, Sizes.TREE_INITIAL_WIDTH,
+                    "_treeExpandedWidth", "_treeCurrentAlpha");
+        }
+
+        /**
+         * Triggered when the user clicks the header icon of the "Editor" section
+         */
+        private function _onEditorHeaderClick(...args):void {
+            toggleSection('projectEditor', Sizes.EDITOR_MINIMUM_WIDTH, Sizes.EDITOR_INITIAL_WIDTH,
+                    "_editorExpandedWidth", "_editorCurrentAlpha");
+        }
+
+        /**
+         * Makes a given section visible or hidden, respecting the width user last resized it to
+         */
+        private function toggleSection(sectionId:String,
+                                       sectionMinW:Number,
+                                       sectionInitialW:Number,
+                                       sectionWidthProp:String,
+                                       sectionAlphaProp:String,
+                                       bypassAnimation:Boolean = false,
+                                       forcedState:int = 0):void {
+
+            var section:DisplayObjectContainer = (this[sectionId] as DisplayObjectContainer);
+            var isExpanded:Boolean = (section.width != sectionMinW);
+            var targetExpandedWidth:Number = (isNaN(this[sectionWidthProp]) || this[sectionWidthProp] <= sectionMinW) ?
+                    sectionInitialW : this[sectionWidthProp];
+            var targetWidth:Number;
+            var targetAlpha:Number;
+            if (!forcedState) {
+                targetWidth = isExpanded ? sectionMinW : targetExpandedWidth;
+                targetAlpha = isExpanded ? 0 : 1;
+                send(ViewKeys.SECTION_TOGGLE_STATE, {id: sectionId, state: isExpanded ? 2 : 1});
+            } else {
+                targetWidth = (forcedState == 1) ? targetExpandedWidth : sectionMinW;
+                targetAlpha = (forcedState == 1) ? 1 : 0;
+            }
+            var content:DisplayObject = section.getChildAt(1);
+            TweenMax.to(section, 0.3, {width: targetWidth});
+            TweenMax.to(content, 0.4, {
+                alpha: targetAlpha, onComplete: function ():void {
+                    this[sectionAlphaProp] = section.getChildAt(1).alpha;
+                }
+            });
+            if (bypassAnimation) {
+                TweenMax.killAll(true);
+            }
+        }
+        ]]>
+	</fx:Script>
+    <fx:Declarations/>
+
+    <mx:HBox width="{width - Sizes.MEDIUM_GAP * 2}"
+             height="{height - Sizes.MEDIUM_GAP * 2}"
+             y="{Sizes.MEDIUM_GAP}"
+             x="{Sizes.MEDIUM_GAP}"
+             paddingTop="5"
+             paddingLeft="5"
+             paddingBottom="5"
+             paddingRight="5"
+             verticalScrollPolicy="off"
+             horizontalScrollPolicy="off">
+        <!-- Project data -->
+        <components:ProjectStructureComponent id="projectTree"
+                                              height="100%"
+                                              title="Project Structure"
+                                              minWidth="{Sizes.TREE_MINIMUM_WIDTH}"
+                                              width="{Sizes.TREE_INITIAL_WIDTH}"
+                                              horizontalScrollPolicy="off"
+                                              verticalScrollPolicy="off"/>
+
+        <!-- Project editor -->
+        <components:EditorComponent id="projectEditor"
+                                    title="Editor"
+                                    height="100%"
+                                    minWidth="{Sizes.EDITOR_MINIMUM_WIDTH}"
+                                    width="{Sizes.EDITOR_INITIAL_WIDTH}"
+                                    horizontalScrollPolicy="off"
+                                    verticalScrollPolicy="auto"/>
+
+        <!-- Score Editor -->
+        <components:MusicScoreViewer id="projectScore"
+                                     height="100%"
+                                     title="Score"
+                                     minWidth="300"/>
+
+    </mx:HBox>
+
+</mx:Canvas>

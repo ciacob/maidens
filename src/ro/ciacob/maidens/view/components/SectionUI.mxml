@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<components:UIBase initialize="_onInitialize(event)"
+				   xmlns:components="ro.ciacob.maidens.view.components.*"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:s="library://ns.adobe.com/flex/spark">
+	<fx:Declarations/>
+
+	<fx:Script>
+		<![CDATA[
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			
+			import ro.ciacob.desktop.signals.PTT;
+			import ro.ciacob.maidens.model.ProjectData;
+			import ro.ciacob.maidens.model.constants.DataFields;
+			import ro.ciacob.maidens.model.constants.DataStatus;
+			import eu.claudius.iacob.maidens.Colors;
+			import ro.ciacob.maidens.view.constants.ViewKeys;
+			import ro.ciacob.utils.Patterns;
+			import ro.ciacob.utils.Strings;
+
+			private var _sectionData : ProjectData;
+			private var _bufferedUiChangeEvent : Event;
+			private var _sectionNameValidationResult:Boolean;
+			private var _sectionNameValidationResultChanged:Boolean;
+
+			protected function _onInitialize(event:FlexEvent):void {
+				addStandardControls();
+
+				// Subscribe to termination signal
+				PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+
+				// Subscribe to new data
+				PTT.getPipe().subscribe(ViewKeys.RESET, reset);
+				PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+				PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+
+				// Subscribe to validation services
+				PTT.getPipe().subscribe(ViewKeys.SECTION_NAME_VALIDATION_RESULT, _onValidationResultReceived);
+			}
+
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if (_sectionNameValidationResultChanged) {
+					_sectionNameValidationResultChanged=false;
+					updateStatus(_sectionNameValidationResult ? DataStatus.CHANGED_AND_VALID : DataStatus.CHANGED_BUT_INVALID);
+				}
+			}
+
+			override protected function populateUI(data:ProjectData):void {
+				_sectionData = data;
+				if (_sectionData) {
+					TextInput(getControlByName(DataFields.UNIQUE_SECTION_NAME)).text=_sectionData.getContent(DataFields.UNIQUE_SECTION_NAME);
+					_sectionNameValidationResult=true;
+					_sectionNameValidationResultChanged=true;
+				}
+			}
+
+			override protected function updateStatus(status:String):void
+			{
+				if (status == DataStatus.CHANGED_BUT_INVALID)
+				{
+					noteContainer.setStyle('backgroundColor', Colors.WARNING);
+				}
+				else
+				{
+					noteContainer.clearStyle('backgroundColor');
+				}
+			}
+
+			private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void
+			{
+				if (subpanel == this)
+				{
+					removeStandardControls();
+					PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+					PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+					PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+					PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+					PTT.getPipe().unsubscribe(ViewKeys.SECTION_NAME_VALIDATION_RESULT, _onValidationResultReceived);
+				}
+			}
+
+			private function _onValidationResultReceived(result:Boolean):void {
+				_sectionNameValidationResult=result;
+				_sectionNameValidationResultChanged=true;
+				invalidateProperties();
+				if (result && _bufferedUiChangeEvent) {
+					onControlChanged (_bufferedUiChangeEvent);
+				}
+			}
+			
+			/**
+			 * NOTE: We cannot rely on `onControlChanged(event)` because the section names must be
+			 * validated first (e.g., it is critical that section names be unique).
+			 */
+			private function _onSectionNameChanged(event:Event):void {
+				_bufferedUiChangeEvent = event;
+				var controlUI:Object=event.target;
+				var newSectionName : String = Strings.trim (TextInput (controlUI).text);
+				if (_sectionData && newSectionName) {
+					var details : Object = {};
+					details[ViewKeys.NEW_NAME] = newSectionName;
+//					details[ViewKeys.TARGET_SECTION] = _sectionData;
+					PTT.getPipe().send (ViewKeys.SECTION_NAME_VALIDATION, details); 
+				}
+			}
+			
+		]]>
+	</fx:Script>
+
+	<mx:Label styleName="editorHeader"
+			  text="Section"
+			  width="100%"/>
+
+	<mx:Label styleName="editorLabel"
+			  text="Name:*"/>
+	<mx:TextInput change="_onSectionNameChanged(event)"
+				  initialize="{registerUIControl(event, DataFields.UNIQUE_SECTION_NAME)}"
+				  restrict="{Patterns.ALL_EXCEPT_FILENAME_UNSAFE}"
+				  width="100%"/>
+
+	<mx:Box id="noteContainer"
+			paddingBottom="5"
+			paddingLeft="5"
+			paddingRight="5"
+			paddingTop="5"
+			width="100%">
+		<mx:Label styleName="editorNote"
+				  text="* must be unique and non-empty"
+				  id="sectionNamesNote"
+				  width="100%"/>
+
+	</mx:Box>
+
+
+</components:UIBase>
