@@ -92,7 +92,7 @@
     </fx:Declarations>
 
     <!-- Application Style -->
-    <fx:Style source="../../../maidens-ui-commons/src/eu/claudius/iacob/maidens/assets/common.css"/>
+    <fx:Style source="../../maidens-ui-commons/src/eu/claudius/iacob/maidens/assets/common.css"/>
 
     <fx:Script>
         <![CDATA[
