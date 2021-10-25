@@ -34,7 +34,7 @@ And then you click **Generate**, and in less than one minute you have a piece of
 ### Now it only costs you hours, not days, to craft a blueprint for your entire piece.
 Was it a bad idea to proceed from lower register to higher register? Redraw the parameters and **generate** again. Does music seem too weak because of using consonance in the harmony section? Redraw the _consonance_ control curve and **generate** again. Once you find a suitable course of action for your music you can start to actually compose it, secured in the belief that you chose the best of all available alternatives.
 
-As an added bonus, you now have a rather detailed work plan to follow along, and maybe some interesting **artefacts** you collected during all music generation sessions. Maybe you like them and will use them as such, or maybe they fuel your musical imagination and you'll morph them into something of great effect.
+As an added bonus, you now have a rather detailed work plan to follow along, and maybe some interesting **artefacts** you collected during all music generation sessions. Maybe you like them and will use them as such, or maybe they fuel your musical imagination and you'll morph them into something of great effect. Or, who knows, maybe you want to follow in the footsteps of Xenakis and Varèse and try some algorithmic composition yourself. 
 
 > **Anyhow, you now have a way to quickly prototype your musical ideas into something tangible.** You can now actually validate or dismiss a musical idea _by the way it sounds_. And in just a few clicks.
 
@@ -43,7 +43,24 @@ MAIDENS is an open source software program that you can use free of charge. To i
 - download the latest pre-built distribution package for your operating system from the [Releases](https://github.com/ciacob/maidens/releases) section;
 - build MAIDENS yourself from source, provided that you are familiar with building Adobe/Harman AIR applications.
 
+
 > Note that paying [Patreon supporters](https://www.patreon.com/maidens_app) receive added benefits, such as nightly builds, bugfix priority and email based support for using the application to its full potential.
 
+[![support-maidens](identity/imagery/support-button.png)](https://www.patreon.com/maidens_app)
 
+
+
+## Using the Software
+Under normal circumstances, using MAIDENS revolves around these five steps:
+1. setup a new score having the needed instruments and number of measures;
+2. bind a *generator* to the score's first section;
+3. configure the generator then click its **Generate** button;
+4. observe and audition the output;
+5. repeat steps **3** and **4** until you get a version that you can base your decisions on. 
+
+If it helps, you may also use MAIDENS' minimal built-in *score editor*, to make in-place small adjustments to generated content. Also, if you find the output worth keeping (in full or in part), export it to an interchange format, such as MIDI or MusicXML, and import it back in your favorite score notation or DAW software for further processing.
+
+> You can save time by using **Templates** and **Presets**, so that you can easily reclaim score setups and generator configurations you frequently use.
+
+There is also an extensive online [program documentation](https://maidens.claudius-iacob.eu/cms/doc/) that you are encouraged to read (in fact, you should if you want to get the most from MAIDENS).
 
