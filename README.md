@@ -46,7 +46,7 @@ MAIDENS is an open source software program that you can use free of charge. To i
 - download the latest pre-built distribution package for your operating system from the [Releases](https://github.com/ciacob/maidens/releases) section;
 - build MAIDENS yourself from source, provided that you are familiar with building Adobe/Harman AIR applications.
 
-> Note that paying [Patreon supporters](https://www.patreon.com/maidens_app) receive added benefits, such as nightly builds, bugfix priority and email based support for using the application to its full potential.
+> Note that paying [Patreon supporters](https://www.patreon.com/maidens_app) receive added benefits, such as **nightly builds**, **bugfix priority** and **email based support** for using the application to its full potential.
 
 [![support-maidens](identity/imagery/support-button.png)](https://www.patreon.com/maidens_app)
 
@@ -59,7 +59,7 @@ Under normal circumstances, using MAIDENS revolves around these five steps:
 2. bind a *generator* to the score's first section;
 3. configure the generator then click its **Generate** button;
 4. observe and audition the output;
-5. repeat steps **3** and **4** until you get a version that you can base your decisions on. 
+5. repeat steps **3** and **4** until you get a version you can base your decisions on. 
 
 If it helps, you may also use MAIDENS' minimal built-in *score editor*, to make in-place small adjustments to generated content. Also, if you find the output worth keeping (in full or in part), export it to an interchange format, such as MIDI or MusicXML, and import it back in your favorite score notation or DAW software for further processing.
 
