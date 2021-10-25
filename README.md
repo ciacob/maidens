@@ -8,7 +8,7 @@ Music composition has very little to do with what is commonly thought of, especi
 
 And by *idea*, I mean something along the lines of:
 
-> it should go from peacefully and quiet to dramatic and ultimative, and then hit a plateau of sustained tension, and then progressively calm down*.
+> it should go from peacefully and quiet to dramatic and ultimative, and then hit a plateau of sustained tension, and then progressively calm down.
 
 Humble as it is, this is still the happy case where the composer has *any idea* whatsoever on what his music should be. Far more commonly, we have nothing.  We somehow come with a fragment and then blindly try to imagine *sequel*s for it, like:
 
@@ -37,5 +37,13 @@ Was it a bad idea to proceed from lower register to higher register? Redraw the 
 As an added bonus, you now have a rather detailed work plan to follow along, and maybe some interesting **artefacts** you collected during all music generation sessions. Maybe you like them and will use them as such, or maybe they fuel your musical imagination and you'll morph them into something of great effect.
 
 > **Anyhow, you now have a way to quickly prototype your musical ideas into something tangible.** You can now actually validate or dismiss a musical idea _by the way it sounds_. And in just a few clicks.
+
+## Getting the Software
+MAIDENS is an open source software program that you can use free of charge. To install, you have two options:
+- download the latest pre-built distribution package for your operating system from the [Releases](https://github.com/ciacob/maidens/releases) section;
+- build MAIDENS yourself from source, provided that you are familiar with building Adobe/Harman AIR applications.
+
+> Note that paying [Patreon supporters](https://www.patreon.com/maidens_app) receive added benefits, such as nightly builds, bugfix priority and email based support for using the application to its full potential.
+
 
 
