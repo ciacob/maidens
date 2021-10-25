@@ -38,17 +38,20 @@ As an added bonus, you now have a rather detailed work plan to follow along, and
 
 > **Anyhow, you now have a way to quickly prototype your musical ideas into something tangible.** You can now actually validate or dismiss a musical idea _by the way it sounds_. And in just a few clicks.
 
+<br/>
+<br/>
+
 ## Getting the Software
 MAIDENS is an open source software program that you can use free of charge. To install, you have two options:
 - download the latest pre-built distribution package for your operating system from the [Releases](https://github.com/ciacob/maidens/releases) section;
 - build MAIDENS yourself from source, provided that you are familiar with building Adobe/Harman AIR applications.
 
-
 > Note that paying [Patreon supporters](https://www.patreon.com/maidens_app) receive added benefits, such as nightly builds, bugfix priority and email based support for using the application to its full potential.
 
 [![support-maidens](identity/imagery/support-button.png)](https://www.patreon.com/maidens_app)
 
-
+<br/>
+<br/>
 
 ## Using the Software
 Under normal circumstances, using MAIDENS revolves around these five steps:
