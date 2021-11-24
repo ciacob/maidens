@@ -7,7 +7,7 @@ pushd..
 set parent=%cd%
 popd
 
-fluidsynth.exe -i -n -g 0.3 "%parent%\soundfonts\MAIDENS.SF2" "%2\%1.mid"
+fluidsynth.exe -i -n -g 0.3 "%parent%\assets\helpers\soundfonts\MAIDENS.SF2" "%2\%1.mid"
 
 echo PLAYBACK DONE FOR^: %1
 

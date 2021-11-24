@@ -587,7 +587,10 @@ package ro.ciacob.maidens.controller {
 				});
 			}
 			if (includeComposites) {
-				var dotTypes:Array=ConstantUtils.getAllValues(DotTypes);
+				// Not using double dots anymore because abcm2ps-8.14.12 (2021-07-14) wrongly flags
+				// double dotted values as "Bad length" and only outputs a duration corresponding to the main
+				// unit, e.g., for a double dotted half (7/8 in ABC) it only outputs one eight (1/8 in ABC).
+				var dotTypes:Array=[DotTypes.SINGLE];
 				for (var i:int=0; i < _simpleDurations.length; i++) {
 					var simpleDuration:Fraction=(_simpleDurations[i] as Fraction);
 					for (var j:int=0; j < dotTypes.length; j++) {

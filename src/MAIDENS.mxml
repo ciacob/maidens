@@ -74,11 +74,13 @@
                 <item label="{StaticTokens.HELP}">
                     <item id="{MenuIds.DOC_ITEM}" commandName="{MenuCommandNames.OPEN_DOCUMENTATION_URL}"
                           label="{StaticTokens.DOCUMENTATION}"/>
-                    <item id="{MenuIds.CONTACT_ITEM}" commandName="{MenuCommandNames.OPEN_CONTACT_URL}"
-                          label="{StaticTokens.SEND_FEEDBACK}"/>
+                    <item id="{MenuIds.ISSUES_ITEM}" commandName="{MenuCommandNames.OPEN_ISSUES_URL}"
+                          label="{StaticTokens.REPORT_ISSUES}"/>
+                    <item id="{MenuIds.RELEASES_ITEM}" commandName="{MenuCommandNames.OPEN_RELEASES_URL}"
+                          label="{StaticTokens.CHECK_RELEASES}"/>
                     <item type="separator"/>
-                    <item id="{MenuIds.NEWS_ITEM}" commandName="{MenuCommandNames.OPEN_NEWS_URL}"
-                          label="{StaticTokens.WHATS_NEW}"/>
+                    <item id="{MenuIds.PATREON_ITEM}" commandName="{MenuCommandNames.OPEN_PATREON_URL}"
+                          label="{StaticTokens.BECOME_A_PATRON}"/>
                 </item>
 
                 <!-- DEBUG. Remove upon release -->
@@ -110,6 +112,7 @@
         import ro.ciacob.maidens.model.constants.StaticTokens;
         import ro.ciacob.maidens.view.MainUi;
 
+        import eu.claudius.iacob.EmbeddedFontsHelper;
         import eu.claudius.iacob.maidens.Colors;
 
         import ro.ciacob.maidens.view.constants.MenuCommandNames;
@@ -120,7 +123,6 @@
         import ro.ciacob.maidens.view.constants.UiColorizationThemes;
 
         import ro.ciacob.maidens.view.constants.ViewKeys;
-        import ro.ciacob.math.Fraction;
         import ro.ciacob.utils.Descriptor;
         import ro.ciacob.utils.ScreenUtils;
         import ro.ciacob.utils.Strings;
@@ -130,6 +132,10 @@
         private var _rootContent:Object
         private var _wManager:WindowsManager;
         private var _screenBounds:Rectangle;
+
+        // We need to actually "use" the EmbeddedFontsHelper class, or else it won't be compiled 
+        // (although included) and the embedded fonts will not be available.
+        private const _compileHelper1:Class = EmbeddedFontsHelper;
 
         /**
          * Equivalent of a constructor function for MXML classes.
@@ -204,7 +210,7 @@
 
                 // Add the list of available themes to the View -> Themes menu
                 var themes:Array = UiColorizationThemes.getAllThemes();
-                _generateMenuItems (MenuIds.THEME_SUBMENU, themes.map (
+                _generateMenuItems(MenuIds.THEME_SUBMENU, themes.map(
                         function (themeInfo:Object, ...etc):Object {
                             return {
                                 'label': themeInfo.name,
@@ -235,17 +241,17 @@
          *             "commandArguments" attribute.
          * This method changes the `appMenudata` XML structure in place; no value is returned.
          */
-        private function _generateMenuItems (menuId:String, itemDescriptors:Array) : void {
+        private function _generateMenuItems(menuId:String, itemDescriptors:Array):void {
             var submenu:XML = appMenudata.descendants().(hasOwnProperty('@id') && @id == menuId)[0];
             if (submenu) {
-                var i : int;
+                var i:int;
                 for (i = 0; i < itemDescriptors.length; i++) {
-                    var descriptor : Object = itemDescriptors[i];
-                    var itemSrc : String = '<item label="' + descriptor.label + '" commandName="' +
+                    var descriptor:Object = itemDescriptors[i];
+                    var itemSrc:String = '<item label="' + descriptor.label + '" commandName="' +
                             descriptor.command + '" commandArguments="' +
                             descriptor.commandArguments.join(',') + '" toggled="' +
-                            (descriptor.checked? 'true" type="check': 'false') + '" />';
-                    var itemXML : XML = XML(itemSrc);
+                            (descriptor.checked ? 'true" type="check' : 'false') + '" />';
+                    var itemXML:XML = XML(itemSrc);
                     submenu.appendChild(itemXML);
                 }
             }
@@ -308,6 +314,6 @@
               color="{Colors.SPLASH_TEXT_FOREGROUND}"
               x="{versionLabel.x - appNameLabel.width}"
               y="{copyrightLabel.y - appNameLabel.height * 0.9}"
-              fontWeight="bold"
-              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 4}"/>
+              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 4}"
+              fontWeight="bold" />
 </s:WindowedApplication>

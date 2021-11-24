@@ -145,9 +145,10 @@ package ro.ciacob.maidens.model.constants {
 		public static const TO_PDF_FILE : String = 'To PDF file';
 		public static const TO_WAV_FILE : String = 'To WAV file';
 		public static const EXIT : String = 'Exit';
-		public static const DOCUMENTATION : String = 'Documentation';
-		public static const SEND_FEEDBACK : String = 'Send feedback';
-		public static const WHATS_NEW : String = 'What\'s new?';
+		public static const DOCUMENTATION : String = 'Read the Wiki';
+		public static const REPORT_ISSUES : String = 'Report issue';
+		public static const CHECK_RELEASES : String = 'Check for new releases';
+		public static const BECOME_A_PATRON : String = 'Become a patron...';
 		public static const TRANSPOSE : String = 'Transpose';
 		public static const SELECT_INTERVAL : String = 'Select interval...';
 		public static const SCALE_INTERVALS : String = 'Scale intervals';

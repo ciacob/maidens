@@ -12,8 +12,9 @@ package ro.ciacob.maidens.view.constants {
 		public static const SAVE_PROJECT : String = 'saveProject';
 		public static const SAVE_PROJECT_AS : String = 'saveProjectAs';
 		public static const OPEN_DOCUMENTATION_URL : String = 'openDocumentationUrl';
-		public static const OPEN_CONTACT_URL : String = 'openContactUrl';
-		public static const OPEN_NEWS_URL : String = 'openNewsUrl';
+		public static const OPEN_ISSUES_URL : String = 'openContactUrl';
+		public static const OPEN_RELEASES_URL : String = 'openNewsUrl';
+		public static const OPEN_PATREON_URL : String = 'openPatreonUrl';
 		public static const UNDO : String = 'undo';
 		public static const REDO : String = 'redo';
 		public static const COPY : String = 'copy';

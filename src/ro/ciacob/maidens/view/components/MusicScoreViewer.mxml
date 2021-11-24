@@ -42,49 +42,13 @@
 
 		import spark.core.IViewport;
 
-		// Embedding fonts. Our library only works with these font names:
-		// - sans-serif;
-		// - serif;
-		// - serifItalic;
-		// - serifBold.
-		// We will map them to two open source fonts, Charter and Open Sans.
-		// We will be using the traditional TextField API.
-		// to embed a font file that's relative to your project
-		[Embed(source="../../../../../../../maidens-ui-commons/src/eu/claudius/iacob/maidens/typography/charter-regular.ttf",
-				fontName="serif",
-				mimeType="application/x-font-truetype",
-				fontWeight="normal",
-				fontStyle="normal",
-				advancedAntiAliasing="true",
-				embedAsCFF="false")]
-		private var _serifFontCompileHelper:Class;
-
-		[Embed(source="../../../../../../../maidens-ui-commons/src/eu/claudius/iacob/maidens/typography/charter-italic.ttf",
-				fontName="serif",
-				mimeType="application/x-font-truetype",
-				fontWeight="normal",
-				fontStyle="italic",
-				advancedAntiAliasing="true",
-				embedAsCFF="false")]
-		private var _serifItalicFontCompileHelper:Class;
-
-		[Embed(source="../../../../../../../maidens-ui-commons/src/eu/claudius/iacob/maidens/typography/charter-bold.ttf",
-				fontName="serif",
-				mimeType="application/x-font-truetype",
-				fontWeight="bold",
-				fontStyle="normal",
-				advancedAntiAliasing="true",
-				embedAsCFF="false")]
-		private var _serifBoldFontCompileHelper:Class;
-
-		[Embed(source="../../../../../../../maidens-ui-commons/src/eu/claudius/iacob/maidens/typography/opensans-regular.ttf",
-				fontName="sans",
-				mimeType="application/x-font-truetype",
-				fontWeight="normal",
-				fontStyle="normal",
-				advancedAntiAliasing="true",
-				embedAsCFF="false")]
-		private var _sansSerifFontCompileHelper:Class;
+		// NOTE ON EMBEDDING FONTS
+		// The Abc2Svg library works by default with these font names:
+		// - sans;
+		// - serif.
+		// Starting with MAIDENS 1.5.1, these fonts are pre-compiled and
+		// embedded via the "maidens-font-commons" library, therefore
+		// there is no need for us to embed them here anymore.
 
 		// Constants
 		private static const GLOBAL_PIPE:PTT = PTT.getPipe();

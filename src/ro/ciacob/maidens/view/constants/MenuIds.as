@@ -13,8 +13,9 @@ package ro.ciacob.maidens.view.constants {
 		public static const MAC_APP_MENU_ITEM : String = 'macAppMenuItem';
 		public static const VERSION_ITEM : String = 'versionItem';
 		public static const QUIT_MENU_ITEM : String = 'quitMenuItem';
-		public static const CONTACT_ITEM : String = 'contactItem';
-		public static const NEWS_ITEM : String = 'newsItem';
+		public static const ISSUES_ITEM : String = 'contactItem';
+		public static const RELEASES_ITEM : String = 'newsItem';
+		public static const PATREON_ITEM : String = 'patreonItem';
 		public static const THEME_SUBMENU : String = 'themeSubmenu';
 		
 	}

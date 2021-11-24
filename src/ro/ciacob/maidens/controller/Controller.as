@@ -16,7 +16,7 @@ package ro.ciacob.maidens.controller {
     import flash.events.InvokeEvent;
     import flash.filesystem.File;
     import flash.filters.ColorMatrixFilter;
-    import flash.geom.ColorTransform;
+
     import flash.geom.Rectangle;
     import flash.net.URLRequest;
     import flash.net.navigateToURL;
@@ -1493,7 +1493,7 @@ package ro.ciacob.maidens.controller {
         }
 
         private function _openContactUrl():void {
-            navigateToURL(new URLRequest(URLs.ONLINE_CONTACT_FORM));
+            navigateToURL(new URLRequest(URLs.GITHUB_ISSUES_PAGE));
         }
 
         private function _openDocumentationUrl():void {
@@ -1560,7 +1560,11 @@ package ro.ciacob.maidens.controller {
         }
 
         private function _openNewsUrl():void {
-            navigateToURL(new URLRequest(URLs.ONLINE_NEWS_FEED));
+            navigateToURL(new URLRequest(URLs.GITHUB_RELEASES_PAGE));
+        }
+
+        private function _openPatreonUrl(): void {
+            navigateToURL(new URLRequest(URLs.PATREON_HOME_PAGE));
         }
 
         /**
@@ -2321,8 +2325,8 @@ package ro.ciacob.maidens.controller {
         }
 
         private function _onAppMenuTriggered(info:Object):void {
-            var commandName:String = info.commandName;
-            var commandArgs:Array = info.commandArgs;
+            var commandName:String = (info is String)? (info as String) : info.commandName;
+            var commandArgs:Array = ('commandArgs' in info)? info.commandArgs : [];
             switch (commandName) {
 
                     // File operations
@@ -2426,11 +2430,14 @@ package ro.ciacob.maidens.controller {
                 case MenuCommandNames.OPEN_DOCUMENTATION_URL:
                     _openDocumentationUrl();
                     break;
-                case MenuCommandNames.OPEN_CONTACT_URL:
+                case MenuCommandNames.OPEN_ISSUES_URL:
                     _openContactUrl();
                     break;
-                case MenuCommandNames.OPEN_NEWS_URL:
+                case MenuCommandNames.OPEN_RELEASES_URL:
                     _openNewsUrl();
+                    break;
+                case MenuCommandNames.OPEN_PATREON_URL:
+                    _openPatreonUrl();
                     break;
 
                     // DEBUG

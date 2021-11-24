@@ -56,7 +56,8 @@ package ro.ciacob.maidens.controller {
 		private static const TEMP_DIR_NAME_TEMPLATE:String = 'maidens-temp-%s';
 		private static const TOKEN:String = '%token%';
 		private static const UID_LENGTH:int = 5;
-		private static const WIN_NATIVE_APPS_DIR:String = 'assets/helpers/winnative/';
+		private static const WIN_NATIVE_APPS_DIR:String = 'winnative';
+		private static const MAC_NATIVE_APPS_DIR:String = 'macnative';
 
 		private static var _instance:NativeAppsWrapper = new NativeAppsWrapper;
 
@@ -68,7 +69,9 @@ package ro.ciacob.maidens.controller {
 			if (OSFamily.isWindows) {
 				return WIN_NATIVE_APPS_DIR;
 			}
-
+			if (OSFamily.isMac) {
+				return MAC_NATIVE_APPS_DIR;
+			}
 			// Will crash on a different OS
 			return null;
 		}
@@ -116,8 +119,11 @@ package ro.ciacob.maidens.controller {
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_COMPLETED, complete_callback);
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_STDERR, _onScriptError);
 						callback(session);
-						// The program producing the MIDI file appends the "1" digit
+						// On macOs The program producing the MIDI file appends the "1" digit
 						// to the session name.
+						if (OSFamily.osFamily == OSFamily.MAC) {
+							session += '1';
+						}
 						_currMidiFile = _tempDirectory.resolvePath(session.concat(CommonStrings.DOT, FileTypes.MIDI));
 					}
 				}
@@ -293,6 +299,10 @@ package ro.ciacob.maidens.controller {
 				case OSFamily.WINDOWS:
 					appName = appName.concat(CommonStrings.DOT, FileTypes.BAT);
 					func = _runBatchScript;
+					break;
+				case OSFamily.MAC:
+					appName = appName.concat(CommonStrings.DOT, FileTypes.SH);
+					func = _runNativeApp;
 					break;
 			}
 			if (func != null) {
