@@ -2227,10 +2227,10 @@ package ro.ciacob.maidens.controller {
         private function onSectionToggleStateChange(stateInfo:Object):void {
             switch (stateInfo.id) {
                 case 'projectEditor':
-                    _persistenceEngine.persistence(PersistenceKeys.PROJECT_TOGGLE_STATE, stateInfo.state);
+                    _persistenceEngine.persistence(PersistenceKeys.EDITOR_TOGGLE_STATE, stateInfo.state);
                     break;
                 case 'projectTree':
-                    _persistenceEngine.persistence(PersistenceKeys.EDITOR_TOGGLE_STATE, stateInfo.state);
+                    _persistenceEngine.persistence(PersistenceKeys.PROJECT_TOGGLE_STATE, stateInfo.state);
                     break;
             }
         }

@@ -56,11 +56,17 @@
         }
 
         private function _initEditorSectionState(state:int):void {
+
+            // We consider the Editor panel to be expanded by default.
+            state = (state || 1);
             toggleSection('projectEditor', Sizes.EDITOR_MINIMUM_WIDTH, Sizes.EDITOR_INITIAL_WIDTH,
                     "_editorExpandedWidth", "_editorCurrentAlpha", true, state);
         }
 
         private function _initProjectSectionState(state:int):void {
+
+            // We consider the Editor panel to be expanded by default.
+            state = (state || 1);
             toggleSection('projectTree', Sizes.TREE_MINIMUM_WIDTH, Sizes.TREE_INITIAL_WIDTH,
                     "_treeExpandedWidth", "_treeCurrentAlpha", true, state);
         }
@@ -121,10 +127,12 @@
                     sectionInitialW : this[sectionWidthProp];
             var targetWidth:Number;
             var targetAlpha:Number;
+            var payload:Object;
             if (!forcedState) {
                 targetWidth = isExpanded ? sectionMinW : targetExpandedWidth;
                 targetAlpha = isExpanded ? 0 : 1;
-                send(ViewKeys.SECTION_TOGGLE_STATE, {id: sectionId, state: isExpanded ? 2 : 1});
+                payload = {id: sectionId, state: isExpanded ? 2 : 1};
+                send(ViewKeys.SECTION_TOGGLE_STATE, payload);
             } else {
                 targetWidth = (forcedState == 1) ? targetExpandedWidth : sectionMinW;
                 targetAlpha = (forcedState == 1) ? 1 : 0;
