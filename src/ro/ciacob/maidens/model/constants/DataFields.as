@@ -25,6 +25,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const CUSTOM_NOTES:String = 'customNotes';
 		public static const DATA_TYPE:String = 'dataType';
 		public static const DETTACHE_UID:String = 'dettacheUid';
+		public static const DEBUG_ANNOTATION:String = 'debugAnnotation';
 		public static const DOT_TYPE:String = 'dotType';
 		public static const DYNAMIC_INSTRUCTION:String = 'dynamicInstruction';
 		public static const DYNAMIC_INSTRUCTIONS_CONTAINER:String = 'dynamicInstructionsContainer';

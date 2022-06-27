@@ -1,28 +1,29 @@
 package ro.ciacob.maidens.controller {
-	import com.adobe.crypto.MD5;
-	
-	import flash.events.DataEvent;
-	import flash.filesystem.File;
-	import flash.utils.ByteArray;
-	
-	import ro.ciacob.desktop.data.constants.DataKeys;
-	import ro.ciacob.desktop.data.importers.PlainObjectImporter;
-	import ro.ciacob.desktop.io.AbstractDiskWritter;
-	import ro.ciacob.desktop.io.RawDiskWritter;
-	import ro.ciacob.desktop.signals.PTT;
-	import ro.ciacob.maidens.controller.constants.LauncherKeys;
-	import ro.ciacob.maidens.controller.constants.LauncherMessages;
-	import ro.ciacob.maidens.model.ProjectData;
-	import ro.ciacob.maidens.model.constants.FileAssets;
-	import ro.ciacob.utils.ByteArrays;
-	import ro.ciacob.utils.Files;
-	import ro.ciacob.utils.OSFamily;
-	import ro.ciacob.utils.Strings;
-	import ro.ciacob.utils.Templates;
-	import ro.ciacob.utils.constants.CommonStrings;
-	import ro.ciacob.utils.constants.FileTypes;
 
-	public class NativeAppsWrapper {
+import com.adobe.crypto.MD5;
+
+import flash.events.DataEvent;
+import flash.filesystem.File;
+import flash.utils.ByteArray;
+
+import ro.ciacob.desktop.data.constants.DataKeys;
+import ro.ciacob.desktop.data.importers.PlainObjectImporter;
+import ro.ciacob.desktop.io.AbstractDiskWritter;
+import ro.ciacob.desktop.io.RawDiskWritter;
+import ro.ciacob.desktop.signals.PTT;
+import ro.ciacob.maidens.controller.constants.LauncherKeys;
+import ro.ciacob.maidens.controller.constants.LauncherMessages;
+import ro.ciacob.maidens.model.ProjectData;
+import ro.ciacob.maidens.model.constants.FileAssets;
+import ro.ciacob.utils.ByteArrays;
+import ro.ciacob.utils.Files;
+import ro.ciacob.utils.OSFamily;
+import ro.ciacob.utils.Strings;
+import ro.ciacob.utils.Templates;
+import ro.ciacob.utils.constants.CommonStrings;
+import ro.ciacob.utils.constants.FileTypes;
+
+public class NativeAppsWrapper {
 		private static const $BANNER_MADE_MIDI:String = 'MIDI CONVERSION DONE FOR: %token%';
 		private static const $BANNER_MADE_PDF:String = 'ABC TO PDF CONVERSION DONE FOR: %token%';
 		private static const $BANNER_MADE_XML:String = 'ABC TO XML CONVERSION DONE FOR: %token%';
@@ -113,7 +114,7 @@ package ro.ciacob.maidens.controller {
 			var complete_callback:Function = function(data:Object):void {
 				var appFileName:String = (data[APP_FILE_NAME_KEY] as String);
 				var arguments:Array = (data[ARGUMENTS_KEY] as Array);
-				var message:String = (data[MESSAGE_KEY] as String);
+				// var message:String = (data[MESSAGE_KEY] as String);
 				if (appFileName == $SCRIPT_MAKE_MIDI) {
 					if (arguments.indexOf(session) >= 0) {
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_COMPLETED, complete_callback);
@@ -141,7 +142,7 @@ package ro.ciacob.maidens.controller {
 			var complete_callback:Function = function(data:Object):void {
 				var appFileName:String = (data[APP_FILE_NAME_KEY] as String);
 				var arguments:Array = (data[ARGUMENTS_KEY] as Array);
-				var message:String = (data[MESSAGE_KEY] as String);
+				// var message:String = (data[MESSAGE_KEY] as String);
 				if (appFileName == $SCRIPT_MAKE_PDF) {
 					if (arguments.indexOf(session) >= 0) {
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_COMPLETED, complete_callback);
@@ -166,7 +167,7 @@ package ro.ciacob.maidens.controller {
 			var complete_callback : Function = function (data : Object) : void {
 				var appFileName:String = (data[APP_FILE_NAME_KEY] as String);
 				var arguments:Array = (data[ARGUMENTS_KEY] as Array);
-				var message:String = (data[MESSAGE_KEY] as String);
+				// var message:String = (data[MESSAGE_KEY] as String);
 				if (appFileName == $SCRIPT_MAKE_XML) {
 					if (arguments.indexOf(session) != -1) {
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_COMPLETED, complete_callback);
@@ -208,7 +209,7 @@ package ro.ciacob.maidens.controller {
 			var complete_callback:Function = function(data:Object):void {
 				var appFileName:String = (data[APP_FILE_NAME_KEY] as String);
 				var arguments:Array = (data[ARGUMENTS_KEY] as Array);
-				var message:String = (data[MESSAGE_KEY] as String);
+				// var message:String = (data[MESSAGE_KEY] as String);
 				if (appFileName == $SCRIPT_MAKE_WAV) {
 					if (arguments.indexOf(session) >= 0) {
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_COMPLETED, complete_callback);
@@ -227,10 +228,19 @@ package ro.ciacob.maidens.controller {
 		}
 
 		public function startMidiPlayback(session:String, settings:Object, callback:Function, progressCallback:Function = null):void {
+			trace ('\nCalled function startMidiPlayback() with arguments:');
+			trace ('session:', session);
+			trace ('settings:', JSON.stringify(settings));
+			trace ('callback:', callback);
+			trace ('progressCallback:', progressCallback);
 			var stdout_callback : Function = function (data : Object) : void {
+				trace ('Received STDOUT from native application:');
 				var appFileName:String = (data[APP_FILE_NAME_KEY] as String);
 				var arguments:Array = (data[ARGUMENTS_KEY] as Array);
 				var message:String = (data[MESSAGE_KEY] as String);
+				trace ('appFileName:', appFileName);
+				trace ('arguments:', arguments);
+				trace ('message:', message);
 				if (appFileName == $SCRIPT_START_MIDI_PLAYBACK) {
 					if (arguments.indexOf(session) >= 0) {
 						if (progressCallback != null) {
@@ -240,9 +250,13 @@ package ro.ciacob.maidens.controller {
 				}
 			}
 			var complete_callback:Function = function(data:Object):void {
+				trace ('Received EXIT from native application:');
 				var appFileName:String = (data[APP_FILE_NAME_KEY] as String);
 				var arguments:Array = (data[ARGUMENTS_KEY] as Array);
 				var message:String = (data[MESSAGE_KEY] as String);
+				trace ('appFileName:', appFileName);
+				trace ('arguments:', arguments);
+				trace ('message:', message);
 				if (appFileName == $SCRIPT_START_MIDI_PLAYBACK) {
 					if (arguments.indexOf(session) >= 0) {
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_COMPLETED, complete_callback);
@@ -266,7 +280,7 @@ package ro.ciacob.maidens.controller {
 			var complete_callback:Function = function(data:Object):void {
 				var appFileName:String = (data[APP_FILE_NAME_KEY] as String);
 				var arguments:Array = (data[ARGUMENTS_KEY] as Array);
-				var message:String = (data[MESSAGE_KEY] as String);
+				// var message:String = (data[MESSAGE_KEY] as String);
 				if (appFileName == $SCRIPT_STOP_MIDI_PLAYBACK) {
 					if (arguments.indexOf(session) >= 0) {
 						DEFAULT_PTT_PIPE.unsubscribe(NATIVE_HAS_COMPLETED, complete_callback);
@@ -293,6 +307,11 @@ package ro.ciacob.maidens.controller {
 		 */
 		private function _callNativeApp(appName:String, successSTDOUT:String, args:Array =
 			null):void {
+			trace ('\nCalled function _callNativeApp() with arguments:');
+			trace ('appName:', appName);
+			trace ('successSTDOUT:', successSTDOUT);
+			trace ('args:', args);
+
 			var func:Function = null;
 			var os:String = OSFamily.osFamily;
 			switch (os) {
@@ -305,6 +324,7 @@ package ro.ciacob.maidens.controller {
 					func = _runNativeApp;
 					break;
 			}
+
 			if (func != null) {
 				func(appName, successSTDOUT, args);
 			} else {
@@ -395,7 +415,7 @@ package ro.ciacob.maidens.controller {
 
 		/**
 		 * Calls a Windows batch file (*.bat) in the predefined `nativeAppsHome` folder, passing it given arguments.
-		 * Assumes that the batch will output a specific message upon successfull completion. This function does not use
+		 * Assumes that the batch will output a specific message upon successful completion. This function does not use
 		 * callbacks, instead it sends notifications via the local PTT pipe.
 		 *
 		 * @param	scriptName
@@ -424,7 +444,7 @@ package ro.ciacob.maidens.controller {
 		 * 			`arguments` (see above), plus the STDERR.
 		 *
 		 * @returns	The `Launcher` instance, which received the task of executing the batch script.
-		 * 			This is usefull, for instance, for manually terminating the execution process
+		 * 			This is useful, for instance, for manually terminating the execution process
 		 * 			— via `myLauncher.terminateProcess()`.
 		 */
 		private function _runBatchScript(scriptName:String, successSTDOUT:String,

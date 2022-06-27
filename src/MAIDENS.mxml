@@ -100,6 +100,10 @@
         <![CDATA[
         import com.greensock.TweenMax;
 
+        import eu.claudius.iacob.EmbeddedFontsHelper;
+        import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Sizes;
+
         import mx.core.FlexGlobals;
         import mx.events.FlexEvent;
 
@@ -111,17 +115,9 @@
         import ro.ciacob.maidens.controller.Controller;
         import ro.ciacob.maidens.model.constants.StaticTokens;
         import ro.ciacob.maidens.view.MainUi;
-
-        import eu.claudius.iacob.EmbeddedFontsHelper;
-        import eu.claudius.iacob.maidens.Colors;
-
         import ro.ciacob.maidens.view.constants.MenuCommandNames;
         import ro.ciacob.maidens.view.constants.MenuIds;
-
-        import eu.claudius.iacob.maidens.Sizes;
-
         import ro.ciacob.maidens.view.constants.UiColorizationThemes;
-
         import ro.ciacob.maidens.view.constants.ViewKeys;
         import ro.ciacob.utils.Descriptor;
         import ro.ciacob.utils.ScreenUtils;

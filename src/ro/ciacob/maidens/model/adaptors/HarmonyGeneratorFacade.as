@@ -39,6 +39,7 @@ package ro.ciacob.maidens.model.adaptors {
 	import ro.ciacob.maidens.view.constants.ViewKeys;
 	import ro.ciacob.math.Fraction;
 	import ro.ciacob.math.IFraction;
+	import ro.ciacob.utils.Strings;
 	import ro.ciacob.utils.Time;
 	import ro.ciacob.utils.constants.CommonStrings;
 	
@@ -123,7 +124,7 @@ package ro.ciacob.maidens.model.adaptors {
 				instrument = instruments[i1];
 
 				// Theoretically, each staff can hold two voices. Despite the fact that few instruments
-				// can play a second voice, we need these slots in place, as the algorithm for "evenning out"
+				// can play a second voice, we need these slots in place, as the algorithm for "evening out"
 				// the voices can produce arrangements where each instrument staff contain a single voice,
 				// therefore the incoming voice indices will be something like: [0, 2] instead of [0, 1],
 				// so we need that a slot exists by the index of "2".
@@ -146,6 +147,17 @@ package ro.ciacob.maidens.model.adaptors {
 			var duration : IFraction;
 			var midiNote : int;
 			var tieNext : Boolean;
+			// [DEBUG]
+//			var annotationRows : Array;
+//			var annotation : String;
+//			var criteriaScoreLogger : Function = function (criteria : String, value : Number) : void {
+//				var shortenCriteriaName : String = criteria.split(' ')
+//						.map (function (token : String, ...etc) : String {
+//							return token.charAt(0).toUpperCase();
+//						}).join ('');
+//				annotationRows.push (/*shortenCriteriaName + '_' + */value);
+//			}
+			// [/DEBUG]
 			var pitchAllocations : Vector.<IPitchAllocation>;
 			var numPitchAllocations : uint;
 			var i4 : int = 0;
@@ -166,7 +178,12 @@ package ro.ciacob.maidens.model.adaptors {
 					midiNote = allocatedPitch.midiNote;
 					duration = unit.duration;
 					tieNext = (midiNote && allocatedPitch.tieNext);
-					translatedEntry = new MusicEntry (midiNote, duration as Fraction, tieNext);
+					// [DEBUG]
+//					annotationRows = [];
+//					unit.analysisScores.forEach(criteriaScoreLogger);
+//					annotation = annotationRows.join('`') ;
+					// [/DEBUG]
+					translatedEntry = new MusicEntry (midiNote, duration as Fraction, tieNext/*, annotation*/);
 					targetInstrument = pitchAllocation.instrument;
 					targetStreamUid = (targetInstrument.uid + pitchAllocation.voiceIndex);
 					targetStream = VOICE_STREAMS_REGISTRY[targetStreamUid];

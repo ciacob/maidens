@@ -8,6 +8,7 @@ package ro.ciacob.maidens.model.exporters {
 	import ro.ciacob.maidens.model.constants.DataFields;
 	import ro.ciacob.maidens.model.constants.FileAssets;
 	import ro.ciacob.maidens.view.constants.ViewKeys;
+	import ro.ciacob.utils.Strings;
 	import ro.ciacob.utils.constants.CommonStrings;
 
 	public class ScreenABCExporter extends VisualABCExporter {
@@ -39,6 +40,9 @@ package ro.ciacob.maidens.model.exporters {
 			// Clean-up
 			project.setContent (DataFields.PROJECT_NAME, project.getMetadata(DataFields.PROJECT_NAME));
 			project.setContent (DataFields.COMPOSER_NAME, project.getMetadata(DataFields.COMPOSER_NAME));
+
+			// trace ('ABC for Screen is:\n---------------------\n', ret);
+
 			return ret;
 		}
 
@@ -140,6 +144,16 @@ package ro.ciacob.maidens.model.exporters {
 		 * @see ScreenABCExporter.onBeforeClusterTranslation()
 		 */
 		override protected function onBeforeClusterTranslation(clusterNode:ProjectData, storage:Array):void {
+//			if (clusterNode.hasContentKey(DataFields.DEBUG_ANNOTATION)) {
+//				var debugAnnotation : String = (clusterNode.getContent(DataFields.DEBUG_ANNOTATION) as String);
+//				debugAnnotation = Strings.trim(debugAnnotation);
+//				var clusterRouteTokens : Array =  clusterNode.route.split('_');
+//				var isInFirstVoice : Boolean = (clusterRouteTokens[clusterRouteTokens.length - 2] == 0);
+//				if (debugAnnotation && isInFirstVoice) {
+//					storage.push(ABCTranslator.buildAnnotation(debugAnnotation, ABCTranslator.TOP_MARK) + ' ');
+//				}
+//			}
+
 			PTT.getPipe().subscribe(ViewKeys.UID_FOR_ANNOTATION_READY, _onUidForClusterAnnotationReady);
 			PTT.getPipe().send(ViewKeys.NEED_UID_FOR_ANNOTATION, clusterNode);
 			storage.push(ABCTranslator.buildAnnotation(_uidForClusterAnnotation, ABCTranslator.TOP_MARK));

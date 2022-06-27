@@ -97,11 +97,13 @@ package ro.ciacob.maidens.controller {
 				targetVoice.setContent(DataFields.VOICE_INDEX, voiceIndex);
 			}
 			var cluster:ProjectData = _createClusterOf(targetVoice, true);
+			var annotation : String = entry.annotation;
 			var splitValues:Array = _splitCompositeDuration(entry.duration);
 			var duration:Fraction = splitValues[0];
 			var dotValue:Fraction = splitValues[1];
 			cluster.setContent(DataFields.CLUSTER_DURATION_FRACTION, duration.toString());
 			cluster.setContent(DataFields.DOT_TYPE, dotValue.toString());
+			cluster.setContent(DataFields.DEBUG_ANNOTATION, annotation);
 
 			// TODO: support tuplets
 			if (entry.pitch != 0) {

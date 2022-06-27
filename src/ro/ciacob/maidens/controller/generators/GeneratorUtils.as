@@ -164,7 +164,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		}
 
 		/**
-		 * Handles progress reporting requests issues by Generators. Produces a modal dialog that features information,
+		 * Handles progress reporting requests issued by Generators. Produces a modal dialog that features information,
 		 * a progress bar, and buttons to abort the process or minimize the application.
 		 */
 		public function showGeneratorProgress(generatorUid:String, info:Object, pipe:PTT):void {
