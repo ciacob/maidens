@@ -1,34 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:Canvas height="100%"
-		initialize="_onInitialize(event)"
-		width="100%"
-		xmlns:fx="http://ns.adobe.com/mxml/2009"
-		xmlns:mx="library://ns.adobe.com/flex/mx"
-		xmlns:images="eu.claudius.iacob.maidens.skins.images.*"
-		xmlns:s="library://ns.adobe.com/flex/spark" xmlns:components="ro.ciacob.maidens.view.components.*">
+           initialize="_onInitialize(event)"
+           width="100%"
+           xmlns:fx="http://ns.adobe.com/mxml/2009"
+           xmlns:mx="library://ns.adobe.com/flex/mx"
+           xmlns:images="eu.claudius.iacob.maidens.skins.images.*"
+           xmlns:s="library://ns.adobe.com/flex/spark" xmlns:components="ro.ciacob.maidens.view.components.*">
 
-	<fx:Metadata>
-		[Event(name="selectedItem",type="flash.events.Event")]
-	</fx:Metadata>
+    <fx:Metadata>
+        [Event(name="selectedItem", type="flash.events.Event")]
+    </fx:Metadata>
 
-	<fx:Declarations/>
+    <fx:Declarations/>
 
-	<fx:Script>
+    <fx:Script>
 		<![CDATA[
-		import mx.core.FlexGlobals;
-		import mx.events.FlexEvent;
-		import mx.events.ListEvent;
-
-		import ro.ciacob.desktop.data.constants.DataKeys;
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.maidens.model.ProjectData;
-		import ro.ciacob.maidens.model.constants.DataFields;
-
+		import eu.claudius.iacob.maidens.Colors;
 		import eu.claudius.iacob.maidens.Sizes;
-
-		import ro.ciacob.maidens.view.constants.ViewKeys;
-		import ro.ciacob.maidens.view.constants.ViewPipes;
-
 		import eu.claudius.iacob.maidens.skins.ClusterSkin;
 		import eu.claudius.iacob.maidens.skins.GeneratorSkin;
 		import eu.claudius.iacob.maidens.skins.GeneratorsSkin;
@@ -40,6 +28,15 @@
 		import eu.claudius.iacob.maidens.skins.SectionSkin;
 		import eu.claudius.iacob.maidens.skins.VoiceSkin;
 
+		import mx.events.FlexEvent;
+		import mx.events.ListEvent;
+
+		import ro.ciacob.desktop.data.constants.DataKeys;
+		import ro.ciacob.desktop.signals.PTT;
+		import ro.ciacob.maidens.model.ProjectData;
+		import ro.ciacob.maidens.model.constants.DataFields;
+		import ro.ciacob.maidens.view.constants.ViewKeys;
+		import ro.ciacob.maidens.view.constants.ViewPipes;
 		import ro.ciacob.utils.ColorUtils;
 		import ro.ciacob.utils.Time;
 		import ro.ciacob.utils.Trees;
@@ -67,8 +64,7 @@
 		}
 
 		protected function _onLabelIconAdded(event:Event):void {
-			var color:uint = FlexGlobals.topLevelApplication.getStyle('color');
-			ColorUtils.tintSprite(color, labelIcon);
+			ColorUtils.tintSprite(Colors.PRIMARY_COLOR_DARK, labelIcon);
 		}
 
 		private function _focusLastFoundItem():void {
@@ -116,7 +112,7 @@
 			if (_treeReady) {
 				// Conceal previous selection, if any
 				if (_lastFoundItem != null) {
-					_unfocusLastFoundItem();
+					_unFocusLastFoundItem();
 				}
 
 				// Find and emphasize current selection
@@ -180,7 +176,7 @@
 			Trees.clearHighlight(tree);
 		}
 
-		private function _unfocusLastFoundItem():void {
+		private function _unFocusLastFoundItem():void {
 			Trees.toggleTreeItem(tree, _lastFoundItem, false, true, false, DELAY);
 		}
 
@@ -226,30 +222,30 @@
 		]]>
 	</fx:Script>
 
-	<!-- Pane Icon and Title -->
-	<mx:HBox verticalAlign="middle" id="headerAndIcon" toolTip="Toggle section">
-		<s:Group click="_onHeaderIconClick (event)"
-				 useHandCursor="true"
-				 buttonMode="true">
-			<images:projectStructure id="labelIcon"
-				width="21"
-				height="21"
-				added="_onLabelIconAdded(event)"/>
-		</s:Group>
-		<mx:LinkButton id="header"
-			click="_onHeaderIconClick (event)"
-			styleName="sectionHeader"
-			textDecoration="underline"
-			label="{title}" />
-	</mx:HBox>
+    <!-- Pane Icon and Title -->
+    <mx:HBox verticalAlign="middle" id="headerAndIcon" toolTip="Toggle section">
+        <s:Group click="_onHeaderIconClick (event)"
+                 useHandCursor="true"
+                 buttonMode="true">
+            <images:projectStructure id="labelIcon"
+                                     width="21"
+                                     height="21"
+                                     added="_onLabelIconAdded(event)"/>
+        </s:Group>
+        <mx:LinkButton id="header"
+                       click="_onHeaderIconClick (event)"
+                       styleName="sectionHeader"
+                       color="{Colors.PRIMARY_COLOR_DARK}"
+                       label="{title}"/>
+    </mx:HBox>
 
-	<!-- Scrollable tree for project hierarchy -->
-	<components:CustomTree height="{height - headerAndIcon.height - Sizes.VERTICAL_GAP}"
-		y="{headerAndIcon.y + headerAndIcon.height + Sizes.VERTICAL_GAP}"
-		id="tree"
-		width="{width}"
-		borderStyle="none"
-		iconFunction="getIcon"
-		itemClick="_onItemClick(event)"
-		showRoot="true" />
+    <!-- Scrollable tree for project hierarchy -->
+    <components:CustomTree height="{height - headerAndIcon.height - Sizes.VERTICAL_GAP}"
+                           y="{headerAndIcon.y + headerAndIcon.height + Sizes.VERTICAL_GAP}"
+                           id="tree"
+                           width="{width}"
+                           borderStyle="none"
+                           iconFunction="getIcon"
+                           itemClick="_onItemClick(event)"
+                           showRoot="true"/>
 </mx:Canvas>

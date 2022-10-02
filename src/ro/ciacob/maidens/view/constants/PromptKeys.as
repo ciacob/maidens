@@ -5,6 +5,7 @@ package ro.ciacob.maidens.view.constants {
 		public static const TEXT:String = 'text';
 		public static const BUTTONS:String = 'buttons';
 		public static const CALLBACK:String = 'callback';
+		public static const AUTOCLOSE:String = 'autoclose';
 		
 		public static const PROMPT_TYPE_BLANK:String = 'promptTypeBlank';
 		public static const PROMPT_TYPE_YES_NO:String = 'promptTypeYesNo';

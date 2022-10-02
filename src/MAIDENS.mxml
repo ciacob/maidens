@@ -13,7 +13,7 @@
 
     <fx:Declarations>
         <!-- Menu structure to serve as source of menu items -->
-        <fx:XML id="appMenudata">
+        <fx:XML id="appMenuData">
             <item>
                 <!-- File -->
                 <item label="{StaticTokens.FILE}">
@@ -145,7 +145,7 @@
             // Initialize the menu
             // We use a custom menu. The custom menu is attached in class MainUi,
             // in method `onInitialize()`.
-            FlexGlobals.topLevelApplication.appMenudata = appMenudata;
+            FlexGlobals.topLevelApplication.appMenuData = appMenuData;
 
             // Create root window content
             _rootContent = new MainUi;
@@ -235,10 +235,10 @@
          *          - 'command': String; value for the "commandName" attribute;
          *          - 'commandArguments': Array; will be joined with comma and set as the value of the
          *             "commandArguments" attribute.
-         * This method changes the `appMenudata` XML structure in place; no value is returned.
+         * This method changes the `appMenuData` XML structure in place; no value is returned.
          */
         private function _generateMenuItems(menuId:String, itemDescriptors:Array):void {
-            var submenu:XML = appMenudata.descendants().(hasOwnProperty('@id') && @id == menuId)[0];
+            var submenu:XML = appMenuData.descendants().(hasOwnProperty('@id') && @id == menuId)[0];
             if (submenu) {
                 var i:int;
                 for (i = 0; i < itemDescriptors.length; i++) {

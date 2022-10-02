@@ -43,10 +43,9 @@ package ro.ciacob.maidens.model.exporters {
 		protected var persistentAlterations:Object;
 		protected var pitchesMap:Object;
 		protected var stavesUidDictionary:Object;
-
-		private var _timeSignature:Array = null;
-		private var _lastTupletMarker:TupletMarker;
-		private var _paddingDurations:Array;
+		protected var timeSignature:Array = null;
+		protected var lastTupletMarker:TupletMarker;
+		protected var paddingDurations:Array;
 
 		public function BaseABCExporter() {
 			super();
@@ -59,8 +58,8 @@ package ro.ciacob.maidens.model.exporters {
 			persistentAlterations = {};
 			pitchesMap = {};
 			stavesUidDictionary = {};
-			_lastTupletMarker = null;
-			_timeSignature = null;
+			lastTupletMarker = null;
+			timeSignature = null;
 
 			MeasurePaddingMarker.reset();
 			var templateData:Object = buildTemplateData(ProjectData(project));
@@ -192,7 +191,7 @@ package ro.ciacob.maidens.model.exporters {
 			// Time signature
 			PTT.getPipe().subscribe(ViewKeys.MEASURE_TIME_SIGNATURE_READY, _onTimeSignatureReady);
 			PTT.getPipe().send(ViewKeys.NEED_MEASURE_OWN_TIME_SIGNATURE, measure);
-			var abcTimeSign:String = (_timeSignature != null) ? ABCTranslator.translateTimeSignature(_timeSignature) :
+			var abcTimeSign:String = (timeSignature != null) ? ABCTranslator.translateTimeSignature(timeSignature) :
 					'';
 			abcTimeSign = abcTimeSign.concat(CommonStrings.SPACE);
 
@@ -265,7 +264,7 @@ package ro.ciacob.maidens.model.exporters {
 		 *
 		 * @param	modelForBlanks
 		 * 			Optional. A part node whose measures are to be mimicked,
-		 * 			but filled with whole note reasts instead of the actual music.
+		 * 			but filled with whole note rests instead of the actual music.
 		 * 			The part information will still be taken from `partNode`.
 		 */
 		protected function buildPartData(partNode:ProjectData, parentSectionName:String, modelForBlanks:ProjectData =
@@ -389,7 +388,7 @@ package ro.ciacob.maidens.model.exporters {
 		 */
 		protected function buildVoiceData(voice:ProjectData, storage:Array):void {
 			var duration:Fraction = null;
-			_lastTupletMarker = null;
+			lastTupletMarker = null;
 			var mightHaveAnotherVoice:Boolean = (storage.length > 0);
 			if (mightHaveAnotherVoice) {
 				storage.push(ABCTranslator.TEMPORARY_VOICE_OPERATOR);
@@ -423,8 +422,8 @@ package ro.ciacob.maidens.model.exporters {
 						}
 						var haveTuplet:Boolean = (srcNumBeats != targetNumBeats);
 						if (haveTuplet) {
-							if (_lastTupletMarker != null) {
-								sealTuplet(_lastTupletMarker, true, storage);
+							if (lastTupletMarker != null) {
+								sealTuplet(lastTupletMarker, true, storage);
 							}
 							var rawTupletBeatDuration:String = (clusterNode.getContent(DataFields.TUPLET_BEAT_DURATION) as String);
 							if (rawTupletBeatDuration == DataFields.VALUE_NOT_SET) {
@@ -438,23 +437,23 @@ package ro.ciacob.maidens.model.exporters {
 							if (duration.greaterThan(intrinsicTupletSpan)) {
 								clusterNode.setContent(DataFields.CLUSTER_DURATION_FRACTION, (duration = tupletBeatDuration).toString());
 							}
-							_lastTupletMarker = new TupletMarker(clusterNode.route, intrinsicTupletSpan, srcNumBeats, targetNumBeats);
-							storage.push(_lastTupletMarker);
+							lastTupletMarker = new TupletMarker(clusterNode.route, intrinsicTupletSpan, srcNumBeats, targetNumBeats);
+							storage.push(lastTupletMarker);
 						}
 					}
-					if (_lastTupletMarker) {
-						var response:int = _lastTupletMarker.accountFor(duration);
+					if (lastTupletMarker) {
+						var response:int = lastTupletMarker.accountFor(duration);
 
 						// If the duration of the current cluster does not fit in the tuplet, we produce a ghost
 						// rest to fill the tuplet up and move on.
 						if (response == TupletMarker.OVERFULL) {
-							sealTuplet(_lastTupletMarker, true, storage);
+							sealTuplet(lastTupletMarker, true, storage);
 						} else {
 
 							// If the duration of the current cluster perfectly fits in the tuplet (i.e., concludes, or completes
 							// the tuplet), we just seal/unlink the tuplet as it is, and move on.
 							if (response == TupletMarker.FULL) {
-								sealTuplet(_lastTupletMarker);
+								sealTuplet(lastTupletMarker);
 							}
 						}
 					}
@@ -519,8 +518,8 @@ package ro.ciacob.maidens.model.exporters {
 			}
 
 			// If there is any leftover tuplet, close it properly
-			if (_lastTupletMarker) {
-				sealTuplet(_lastTupletMarker, true, storage);
+			if (lastTupletMarker) {
+				sealTuplet(lastTupletMarker, true, storage);
 			}
 
 			// We padd every voice with invisible rests to the same nominal
@@ -597,7 +596,7 @@ package ro.ciacob.maidens.model.exporters {
 
 		private function _onTimeSignatureReady(timeSignature:Array):void {
 			PTT.getPipe().unsubscribe(ViewKeys.MEASURE_TIME_SIGNATURE_READY, _onTimeSignatureReady);
-			_timeSignature = timeSignature;
+			this.timeSignature = timeSignature;
 		}
 
 		/**
@@ -616,8 +615,8 @@ package ro.ciacob.maidens.model.exporters {
 				var tupletGhostRests:Array = [];
 				_splitRawDuration($remainder);
 				var fillUpDuration:Fraction;
-				for (var j:int = 0; j < _paddingDurations.length; j++) {
-					fillUpDuration = _paddingDurations[j] as Fraction;
+				for (var j:int = 0; j < paddingDurations.length; j++) {
+					fillUpDuration = paddingDurations[j] as Fraction;
 					tupletMarker.accountFor(fillUpDuration);
 					tupletGhostRests.push(ABCTranslator.translateRest(fillUpDuration));
 				}
@@ -642,7 +641,7 @@ package ro.ciacob.maidens.model.exporters {
 					break;
 				}
 			}
-			_lastTupletMarker = null;
+			lastTupletMarker = null;
 		}
 
 		private function _splitRawDuration(duration:Fraction):void {
@@ -655,8 +654,8 @@ package ro.ciacob.maidens.model.exporters {
 		private function _onDurationSplitReady(data:Object):void {
 			PTT.getPipe(ViewPipes.MEASURE_PADDING_PIPE).unsubscribe(ViewKeys.DURATION_SPLIT_READY,
 					_onDurationSplitReady);
-			_paddingDurations = (data as Array);
-			_paddingDurations.reverse();
+			paddingDurations = (data as Array);
+			paddingDurations.reverse();
 		}
 	}
 }

@@ -11,7 +11,9 @@
 
 	<fx:Script>
 		<![CDATA[
-        import mx.core.FlexGlobals;
+		import eu.claudius.iacob.maidens.Colors;
+
+		import mx.core.FlexGlobals;
         import mx.core.UIComponent;
         import mx.events.FlexEvent;
 
@@ -51,8 +53,7 @@
         private var _ui:UIComponent;
 
         protected function _onLabelIconAdded(event:Event):void {
-            var color:uint = FlexGlobals.topLevelApplication.getStyle('color');
-            ColorUtils.tintSprite(color, labelIcon);
+            ColorUtils.tintSprite(Colors.PRIMARY_COLOR_DARK, labelIcon);
         }
 
         /**
@@ -180,8 +181,8 @@
 						   added="_onLabelIconAdded (event)" />
 		</s:Group>
 		<mx:LinkButton click="_onHeaderIconClick (event)"
-					   styleName="sectionHeader" 
-					   textDecoration="underline"
+					   styleName="sectionHeader"
+					   color="{Colors.PRIMARY_COLOR_DARK}"
 					   label="{title}" />
 	</mx:HBox>
 

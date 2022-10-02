@@ -1,6 +1,7 @@
 package ro.ciacob.maidens.model.constants {
 
 	public final class StaticTokens {
+		public static const AUDIO_DROPOUT_NOTICE : String = 'Audio dropout occurred. Playback will resume shortly.'
 		public static const ALL_CLEFS:String = 'All clefs';
 		public static const ALL_PROJECT_GENERATORS_INITIALIZED:String = 'All generators used by this project were successfully initialized.';
 		public static const API_WRONG_ARGUMENTS_NUMBER:String = 'Wrong number of arguments given. The API %s accepts exactly %d arguments — %d given.';
@@ -48,7 +49,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const ILLEGAL_OUTCOME_TYPE:String = 'unsupported data type. Supported types are: %s.';
 		public static const INVALID_GENERATOR_OUTCOME:String = 'Generator %s has given an invalid outcome:';
 		public static const JS:String = 'JavaScript';
-		public static const LAST_MODIFYIED_ON:String = 'last modifyed on';
+		public static const LAST_MODIFIED_ON:String = 'last modified on';
 		public static const MISSING:String = 'Missing';
 		public static const MISSING_DESCRIPTOR:String = 'The descriptor file is missing.';
 		public static const MISSING_ENUM:String = 'missingEnum';
@@ -56,6 +57,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const VOICE_STAFF_NOT_ASSIGNED:String = 'staff not assigned';
 		public static const VOICE_INDEX_NOT_ASSIGNED:String = 'valid index not assigned';
 		public static const MODIFICATION_DATE:String = 'Modification date: %s';
+		public static const NO_CONTENT_TO_STREAM:String = 'Score is empty. Resulting audio would be pure silence.';
 		public static const NOTE:String = 'note';
 		public static const NOTE_TEMPLATE:String = 'note: %s';
 		public static const NO_GENERATORS_AVAILABLE:String = 'No generators available';
@@ -63,8 +65,8 @@ package ro.ciacob.maidens.model.constants {
 		public static const NO_SUCH_API:String = 'The public API %s, needed by module %s, does not exist.';
 		public static const NULL_OUTCOME:String = 'null content.';
 		public static const OR_SIMILAR:String = '– or similar';
-		public static const OVERRITE_FILE_QUESTION:String = 'Are you sure you want to overwrite file "%s"?';
-		public static const OVERRITE_PROJECT_QUESTION:String = 'The project "%s" has unsaved changes.\n\nClick "Discard" to close the project without saving. Otherwise, click "Don\'t close", then use the "File" menu to save your work.';
+		public static const OVERWRITE_FILE_QUESTION:String = 'Are you sure you want to overwrite file "%s"?';
+		public static const OVERWRITE_PROJECT_QUESTION:String = 'The project "%s" has unsaved changes.\n\nClick "Discard" to close the project without saving. Otherwise, click "Don\'t close", then use the "File" menu to save your work.';
 		public static const PART_LABEL:String = 'part: %s (%d)';
 		public static const PART_RANGE:String = 'Concert pitch range: %s  to  %s';
 		public static const RANGE_SHORT:String = '%s  to  %s';
@@ -96,7 +98,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const ITEM_NUDGE_BEFORE : String = '%s nudge "before"';
 		public static const ITEM_NUDGE_AFTER : String = '%s nudge "after"';
 		public static const GENERATOR_WRITE_OPERATION : String = 'writing to "%s"';
-		public static const TRASPOSITION_OPERATION : String = '%s transposition';
+		public static const TRANSPOSITION_OPERATION : String = '%s transposition';
 		public static const SCALE_INTERVALS_OPERATION : String = '%s scaling';
 		public static const CANNOT_UNDO : String = 'Cannot undo';
 		public static const CANNOT_REDO : String = 'Cannot redo';
@@ -119,7 +121,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const INTERVAL : String = 'Interval';
 		public static const INTERVAL_INFO : String = '%s - %d semitone(s)';
 		public static const ADDITIONAL_OCTAVES : String = 'Additional octaves';
-		public static const MAINTAN_EXISITNG_NOTES : String = 'Keep existing';
+		public static const MAINTAIN_EXISTING_NOTES : String = 'Keep existing';
 		public static const CHROMATIC_TRANSPOSITION_INFO : String = 'Perform chromatic transposition of selected material';
 		public static const MELODIC_INTERVALS_SCALING_INFO : String = 'Reduce or expand melodic intervals in selected material';
 		public static const NONE : String = 'none'; 
@@ -154,7 +156,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const SCALE_INTERVALS : String = 'Scale intervals';
 		public static const SCALE_STRATEGY : String = 'Scale strategy';
 		public static const SCALE_WITH_THRESHOLD : String = 'threshold';
-		public static const SCALE_PROGRESSIVELLY : String = 'progressivelly';
+		public static const SCALE_PROGRESSIVELY : String = 'progressively';
 		public static const SCALE_BY_CONSTANT_FACTOR : String = 'constant factor';
 		public static const SCALE_INTERVALS_WINDOW_TITLE : String = 'Scale intervals in %s';
 		public static const FACTOR : String = 'Factor';
@@ -184,6 +186,11 @@ package ro.ciacob.maidens.model.constants {
 		public static const NUDGE_ELEMENT_BEFORE : String = 'Nudge element before';
 		public static const NUDGE_ELEMENT_AFTER : String = 'Nudge element after';
 		public static const PREPARING_MIDI : String = 'Preparing MIDI...';
+		public static const LOADING_SOUNDS : String = 'Loading sounds%s';
+		public static const PREPARING_AUDIO : String = 'Generating audio data...';
+		public static const RENDER_WINDOW_TITLE:String = 'Recording in Progress';
+		public static const RECORDING_COMPLETE:String = 'Recording Complete';
+		public static const RECORDING_CANCELLED:String = 'Recording Cancelled';
 		public static const UNISONS_FORBIDDEN : String = 'MAIDENS does not allow same-voice unisons.';
 		public static const CTA_SPREAD_THE_WORD : String = 'Help MAIDENS. <a href="%s"><u>Spread the word<font size="20"> ¤</font></u></a>';
 		public static const CTA_REPORT_BUGS : String = 'Help MAIDENS. <a href="%s"><u>Report bugs<font size="20"> ¤</font></u></a>';

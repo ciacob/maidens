@@ -39,7 +39,6 @@ package ro.ciacob.maidens.model.constants {
 		public static const MEASURE:String = 'measure';
 		public static const MODIFICATION_TIMESTAMP:String = 'modificationTimestamp';
 		public static const NOTE:String = 'note';
-		public static const NOTE_ACCIDENTAL_UID:String = 'noteAccidentalUid';
 		public static const OCTAVE_INDEX:String = 'octaveIndex';
 		public static const PART:String = 'part';
 		public static const PART_CLEFS_LIST:String = 'partClefTypesList';
@@ -81,8 +80,6 @@ package ro.ciacob.maidens.model.constants {
 		public static const CONNECTION_UID:String = 'connectionUid';
 		public static const BEATS_NUMBER:String = 'beatsNumber';
 		public static const BEAT_DURATION:String = 'beatDuration';
-		public static const LEAD_IN_SECTION:String = '---lead-in-section--';
-		public static const LEAD_OUT_SECTION : String = '---lead-out-section---';
 		public static const STARTS_TUPLET : String = 'startsTuplet';
 		public static const TUPLET_ROOT_ID : String = 'tupletRootId';
 		public static const TUPLET_SRC_NUM_BEATS : String = 'tupletSrcNumBeats';

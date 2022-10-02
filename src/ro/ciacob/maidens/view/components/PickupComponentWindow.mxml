@@ -14,383 +14,383 @@
 
 	<fx:Script>
 		<![CDATA[
-		import mx.collections.ArrayCollection;
-		import mx.events.CollectionEvent;
-		import mx.events.CollectionEventKind;
-		import mx.events.FlexEvent;
-		import mx.events.ItemClickEvent;
-		import mx.events.ListEvent;
+        import mx.collections.ArrayCollection;
+        import mx.events.CollectionEvent;
+        import mx.events.CollectionEventKind;
+        import mx.events.FlexEvent;
+        import mx.events.ItemClickEvent;
+        import mx.events.ListEvent;
 
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.desktop.windows.IWindowsManager;
-		import ro.ciacob.desktop.windows.WindowContentBehavior;
-		import ro.ciacob.maidens.model.constants.StaticTokens;
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.desktop.windows.IWindowsManager;
+        import ro.ciacob.desktop.windows.WindowContentBehavior;
+        import ro.ciacob.maidens.model.constants.StaticTokens;
 
-		import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Colors;
 
-		import ro.ciacob.maidens.view.constants.PickupComponentKeys;
+        import ro.ciacob.maidens.view.constants.PickupComponentKeys;
 
-		import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.Sizes;
 
-		import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.maidens.view.constants.ViewKeys;
 
-		import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
-		import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
+        import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
+        import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
 
-		import ro.ciacob.utils.Arrays;
-		import ro.ciacob.utils.Time;
+        import ro.ciacob.utils.Arrays;
+        import ro.ciacob.utils.Time;
 
-		private static const GAP:Number = 5;
-		private static const PADDING:Number = 8;
-		private static const BORDER_WIDTH:Number = 0;
-		private static const SCROLL_BAR_WIDTH:Number = 8;
+        private static const GAP:Number = 5;
+        private static const PADDING:Number = 8;
+        private static const BORDER_WIDTH:Number = 0;
+        private static const SCROLL_BAR_WIDTH:Number = 8;
 
-		private var _allCategories:Array;
-		private var _allowDupplicates:Boolean;
-		private var _categoryIndex:int;
-		private var _editorSession:String;
-		private var _itemsStyleName:String;
-		[Bindable]
-		private var _targetListDp:ArrayCollection;
-		private var _targetListDpSource:Array;
-		private var _targetListSelIndex:int = -1;
-		private var _pickupWindowData:Object;
-		private var _pttInstance:PTT;
-		private var _referenceTargetListDpSource:Array;
-		[Bindable]
-		private var _sourceListDp:ArrayCollection;
-		private var _sourceListDpSource:Array;
-		private var _sourceListSelIndex:int = -1;
-		private var _windowDataChanged:Boolean;
-		private var _windowBehavior:WindowContentBehavior;
+        private var _allCategories:Array;
+        private var _allowDupplicates:Boolean;
+        private var _categoryIndex:int;
+        private var _editorSession:String;
+        private var _itemsStyleName:String;
+        [Bindable]
+        private var _targetListDp:ArrayCollection;
+        private var _targetListDpSource:Array;
+        private var _targetListSelIndex:int = -1;
+        private var _pickupWindowData:Object;
+        private var _pttInstance:PTT;
+        private var _referenceTargetListDpSource:Array;
+        [Bindable]
+        private var _sourceListDp:ArrayCollection;
+        private var _sourceListDpSource:Array;
+        private var _sourceListSelIndex:int = -1;
+        private var _windowDataChanged:Boolean;
+        private var _windowBehavior:WindowContentBehavior;
 
-		public function set pickupWindowData(value:Object):void {
-			_pickupWindowData = value;
-			_targetListDpSource = (_pickupWindowData[ViewKeys.CURRENT_SUBSET] as Array).concat();
-			_referenceTargetListDpSource = _targetListDpSource.concat();
-			_allCategories = (_pickupWindowData[ViewKeys.AVAILABLE_SETS] as Array);
-			_editorSession = _pickupWindowData[ViewKeys.EDITOR_SESSION];
-			_allowDupplicates = _pickupWindowData[ViewKeys.ARE_DUPPLICATES_PERMITTED];
-			_itemsStyleName = _pickupWindowData[PickupComponentKeys.ITEMS_STYLE_NAME];
-			_windowDataChanged = true;
-			invalidateProperties();
-		}
+        public function set pickupWindowData(value:Object):void {
+            _pickupWindowData = value;
+            _targetListDpSource = (_pickupWindowData[ViewKeys.CURRENT_SUBSET] as Array).concat();
+            _referenceTargetListDpSource = _targetListDpSource.concat();
+            _allCategories = (_pickupWindowData[ViewKeys.AVAILABLE_SETS] as Array);
+            _editorSession = _pickupWindowData[ViewKeys.EDITOR_SESSION];
+            _allowDupplicates = _pickupWindowData[ViewKeys.ARE_DUPLICATES_PERMITTED];
+            _itemsStyleName = _pickupWindowData[PickupComponentKeys.ITEMS_STYLE_NAME];
+            _windowDataChanged = true;
+            invalidateProperties();
+        }
 
-		public function set pttPipeName(value:String):void {
-			_pttInstance = PTT.getPipe(value);
-			_pttInstance.subscribe(ViewKeys.PICKUP_WINDOW_CLOSING, _onWindowClosing);
-		}
+        public function set pttPipeName(value:String):void {
+            _pttInstance = PTT.getPipe(value);
+            _pttInstance.subscribe(ViewKeys.PICKUP_WINDOW_CLOSING, _onWindowClosing);
+        }
 
-		override protected function commitProperties():void {
-			super.commitProperties();
-			if (_windowDataChanged) {
-				_windowDataChanged = false;
-				targetList.itemStyleName = _itemsStyleName;
-				sourceList.itemStyleName = _itemsStyleName;
-				if (_targetListDp == null) {
-					_targetListDp = new ArrayCollection;
-				}
-				_targetListDp.removeAll();
-				for (var j:int = 0; j < _targetListDpSource.length; j++) {
-					_targetListDp.addItem(_targetListDpSource[j]);
-				}
-				var tabsData:Array = [];
-				if (_allCategories != null) {
-					for (var i:int = 0; i < _allCategories.length; i++) {
-						var set:Object = _allCategories[i];
-						var header:String = set[ViewKeys.PAGE_HEADER];
-						tabsData.push(header);
-					}
-				}
-				if (tabsData.length > 0) {
-					sourceListCategoryTab.dataProvider = tabsData;
-					_categoryIndex = 0;
-					sourceListCategoryTab.selectedIndex = _categoryIndex;
-					sourceListCategoryTab.dispatchEvent(new ItemClickEvent(ItemClickEvent.ITEM_CLICK, false, false, null, _categoryIndex));
-				} else {
-					sourceListCategoryTab.dataProvider = null;
-				}
-			}
+        override protected function commitProperties():void {
+            super.commitProperties();
+            if (_windowDataChanged) {
+                _windowDataChanged = false;
+                targetList.itemStyleName = _itemsStyleName;
+                sourceList.itemStyleName = _itemsStyleName;
+                if (_targetListDp == null) {
+                    _targetListDp = new ArrayCollection;
+                }
+                _targetListDp.removeAll();
+                for (var j:int = 0; j < _targetListDpSource.length; j++) {
+                    _targetListDp.addItem(_targetListDpSource[j]);
+                }
+                var tabsData:Array = [];
+                if (_allCategories != null) {
+                    for (var i:int = 0; i < _allCategories.length; i++) {
+                        var set:Object = _allCategories[i];
+                        var header:String = set[ViewKeys.PAGE_HEADER];
+                        tabsData.push(header);
+                    }
+                }
+                if (tabsData.length > 0) {
+                    sourceListCategoryTab.dataProvider = tabsData;
+                    _categoryIndex = 0;
+                    sourceListCategoryTab.selectedIndex = _categoryIndex;
+                    sourceListCategoryTab.dispatchEvent(new ItemClickEvent(ItemClickEvent.ITEM_CLICK, false, false, null, _categoryIndex));
+                } else {
+                    sourceListCategoryTab.dataProvider = null;
+                }
+            }
 
-			// Tabs for target list; static content, for now.
-			targetListCategoryTab.dataProvider = [StaticTokens.CURRENT_SELECTION];
-		}
+            // Tabs for target list; static content, for now.
+            targetListCategoryTab.dataProvider = [StaticTokens.CURRENT_SELECTION];
+        }
 
-		private function _clearTargetListSelection():void {
-			_targetListSelIndex = -1;
-			if (_targetListDp != null) {
-				_targetListDp.dispatchEvent(new CollectionEvent(CollectionEvent.COLLECTION_CHANGE, false, false, CollectionEventKind.UPDATE));
-			}
-		}
+        private function _clearTargetListSelection():void {
+            _targetListSelIndex = -1;
+            if (_targetListDp != null) {
+                _targetListDp.dispatchEvent(new CollectionEvent(CollectionEvent.COLLECTION_CHANGE, false, false, CollectionEventKind.UPDATE));
+            }
+        }
 
-		private function _clearSourceListSelection():void {
-			_sourceListSelIndex = -1;
-			if (_sourceListDp != null) {
-				_sourceListDp.dispatchEvent(new CollectionEvent(CollectionEvent.COLLECTION_CHANGE, false, false, CollectionEventKind.UPDATE));
-			}
-		}
+        private function _clearSourceListSelection():void {
+            _sourceListSelIndex = -1;
+            if (_sourceListDp != null) {
+                _sourceListDp.dispatchEvent(new CollectionEvent(CollectionEvent.COLLECTION_CHANGE, false, false, CollectionEventKind.UPDATE));
+            }
+        }
 
-		private function _closeWindow():void {
-			if (_pttInstance != null) {
-				_pttInstance.send(ViewKeys.PICKUP_WINDOW_CLOSE, _pickupWindowData);
-			}
-		}
+        private function _closeWindow():void {
+            if (_pttInstance != null) {
+                _pttInstance.send(ViewKeys.PICKUP_WINDOW_CLOSE, _pickupWindowData);
+            }
+        }
 
-		private function _commitChanges():void {
-			var data:Object = [];
-			data[ViewKeys.EDITOR_SESSION] = _editorSession;
-			data[ViewKeys.PICKED_UP_ELEMENTS] = _targetListDp.source;
-			if (_pttInstance != null) {
-				_pttInstance.send(ViewKeys.PICKUP_WINDOW_COMMIT, data);
-			}
-			if (autoCloseCheckBox.selected) {
-				_closeWindow();
-			}
-		}
+        private function _commitChanges():void {
+            var data:Object = [];
+            data[ViewKeys.EDITOR_SESSION] = _editorSession;
+            data[ViewKeys.PICKED_UP_ELEMENTS] = _targetListDp.source;
+            if (_pttInstance != null) {
+                _pttInstance.send(ViewKeys.PICKUP_WINDOW_COMMIT, data);
+            }
+            if (autoCloseCheckBox.selected) {
+                _closeWindow();
+            }
+        }
 
-		private function _deleteTargetListItem():void {
-			var selectedIndex:int = targetList.selectedIndex;
-			_targetListDp.removeItemAt(selectedIndex);
-			if (selectedIndex < _targetListDp.length) {
-				_targetListSelIndex = selectedIndex;
-			} else if (_targetListDp.length > 0) {
-				_targetListSelIndex = (_targetListDp.length - 1);
-			} else {
-				_targetListSelIndex = -1;
-			}
-		}
+        private function _deleteTargetListItem():void {
+            var selectedIndex:int = targetList.selectedIndex;
+            _targetListDp.removeItemAt(selectedIndex);
+            if (selectedIndex < _targetListDp.length) {
+                _targetListSelIndex = selectedIndex;
+            } else if (_targetListDp.length > 0) {
+                _targetListSelIndex = (_targetListDp.length - 1);
+            } else {
+                _targetListSelIndex = -1;
+            }
+        }
 
-		private function _discardChanges():void {
-			_targetListDpSource = _referenceTargetListDpSource.concat();
-			_targetListDp.removeAll();
-			for (var i:int = 0; i < _targetListDpSource.length; i++) {
-				_targetListDp.addItem(_targetListDpSource[i]);
-			}
-			_clearTargetListSelection();
-			_clearSourceListSelection();
-			_updateTargetListButtonsState();
-			_updateTransferButtonState();
-			_updateBottomBoxState(false);
-			_updateWindowControls();
-			if (autoCloseCheckBox.selected) {
-				_closeWindow();
-			}
-		}
+        private function _discardChanges():void {
+            _targetListDpSource = _referenceTargetListDpSource.concat();
+            _targetListDp.removeAll();
+            for (var i:int = 0; i < _targetListDpSource.length; i++) {
+                _targetListDp.addItem(_targetListDpSource[i]);
+            }
+            _clearTargetListSelection();
+            _clearSourceListSelection();
+            _updateTargetListButtonsState();
+            _updateTransferButtonState();
+            _updateBottomBoxState(false);
+            _updateWindowControls();
+            if (autoCloseCheckBox.selected) {
+                _closeWindow();
+            }
+        }
 
-		private function _haveUnsavedChanges():Boolean {
-			return !Arrays.testForIdentity(_targetListDp.source, _referenceTargetListDpSource);
-		}
+        private function _haveUnsavedChanges():Boolean {
+            return !Arrays.testForIdentity(_targetListDp.source, _referenceTargetListDpSource);
+        }
 
-		private function _targetListContains(item:PickupItem):Boolean {
-			for (var i:int = 0; i < _targetListDp.length; i++) {
-				var targetListItem:PickupItem = (_targetListDp.getItemAt(i) as PickupItem);
-				if (targetListItem.isEquivalentTo(item)) {
-					return true;
-				}
-			}
-			return false;
-		}
+        private function _targetListContains(item:PickupItem):Boolean {
+            for (var i:int = 0; i < _targetListDp.length; i++) {
+                var targetListItem:PickupItem = (_targetListDp.getItemAt(i) as PickupItem);
+                if (targetListItem.isEquivalentTo(item)) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
-		private function _moveTargetListItem(direction:int):void {
-			var item:Object = targetList.selectedItem;
-			var srcIndex:int = targetList.selectedIndex;
-			var targetIndex:int = (srcIndex + direction);
-			_targetListDp.removeItemAt(srcIndex);
-			_targetListDp.addItemAt(item, targetIndex);
-			_targetListSelIndex = targetIndex;
-			Time.delay(0.1, function ():void {
-				targetList.scrollToIndex(targetIndex);
-			});
-		}
+        private function _moveTargetListItem(direction:int):void {
+            var item:Object = targetList.selectedItem;
+            var srcIndex:int = targetList.selectedIndex;
+            var targetIndex:int = (srcIndex + direction);
+            _targetListDp.removeItemAt(srcIndex);
+            _targetListDp.addItemAt(item, targetIndex);
+            _targetListSelIndex = targetIndex;
+            Time.delay(0.1, function ():void {
+                targetList.scrollToIndex(targetIndex);
+            });
+        }
 
-		private function _onApplyButtonClick(event:Event):void {
-			_commitChanges();
-		}
+        private function _onApplyButtonClick(event:Event):void {
+            _commitChanges();
+        }
 
-		private function _onCategoryIndexChange(event:ItemClickEvent):void {
-			_categoryIndex = event.index;
-			_sourceListDpSource = (_allCategories[_categoryIndex][ViewKeys.PAGE_BODY] as Array);
-			if (_sourceListDp == null) {
-				_sourceListDp = new ArrayCollection;
-			}
-			_sourceListDp.removeAll();
-			for (var i:int = 0; i < _sourceListDpSource.length; i++) {
-				_sourceListDp.addItem(new PickupItem(_sourceListDpSource[i]));
-			}
-		}
+        private function _onCategoryIndexChange(event:ItemClickEvent):void {
+            _categoryIndex = event.index;
+            _sourceListDpSource = (_allCategories[_categoryIndex][ViewKeys.PAGE_BODY] as Array);
+            if (_sourceListDp == null) {
+                _sourceListDp = new ArrayCollection;
+            }
+            _sourceListDp.removeAll();
+            for (var i:int = 0; i < _sourceListDpSource.length; i++) {
+                _sourceListDp.addItem(new PickupItem(_sourceListDpSource[i]));
+            }
+        }
 
-		private function _onDeleteButtonClick(event:MouseEvent):void {
-			_deleteTargetListItem();
-			_updateWindowControls();
-		}
+        private function _onDeleteButtonClick(event:MouseEvent):void {
+            _deleteTargetListItem();
+            _updateWindowControls();
+        }
 
-		private function _onTargetListUpdateComplete(event:FlexEvent):void {
-			targetList.selectedIndex = _targetListSelIndex;
-			_updateTargetListButtonsState();
-		}
+        private function _onTargetListUpdateComplete(event:FlexEvent):void {
+            targetList.selectedIndex = _targetListSelIndex;
+            _updateTargetListButtonsState();
+        }
 
-		private function _onTargetListUserSelection(event:ListEvent):void {
-			_targetListSelIndex = targetList.selectedIndex;
-			_updateTargetListButtonsState();
-			_clearSourceListSelection();
-		}
+        private function _onTargetListUserSelection(event:ListEvent):void {
+            _targetListSelIndex = targetList.selectedIndex;
+            _updateTargetListButtonsState();
+            _clearSourceListSelection();
+        }
 
-		private function _onNextButtonClick(event:MouseEvent):void {
-			_moveTargetListItem(1);
-			_updateWindowControls();
-		}
+        private function _onNextButtonClick(event:MouseEvent):void {
+            _moveTargetListItem(1);
+            _updateWindowControls();
+        }
 
-		private function _onPrevButtonClick(event:MouseEvent):void {
-			_moveTargetListItem(-1);
-			_updateWindowControls();
-		}
+        private function _onPrevButtonClick(event:MouseEvent):void {
+            _moveTargetListItem(-1);
+            _updateWindowControls();
+        }
 
-		private function _onResetButtonClick(event:MouseEvent):void {
-			_discardChanges();
-		}
+        private function _onResetButtonClick(event:MouseEvent):void {
+            _discardChanges();
+        }
 
-		private function _onSourceListUpdateComplete(event:FlexEvent):void {
-			sourceList.selectedIndex = _sourceListSelIndex;
-			_updateTransferButtonState();
-		}
+        private function _onSourceListUpdateComplete(event:FlexEvent):void {
+            sourceList.selectedIndex = _sourceListSelIndex;
+            _updateTransferButtonState();
+        }
 
-		private function _onSourceListUserSelection(event:ListEvent):void {
-			_sourceListSelIndex = sourceList.selectedIndex;
-			_updateTransferButtonState();
-			_clearTargetListSelection();
-		}
+        private function _onSourceListUserSelection(event:ListEvent):void {
+            _sourceListSelIndex = sourceList.selectedIndex;
+            _updateTransferButtonState();
+            _clearTargetListSelection();
+        }
 
-		private function _onTransferButtonClick(event:MouseEvent):void {
-			_transferSelectedItemToTargetList();
-			_updateTransferButtonState();
-			_clearSourceListSelection();
-			_updateWindowControls();
-		}
+        private function _onTransferButtonClick(event:MouseEvent):void {
+            _transferSelectedItemToTargetList();
+            _updateTransferButtonState();
+            _clearSourceListSelection();
+            _updateWindowControls();
+        }
 
-		private function _onWindowClosing(...args):void {
-			if (!_haveUnsavedChanges()) {
-				_closeWindow();
-			} else {
-				_updateBottomBoxState(true);
-			}
-		}
+        private function _onWindowClosing(...args):void {
+            if (!_haveUnsavedChanges()) {
+                _closeWindow();
+            } else {
+                _updateBottomBoxState(true);
+            }
+        }
 
-		private function _transferSelectedItemToTargetList():void {
-			var transferrable:Object = sourceList.selectedItem;
-			if (transferrable != null) {
-				var transferred:PickupItem = new PickupItem(transferrable);
-				_targetListDp.addItem(transferred);
-				_targetListSelIndex = (_targetListDp.length - 1);
-				Time.delay(0.1, function ():void {
-					targetList.scrollToIndex(_targetListSelIndex);
-				});
-			}
-		}
+        private function _transferSelectedItemToTargetList():void {
+            var transferrable:Object = sourceList.selectedItem;
+            if (transferrable != null) {
+                var transferred:PickupItem = new PickupItem(transferrable);
+                _targetListDp.addItem(transferred);
+                _targetListSelIndex = (_targetListDp.length - 1);
+                Time.delay(0.1, function ():void {
+                    targetList.scrollToIndex(_targetListSelIndex);
+                });
+            }
+        }
 
-		private function _updateBottomBoxState(showWarning:Boolean):void {
-			if (showWarning) {
-				bottomBox.setStyle('backgroundColor', Colors.WARNING);
-			} else {
-				bottomBox.clearStyle('backgroundColor');
-			}
-		}
+        private function _updateBottomBoxState(showWarning:Boolean):void {
+            if (showWarning) {
+                bottomBox.setStyle('backgroundColor', Colors.WARNING);
+            } else {
+                bottomBox.clearStyle('backgroundColor');
+            }
+        }
 
-		private function _updateTargetListButtonsState():void {
-			deleteButton.enabled = (targetList.selectedItem != null);
-			movePrevButton.enabled = (targetList.selectedIndex > 0);
-			moveNextButton.enabled = (targetList.selectedItem != null && targetList.selectedIndex < _targetListDp.length - 1);
-		}
+        private function _updateTargetListButtonsState():void {
+            deleteButton.enabled = (targetList.selectedItem != null);
+            movePrevButton.enabled = (targetList.selectedIndex > 0);
+            moveNextButton.enabled = (targetList.selectedItem != null && targetList.selectedIndex < _targetListDp.length - 1);
+        }
 
-		private function _updateTransferButtonState():void {
-			var selectedItem:PickupItem = (sourceList.selectedItem as PickupItem);
-			if (selectedItem != null) {
-				transferButton.enabled = (_allowDupplicates || !_targetListContains(selectedItem));
-			} else {
-				transferButton.enabled = false;
-			}
-		}
+        private function _updateTransferButtonState():void {
+            var selectedItem:PickupItem = (sourceList.selectedItem as PickupItem);
+            if (selectedItem != null) {
+                transferButton.enabled = (_allowDupplicates || !_targetListContains(selectedItem));
+            } else {
+                transferButton.enabled = false;
+            }
+        }
 
-		private function _updateWindowControls():void {
-			var haveChanges:Boolean = _haveUnsavedChanges();
-			warningText.enabled = haveChanges;
-			applyButton.enabled = haveChanges;
-			resetButton.enabled = haveChanges;
-			autoCloseCheckBox.enabled = haveChanges;
-		}
+        private function _updateWindowControls():void {
+            var haveChanges:Boolean = _haveUnsavedChanges();
+            warningText.enabled = haveChanges;
+            applyButton.enabled = haveChanges;
+            resetButton.enabled = haveChanges;
+            autoCloseCheckBox.enabled = haveChanges;
+        }
 
-		/**
-		 * Returns the UID of the window owning this content. The windows manager assigns unique IDs to all windows upon creation,
-		 * and manipulates them by mean of these IDS. Will return `null` if the owner window has been destroyed (or, in other words,
-		 * `windowUid` will be `null` for orphaned content).
-		 * @readonly
-		 */
-		public function get windowUid():String {
-			return _windowBehavior.windowUid;
-		}
+        /**
+         * Returns the UID of the window owning this content. The windows manager assigns unique IDs to all windows upon creation,
+         * and manipulates them by mean of these IDS. Will return `null` if the owner window has been destroyed (or, in other words,
+         * `windowUid` will be `null` for orphaned content).
+         * @readonly
+         */
+        public function get windowUid():String {
+            return _windowBehavior.windowUid;
+        }
 
-		/**
-		 * Returns the screen this content is, or was displayed onto. Returns null if this content was never displayed (e.g., if the
-		 * windows holding this content has been created, but never shown).
-		 * @readonly
-		 */
-		public function get homeScreen():Screen {
-			return _windowBehavior.homeScreen;
-		}
+        /**
+         * Returns the screen this content is, or was displayed onto. Returns null if this content was never displayed (e.g., if the
+         * windows holding this content has been created, but never shown).
+         * @readonly
+         */
+        public function get homeScreen():Screen {
+            return _windowBehavior.homeScreen;
+        }
 
-		/**
-		 * Returns the horizontal position of this content across the joined space of all screens in use. For instance, it will return
-		 * `1920` for a content held by a window which is placed at (0, 0) on the second monitor on the right, on a two, side-by-side
-		 * Full HD monitors setup. The offset of the window chrome, if any, is also taken into account. Returns `NaN` for orphaned content
-		 * (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
-		 * @readonly
-		 */
-		public function get allScreensX():Number {
-			return _windowBehavior.allScreensX;
-		}
+        /**
+         * Returns the horizontal position of this content across the joined space of all screens in use. For instance, it will return
+         * `1920` for a content held by a window which is placed at (0, 0) on the second monitor on the right, on a two, side-by-side
+         * Full HD monitors setup. The offset of the window chrome, if any, is also taken into account. Returns `NaN` for orphaned content
+         * (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+         * @readonly
+         */
+        public function get allScreensX():Number {
+            return _windowBehavior.allScreensX;
+        }
 
-		/**
-		 * @see `allScreensX`
-		 * @readonly
-		 */
-		public function get allScreensY():Number {
-			return _windowBehavior.allScreensY;
-		}
+        /**
+         * @see `allScreensX`
+         * @readonly
+         */
+        public function get allScreensY():Number {
+            return _windowBehavior.allScreensY;
+        }
 
-		/**
-		 * Returns the horizontal position of this content within the screen its left boundary is laid on. For instance, it will return
-		 * `0` (rather than `1920`) for a content held by a window which is placed at (0, 0) on the second monitor on the right,
-		 * on a two, side-by-side Full HD monitors setup. The offset of the window chrome, if any, is also taken into account.
-		 *  Returns `NaN` for orphaned content (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
-		 * @readonly
-		 */
-		public function get currentScreensX():Number {
-			return _windowBehavior.currentScreensX;
-		}
+        /**
+         * Returns the horizontal position of this content within the screen its left boundary is laid on. For instance, it will return
+         * `0` (rather than `1920`) for a content held by a window which is placed at (0, 0) on the second monitor on the right,
+         * on a two, side-by-side Full HD monitors setup. The offset of the window chrome, if any, is also taken into account.
+         *  Returns `NaN` for orphaned content (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+         * @readonly
+         */
+        public function get currentScreensX():Number {
+            return _windowBehavior.currentScreensX;
+        }
 
-		/**
-		 * @see `currentScreensX`
-		 * @readonly
-		 */
-		public function get currentScreensY():Number {
-			return _windowBehavior.currentScreensY;
-		}
+        /**
+         * @see `currentScreensX`
+         * @readonly
+         */
+        public function get currentScreensY():Number {
+            return _windowBehavior.currentScreensY;
+        }
 
-		/**
-		 * Sends an instance of the windows manager owner into this implementor (required for performing various calculations).
-		 * @writeonly
-		 */
-		public function set manager(value:IWindowsManager):void {
-			_windowBehavior.manager = value;
-		}
+        /**
+         * Sends an instance of the windows manager owner into this implementor (required for performing various calculations).
+         * @writeonly
+         */
+        public function set manager(value:IWindowsManager):void {
+            _windowBehavior.manager = value;
+        }
 
-		public function get manager():IWindowsManager {
-			return _windowBehavior.manager;
-		}
+        public function get manager():IWindowsManager {
+            return _windowBehavior.manager;
+        }
 
-		protected function _onPreinitialize(event:FlexEvent):void {
-			_windowBehavior = new WindowContentBehavior(this);
-		}
-		]]>
+        protected function _onPreinitialize(event:FlexEvent):void {
+            _windowBehavior = new WindowContentBehavior(this);
+        }
+        ]]>
 	</fx:Script>
 
 	<!-- Content -->

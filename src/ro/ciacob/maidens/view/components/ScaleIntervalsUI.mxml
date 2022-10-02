@@ -21,327 +21,327 @@
 	
 	<fx:Script>
 		<![CDATA[
-		import mx.events.FlexEvent;
+        import mx.events.FlexEvent;
 
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.desktop.windows.IWindowsManager;
-		import ro.ciacob.desktop.windows.WindowActivity;
-		import ro.ciacob.maidens.generators.constants.pitch.Direction;
-		import ro.ciacob.maidens.model.constants.StaticFieldValues;
-		import ro.ciacob.maidens.model.constants.StaticTokens;
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.desktop.windows.IWindowsManager;
+        import ro.ciacob.desktop.windows.WindowActivity;
+        import ro.ciacob.maidens.generators.constants.pitch.Direction;
+        import ro.ciacob.maidens.model.constants.StaticFieldValues;
+        import ro.ciacob.maidens.model.constants.StaticTokens;
 
-		import eu.claudius.iacob.maidens.Colors;
-		import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Sizes;
 
-		import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.maidens.view.constants.ViewKeys;
 
-		import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
-		import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
+        import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
+        import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
 
-		import ro.ciacob.utils.constants.CommonStrings;
+        import ro.ciacob.utils.constants.CommonStrings;
 
-		private static const FIRST_COL_WIDTH:uint = 130;
-		private static const SECOND_COL_WIDTH:uint = 240;
-		private static const SCALE_STRATEGIES_LIST:Array = [
-			{label: StaticTokens.NONE, value: 0},
-			{label: StaticTokens.SCALE_BY_CONSTANT_FACTOR, value: StaticFieldValues.CONSTANT},
-			{label: StaticTokens.SCALE_PROGRESSIVELLY, value: StaticFieldValues.PROGRESSIVELLY},
-			{label: StaticTokens.SCALE_WITH_THRESHOLD, value: StaticFieldValues.THRESHOLD}
-		];
-		private static const CONSTANT_FACTOR_MIN:Number = 0.01;
-		private static const CONSTANT_FACTOR_MAX:Number = 2;
-		private static const FACTOR_LABELS:Array = [
-			CommonStrings.EMPTY,
-			StaticTokens.CONSTANT_FACTOR_MIN,
-			CommonStrings.EMPTY,
-			CommonStrings.EMPTY,
-			CommonStrings.EMPTY,
-			StaticTokens.CONSTANT_FACTOR_MAX,
-			CommonStrings.EMPTY
-		];
-		private static const FACTOR_TICKS:Array = [1];
-		private static const FACTOR_SNAP:Number = 0.01;
-		private static const CONSTANT_FACTOR_DEFAULT:uint = 1;
-		private static const THRESHOLD_TICKS:Array = [12];
-		private static const THRESHOLD_LABELS:Array = [
-			CommonStrings.EMPTY,
-			StaticTokens.THRESHOLD_MIN,
-			CommonStrings.EMPTY,
-			CommonStrings.EMPTY,
-			CommonStrings.EMPTY,
-			StaticTokens.THRESHOLD_MAX,
-			CommonStrings.EMPTY
-		];
-		private static const THRESHOLD_MIN:Number = 0;
-		private static const THRESHOLD_MAX:Number = 24;
-		private static const THRESHOLD_SNAP:Number = 1;
-		private static const THRESHOLD_DEFAULT:Number = 7;
-		private static const VERTICAL_ALIGNMENT_LIST:Array = [
-			{label: StaticTokens.ANCHOR_ON_INITIAL_NOTE, value: StaticFieldValues.ANCHOR_ON_INITIAL_NOTE},
-			{label: StaticTokens.CENTER_ON_PIVOT_ORIGINAL_PITCH, value: StaticFieldValues.CENTER_ON_PIVOT_PITCH},
-			{label: StaticTokens.CEIL_WITHIN_ORIGINAL_RANGE, value: StaticFieldValues.ALIGN_TO_CEILING},
-			{label: StaticTokens.FLOOR_WITHIN_ORIGINAL_RANGE, value: StaticFieldValues.ALIGN_TO_FLOOR}
-		];
+        private static const FIRST_COL_WIDTH:uint = 130;
+        private static const SECOND_COL_WIDTH:uint = 240;
+        private static const SCALE_STRATEGIES_LIST:Array = [
+            {label: StaticTokens.NONE, value: 0},
+            {label: StaticTokens.SCALE_BY_CONSTANT_FACTOR, value: StaticFieldValues.CONSTANT},
+            {label: StaticTokens.SCALE_PROGRESSIVELY, value: StaticFieldValues.PROGRESSIVELLY},
+            {label: StaticTokens.SCALE_WITH_THRESHOLD, value: StaticFieldValues.THRESHOLD}
+        ];
+        private static const CONSTANT_FACTOR_MIN:Number = 0.01;
+        private static const CONSTANT_FACTOR_MAX:Number = 2;
+        private static const FACTOR_LABELS:Array = [
+            CommonStrings.EMPTY,
+            StaticTokens.CONSTANT_FACTOR_MIN,
+            CommonStrings.EMPTY,
+            CommonStrings.EMPTY,
+            CommonStrings.EMPTY,
+            StaticTokens.CONSTANT_FACTOR_MAX,
+            CommonStrings.EMPTY
+        ];
+        private static const FACTOR_TICKS:Array = [1];
+        private static const FACTOR_SNAP:Number = 0.01;
+        private static const CONSTANT_FACTOR_DEFAULT:uint = 1;
+        private static const THRESHOLD_TICKS:Array = [12];
+        private static const THRESHOLD_LABELS:Array = [
+            CommonStrings.EMPTY,
+            StaticTokens.THRESHOLD_MIN,
+            CommonStrings.EMPTY,
+            CommonStrings.EMPTY,
+            CommonStrings.EMPTY,
+            StaticTokens.THRESHOLD_MAX,
+            CommonStrings.EMPTY
+        ];
+        private static const THRESHOLD_MIN:Number = 0;
+        private static const THRESHOLD_MAX:Number = 24;
+        private static const THRESHOLD_SNAP:Number = 1;
+        private static const THRESHOLD_DEFAULT:Number = 7;
+        private static const VERTICAL_ALIGNMENT_LIST:Array = [
+            {label: StaticTokens.ANCHOR_ON_INITIAL_NOTE, value: StaticFieldValues.ANCHOR_ON_INITIAL_NOTE},
+            {label: StaticTokens.CENTER_ON_PIVOT_ORIGINAL_PITCH, value: StaticFieldValues.CENTER_ON_PIVOT_PITCH},
+            {label: StaticTokens.CEIL_WITHIN_ORIGINAL_RANGE, value: StaticFieldValues.ALIGN_TO_CEILING},
+            {label: StaticTokens.FLOOR_WITHIN_ORIGINAL_RANGE, value: StaticFieldValues.ALIGN_TO_FLOOR}
+        ];
 
-		[Bindable]
-		private var canEnableSection:Boolean;
+        [Bindable]
+        private var canEnableSection:Boolean;
 
-		[Bindable]
-		private var canApply:Boolean;
+        [Bindable]
+        private var canApply:Boolean;
 
-		[Bindable]
-		private var canDiscard:Boolean;
+        [Bindable]
+        private var canDiscard:Boolean;
 
-		private var _windowManager:IWindowsManager;
-		private var _hasWindowCloseListener:Boolean;
-		private var _initialData:Object;
-		private var _initialDataChanged:Boolean;
-		private var _backupData:Object;
-		private var _currentData:Object;
+        private var _windowManager:IWindowsManager;
+        private var _hasWindowCloseListener:Boolean;
+        private var _initialData:Object;
+        private var _initialDataChanged:Boolean;
+        private var _backupData:Object;
+        private var _currentData:Object;
 
-		/**
-		 * Externally sends values in the UI. Useful to restore last used settings, in the event the user
-		 * wants to reuse them.
-		 */
-		public function set initialData(value:Object):void {
-			_initialData = value;
-			_initialDataChanged = true;
-			invalidateProperties();
-		}
+        /**
+         * Externally sends values in the UI. Useful to restore last used settings, in the event the user
+         * wants to reuse them.
+         */
+        public function set initialData(value:Object):void {
+            _initialData = value;
+            _initialDataChanged = true;
+            invalidateProperties();
+        }
 
-		/**
-		 * Getting a hold to the Windows manager instance that controls this window, to carry out window
-		 * closing internally (less round-trip needed to the controller).
-		 */
-		override public function set manager(value:IWindowsManager):void {
-			super.manager = value;
-			_windowManager = value;
-		}
+        /**
+         * Getting a hold to the Windows manager instance that controls this window, to carry out window
+         * closing internally (less round-trip needed to the controller).
+         */
+        override public function set manager(value:IWindowsManager):void {
+            super.manager = value;
+            _windowManager = value;
+        }
 
-		/**
-		 * Fires after the component is initialized but after it is drawn on screen. This is the preferred time
-		 * to transfer buffered, externally set properties into the component.
-		 */
-		override protected function commitProperties():void {
-			super.commitProperties();
-			if (_windowManager && !_hasWindowCloseListener) {
-				_windowManager.observeWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
-				_hasWindowCloseListener = true;
-			}
+        /**
+         * Fires after the component is initialized but after it is drawn on screen. This is the preferred time
+         * to transfer buffered, externally set properties into the component.
+         */
+        override protected function commitProperties():void {
+            super.commitProperties();
+            if (_windowManager && !_hasWindowCloseListener) {
+                _windowManager.observeWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
+                _hasWindowCloseListener = true;
+            }
 
-			if (_initialDataChanged) {
-				_initialDataChanged = false;
-				_writeToUi(_initialData);
-				if (!_currentData) {
-					_currentData = _initialData;
-				} else {
-					_backupData = _initialData;
-				}
-				_updateCommitDiscardButtons();
-			}
-		}
+            if (_initialDataChanged) {
+                _initialDataChanged = false;
+                _writeToUi(_initialData);
+                if (!_currentData) {
+                    _currentData = _initialData;
+                } else {
+                    _backupData = _initialData;
+                }
+                _updateCommitDiscardButtons();
+            }
+        }
 
-		/**
-		 * Fires when window is closed by using the "x" button or similar means. Allows
-		 * halting the operation midway.
-		 */
-		private function _onWindowBeforeDestroy(...args):Boolean {
-			if (_haveChanges()) {
-				_setWarningStatus(true);
-				return false;
-			} else {
-				_prepareForDeletion();
-			}
-			return true;
-		}
+        /**
+         * Fires when window is closed by using the "x" button or similar means. Allows
+         * halting the operation midway.
+         */
+        private function _onWindowBeforeDestroy(...args):Boolean {
+            if (_haveChanges()) {
+                _setWarningStatus(true);
+                return false;
+            } else {
+                _prepareForDeletion();
+            }
+            return true;
+        }
 
-		/**
-		 * Populates the UI with given dataset provided it is not null.
-		 */
-		private function _writeToUi(dataset:Object):void {
-			if (dataset) {
-				if (ViewKeys.SCALE_STRATEGY in dataset) {
-					var strategyIndex:int = _findItemIndex(SCALE_STRATEGIES_LIST, 'value', dataset[ViewKeys.SCALE_STRATEGY]);
-					scaleStrategy.selectedIndex = strategyIndex;
-				}
-				if (ViewKeys.SCALE_CONSTANT_FACTOR in dataset) {
-					constantFactor.value = dataset[ViewKeys.SCALE_CONSTANT_FACTOR];
-				}
-				if (ViewKeys.SCALE_VERTICAL_ALIGN in dataset) {
-					var valignIndex:int = _findItemIndex(VERTICAL_ALIGNMENT_LIST, 'value', dataset[ViewKeys.SCALE_VERTICAL_ALIGN]);
-					verticalAlign.selectedIndex = valignIndex;
-				}
-				if (ViewKeys.SCALE_CONSOLIDATE_PRIMES in dataset) {
-					resultingPrimes.selectedValue = dataset[ViewKeys.SCALE_CONSOLIDATE_PRIMES];
-				}
-				if (ViewKeys.SCALE_REVERSE_DIRECTION in dataset) {
-					invertIntervals.selected = dataset[ViewKeys.SCALE_REVERSE_DIRECTION];
-				}
-				if (ViewKeys.SCALE_START_FACTOR in dataset) {
-					startFactor.value = dataset[ViewKeys.SCALE_START_FACTOR];
-				}
-				if (ViewKeys.SCALE_END_FACTOR in dataset) {
-					endFactor.value = dataset[ViewKeys.SCALE_END_FACTOR];
-				}
-				if (ViewKeys.SCALE_THRESHOLD_REALM in dataset) {
-					thresholdOperationRealm.selectedValue = dataset[ViewKeys.SCALE_THRESHOLD_REALM];
-				}
-				if (ViewKeys.SCALE_THRESHOLD in dataset) {
-					thresholdSemitones.value = dataset[ViewKeys.SCALE_THRESHOLD];
-				}
-			}
-		}
+        /**
+         * Populates the UI with given dataset provided it is not null.
+         */
+        private function _writeToUi(dataset:Object):void {
+            if (dataset) {
+                if (ViewKeys.SCALE_STRATEGY in dataset) {
+                    var strategyIndex:int = _findItemIndex(SCALE_STRATEGIES_LIST, 'value', dataset[ViewKeys.SCALE_STRATEGY]);
+                    scaleStrategy.selectedIndex = strategyIndex;
+                }
+                if (ViewKeys.SCALE_CONSTANT_FACTOR in dataset) {
+                    constantFactor.value = dataset[ViewKeys.SCALE_CONSTANT_FACTOR];
+                }
+                if (ViewKeys.SCALE_VERTICAL_ALIGN in dataset) {
+                    var valignIndex:int = _findItemIndex(VERTICAL_ALIGNMENT_LIST, 'value', dataset[ViewKeys.SCALE_VERTICAL_ALIGN]);
+                    verticalAlign.selectedIndex = valignIndex;
+                }
+                if (ViewKeys.SCALE_CONSOLIDATE_PRIMES in dataset) {
+                    resultingPrimes.selectedValue = dataset[ViewKeys.SCALE_CONSOLIDATE_PRIMES];
+                }
+                if (ViewKeys.SCALE_REVERSE_DIRECTION in dataset) {
+                    invertIntervals.selected = dataset[ViewKeys.SCALE_REVERSE_DIRECTION];
+                }
+                if (ViewKeys.SCALE_START_FACTOR in dataset) {
+                    startFactor.value = dataset[ViewKeys.SCALE_START_FACTOR];
+                }
+                if (ViewKeys.SCALE_END_FACTOR in dataset) {
+                    endFactor.value = dataset[ViewKeys.SCALE_END_FACTOR];
+                }
+                if (ViewKeys.SCALE_THRESHOLD_REALM in dataset) {
+                    thresholdOperationRealm.selectedValue = dataset[ViewKeys.SCALE_THRESHOLD_REALM];
+                }
+                if (ViewKeys.SCALE_THRESHOLD in dataset) {
+                    thresholdSemitones.value = dataset[ViewKeys.SCALE_THRESHOLD];
+                }
+            }
+        }
 
-		private function _findItemIndex(inArray:Array, searchFieldName:String, searchFieldValue:Object):int {
-			for (var i:int = 0; i < inArray.length; i++) {
-				var testItem:Object = inArray[i] as Object;
-				if (searchFieldName in testItem) {
-					if (testItem[searchFieldName] === searchFieldValue) {
-						return i;
-					}
-				}
-			}
-			return -1;
-		}
+        private function _findItemIndex(inArray:Array, searchFieldName:String, searchFieldValue:Object):int {
+            for (var i:int = 0; i < inArray.length; i++) {
+                var testItem:Object = inArray[i] as Object;
+                if (searchFieldName in testItem) {
+                    if (testItem[searchFieldName] === searchFieldValue) {
+                        return i;
+                    }
+                }
+            }
+            return -1;
+        }
 
-		/**
-		 * Produces an object with all the current settings in the UI
-		 */
-		private function _readFromUI():Object {
-			var dataset:Object = {};
-			dataset[ViewKeys.SCALE_STRATEGY] = SCALE_STRATEGIES_LIST[scaleStrategy.selectedIndex].value;
-			dataset[ViewKeys.SCALE_CONSTANT_FACTOR] = constantFactor.value;
-			dataset[ViewKeys.SCALE_VERTICAL_ALIGN] = VERTICAL_ALIGNMENT_LIST[verticalAlign.selectedIndex].value;
-			dataset[ViewKeys.SCALE_CONSOLIDATE_PRIMES] = resultingPrimes.selectedValue;
-			dataset[ViewKeys.SCALE_REVERSE_DIRECTION] = invertIntervals.selected;
-			dataset[ViewKeys.SCALE_START_FACTOR] = startFactor.value;
-			dataset[ViewKeys.SCALE_END_FACTOR] = endFactor.value;
-			dataset[ViewKeys.SCALE_THRESHOLD_REALM] = thresholdOperationRealm.selectedValue;
-			dataset[ViewKeys.SCALE_THRESHOLD] = thresholdSemitones.value;
-			return dataset;
-		}
+        /**
+         * Produces an object with all the current settings in the UI
+         */
+        private function _readFromUI():Object {
+            var dataset:Object = {};
+            dataset[ViewKeys.SCALE_STRATEGY] = SCALE_STRATEGIES_LIST[scaleStrategy.selectedIndex].value;
+            dataset[ViewKeys.SCALE_CONSTANT_FACTOR] = constantFactor.value;
+            dataset[ViewKeys.SCALE_VERTICAL_ALIGN] = VERTICAL_ALIGNMENT_LIST[verticalAlign.selectedIndex].value;
+            dataset[ViewKeys.SCALE_CONSOLIDATE_PRIMES] = resultingPrimes.selectedValue;
+            dataset[ViewKeys.SCALE_REVERSE_DIRECTION] = invertIntervals.selected;
+            dataset[ViewKeys.SCALE_START_FACTOR] = startFactor.value;
+            dataset[ViewKeys.SCALE_END_FACTOR] = endFactor.value;
+            dataset[ViewKeys.SCALE_THRESHOLD_REALM] = thresholdOperationRealm.selectedValue;
+            dataset[ViewKeys.SCALE_THRESHOLD] = thresholdSemitones.value;
+            return dataset;
+        }
 
-		/**
-		 * Determines whether user has made changes in the current session. Usefull for preventing
-		 * accidental closing of the window.
-		 */
-		private function _haveChanges():Boolean {
-			if (_backupData && _currentData) {
-				for (var key:String in _backupData) {
-					if (_backupData[key] != _currentData[key]) {
-						return true;
-					}
-				}
-			}
-			return false;
-		}
+        /**
+         * Determines whether user has made changes in the current session. Usefull for preventing
+         * accidental closing of the window.
+         */
+        private function _haveChanges():Boolean {
+            if (_backupData && _currentData) {
+                for (var key:String in _backupData) {
+                    if (_backupData[key] != _currentData[key]) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
 
-		/**
-		 * Causes the UI responsible with submitting or discarding user settings to become available or not,
-		 * based on the current status.
-		 */
-		private function _updateCommitDiscardButtons():void {
-			canDiscard = (_backupData && _currentData && _haveChanges());
-			canApply = scaleStrategy &&
-					scaleStrategy.selectedIndex > 0 &&
-					_currentData;
-			canEnableSection = (canDiscard || canApply);
-		}
+        /**
+         * Causes the UI responsible with submitting or discarding user settings to become available or not,
+         * based on the current status.
+         */
+        private function _updateCommitDiscardButtons():void {
+            canDiscard = (_backupData && _currentData && _haveChanges());
+            canApply = scaleStrategy &&
+                    scaleStrategy.selectedIndex > 0 &&
+                    _currentData;
+            canEnableSection = (canDiscard || canApply);
+        }
 
-		/**
-		 * Causes the notification area to change color in order to notify the user that he must either save or
-		 * cancel before.
-		 */
-		private function _setWarningStatus(mustWarn:Boolean):void {
-			if (mustWarn) {
-				bottomBox.setStyle('backgroundColor', Colors.WARNING);
-			} else {
-				bottomBox.clearStyle('backgroundColor');
-			}
-		}
+        /**
+         * Causes the notification area to change color in order to notify the user that he must either save or
+         * cancel before.
+         */
+        private function _setWarningStatus(mustWarn:Boolean):void {
+            if (mustWarn) {
+                bottomBox.setStyle('backgroundColor', Colors.WARNING);
+            } else {
+                bottomBox.clearStyle('backgroundColor');
+            }
+        }
 
-		/**
-		 * Return the index of the item in given Array that has a "value" property which points, or is
-		 * equal to given `value`.
-		 */
-		private function _valueToIndex(arr:Array, value:Object):int {
-			if (arr && arr.length && value !== null) {
-				for (var i:int = 0; i < arr.length; i++) {
-					var item:Object = arr[i];
-					if (item.value === value) {
-						return i;
-					}
-				}
-			}
-			return -1;
-		}
+        /**
+         * Return the index of the item in given Array that has a "value" property which points, or is
+         * equal to given `value`.
+         */
+        private function _valueToIndex(arr:Array, value:Object):int {
+            if (arr && arr.length && value !== null) {
+                for (var i:int = 0; i < arr.length; i++) {
+                    var item:Object = arr[i];
+                    if (item.value === value) {
+                        return i;
+                    }
+                }
+            }
+            return -1;
+        }
 
-		/**
-		 * Fired when the user clicks the "commit" button.
-		 */
-		private function _onApplyButtonClick(event:Event):void {
-			var commitSource:Object = (_currentData && (_currentData[ViewKeys.SCALE_STRATEGY] as Object) !== 0) ? _currentData :
-					(_backupData && (_backupData[ViewKeys.SCALE_STRATEGY] as Object) !== 0) ? _backupData : null;
-			if (commitSource) {
-				_backupData = commitSource;
-				PTT.getPipe().send(ViewKeys.SCALE_INTERVALS_OPERATION_COMMIT, commitSource);
-			}
-			_updateCommitDiscardButtons();
-			_setWarningStatus(false);
-			_closeWindow();
-		}
+        /**
+         * Fired when the user clicks the "commit" button.
+         */
+        private function _onApplyButtonClick(event:Event):void {
+            var commitSource:Object = (_currentData && (_currentData[ViewKeys.SCALE_STRATEGY] as Object) !== 0) ? _currentData :
+                    (_backupData && (_backupData[ViewKeys.SCALE_STRATEGY] as Object) !== 0) ? _backupData : null;
+            if (commitSource) {
+                _backupData = commitSource;
+                PTT.getPipe().send(ViewKeys.SCALE_INTERVALS_OPERATION_COMMIT, commitSource);
+            }
+            _updateCommitDiscardButtons();
+            _setWarningStatus(false);
+            _closeWindow();
+        }
 
-		/**
-		 * Fired when the user clicks the "cancel" button.
-		 */
-		private function _onResetButtonClick(event:Event):void {
-			_currentData = null;
-			if (_backupData) {
-				_writeToUi(_backupData);
-			}
-			_updateCommitDiscardButtons();
-			_setWarningStatus(false);
-			_closeWindow();
-		}
+        /**
+         * Fired when the user clicks the "cancel" button.
+         */
+        private function _onResetButtonClick(event:Event):void {
+            _currentData = null;
+            if (_backupData) {
+                _writeToUi(_backupData);
+            }
+            _updateCommitDiscardButtons();
+            _setWarningStatus(false);
+            _closeWindow();
+        }
 
-		/**
-		 * Tries to facilitate memory reclaim upon closing of this window.
-		 */
-		private function _prepareForDeletion():void {
-			_windowManager.stopObservingWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
-			_backupData = null;
-			_currentData = null;
-		}
+        /**
+         * Tries to facilitate memory reclaim upon closing of this window.
+         */
+        private function _prepareForDeletion():void {
+            _windowManager.stopObservingWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
+            _backupData = null;
+            _currentData = null;
+        }
 
-		/**
-		 * Programmatically closes the window, provided the "auto close" check box was selected.
-		 */
-		private function _closeWindow():void {
-			if (autoCloseCheckBox.selected) {
-				_prepareForDeletion();
-				_windowManager.destroyWindow(windowUid);
-				_windowManager = null;
-			}
-		}
+        /**
+         * Programmatically closes the window, provided the "auto close" check box was selected.
+         */
+        private function _closeWindow():void {
+            if (autoCloseCheckBox.selected) {
+                _prepareForDeletion();
+                _windowManager.destroyWindow(windowUid);
+                _windowManager = null;
+            }
+        }
 
-		/**
-		 * Fired after one of the controls has been changed by the user
-		 */
-		private function _onControlChanged():void {
-			_currentData = _readFromUI();
-			_updateCommitDiscardButtons();
-		}
+        /**
+         * Fired after one of the controls has been changed by the user
+         */
+        private function _onControlChanged():void {
+            _currentData = _readFromUI();
+            _updateCommitDiscardButtons();
+        }
 
-		/**
-		 * Fired after the control itself and all children have successfully been initialized and populated,
-		 * but not drawn on screen. Values of all children are reliable at this point.
-		 */
-		protected function _onCreationComplete(event:FlexEvent):void {
-			if (!_backupData) {
-				_backupData = _readFromUI();
-			}
-		}
-		]]>
+        /**
+         * Fired after the control itself and all children have successfully been initialized and populated,
+         * but not drawn on screen. Values of all children are reliable at this point.
+         */
+        protected function _onCreationComplete(event:FlexEvent):void {
+            if (!_backupData) {
+                _backupData = _readFromUI();
+            }
+        }
+        ]]>
 	</fx:Script>
 	
 	<!-- Content -->

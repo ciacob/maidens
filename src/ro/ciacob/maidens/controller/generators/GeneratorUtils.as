@@ -67,7 +67,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		private var _wiringsMap:GeneratorsWiringMap = new GeneratorsWiringMap;
 		private var _progressWindowUid:String;
 		private var _onProgressWindowExiting:Function;
-		private var _onProgresMinimize:Function;
+		private var _onProgressMinimize:Function;
 
 		/**
 		 * "Extension" of the Controller class, grouping code related to Generators manipulation.
@@ -79,7 +79,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 			_controller = controller;
 
 			// Initialize the communication system
-			_initalizeCommunications();
+			_initializeCommunications();
 
 			// Initialize generators handling.
 			_generatorsManager = new GeneratorsManager (_controller);
@@ -184,9 +184,9 @@ import ro.ciacob.utils.constants.CommonStrings;
 										WindowActivity.BEFORE_DESTROY, _onProgressWindowExiting);
 								_onProgressWindowExiting = null;
 							}
-							if (_onProgresMinimize != null) {
-								pipe.unsubscribe(GeneratorKeys.GEN_MINIMIZE_REQUESTED, _onProgresMinimize);
-								_onProgresMinimize = null;
+							if (_onProgressMinimize != null) {
+								pipe.unsubscribe(GeneratorKeys.GEN_MINIMIZE_REQUESTED, _onProgressMinimize);
+								_onProgressMinimize = null;
 							}
 							windowsManager.destroyWindow(_progressWindowUid);
 							_progressWindowUid = null;
@@ -210,10 +210,10 @@ import ro.ciacob.utils.constants.CommonStrings;
 					pipe.send(GeneratorKeys.GEN_ABORT_REQUESTED);
 					return false;
 				}
-				_onProgresMinimize = function (...etc):void {
+				_onProgressMinimize = function (...etc):void {
 					windowsManager.hideWindow(windowsManager.mainWindow);
 				}
-				pipe.subscribe(GeneratorKeys.GEN_MINIMIZE_REQUESTED, _onProgresMinimize);
+				pipe.subscribe(GeneratorKeys.GEN_MINIMIZE_REQUESTED, _onProgressMinimize);
 				windowsManager.observeWindowActivity(_progressWindowUid, WindowActivity.BEFORE_DESTROY, _onProgressWindowExiting);
 				windowsManager.showWindow(_progressWindowUid);
 				windowsManager.updateWindowBounds(_progressWindowUid, Sizes.GENERATION_PROGRESS_WINDOW_BOUNDS, true);
@@ -240,7 +240,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		/**
 		 * Subscribes to relevant Generator notifications.
 		 */
-		private function _initalizeCommunications():void {
+		private function _initializeCommunications():void {
 			GLOBAL_PIPE.subscribe(ViewKeys.NEED_AVAILABLE_GENERATORS, _onAvailableGeneratorsRequested);
 			GENERATORS_INIT_PIPE.subscribe(GeneratorKeys.GENERATOR_BINDING_REQUEST, _onGeneratorBindingRequested);
 			GENERATORS_OP_PIPE.subscribe(GeneratorKeys.NEED_GEN_PROMPT, _onGeneratorPromptRequested);
@@ -293,7 +293,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		 * 			Data that is to be printed next to each generator name. Accepts
 		 * 			an object with generator uids as keys and strings as values.
 		 *
-		 * @return	A formated list with generator names (and, optionally, some other
+		 * @return	A formatted list with generator names (and, optionally, some other
 		 * 			information).
 		 */
 		private function _printGeneratorsList(uids:Vector.<String>, additionalData:Object = null):String {
@@ -323,7 +323,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		 * Throws if given outcome does not meet specific criteria, or if it is null.
 		 *
 		 * @param	generatorUid
-		 * 			The unique id of the generatior, which produced the outcome being tested.
+		 * 			The unique id of the generator, which produced the outcome being tested.
 		 * 			To be used in the error messages.
 		 *
 		 * @param	slotValue
@@ -400,7 +400,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 			var initialized:Vector.<String> = (statusQuo[GeneratorKeys.INITIALIZED_GENERATORS_LIST] as Vector.<String>);
 			if (all.length > 0) {
 				var colorStyle:String = PromptColors.WARNING;
-				var template:String = '';
+				var template:String;
 				if (all.length == initialized.length) {
 					colorStyle = PromptColors.NOTICE;
 					template = StaticTokens.ALL_PROJECT_GENERATORS_INITIALIZED;
@@ -459,7 +459,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 					var partStreams:Array = (slotValue[GeneratorBaseKeys.NOTE_STREAMS] as Array);
 					if (partStreams != null) {
 						var partsList:Array = qEngine.getSectionPartsList(section);
-						// TODO: allow generators to controll:
+						// TODO: allow generators to control:
 						// - which voices to fill;
 						// - how many measures to output;
 						// - at which measure in the section to start overwriting the
@@ -483,7 +483,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 								// optional) features — such as, being able to specify HOW
 								// MANY of the measures of a part to populate/overwrite — but
 								// we chose to ignore those for now; the entire span of a part
-								// is, for now, rewritten, so we explicitelly empty ALL the
+								// is, for now, rewritten, so we explicitly empty ALL the
 								// measures it has, to make room for new content.
 								var numMeasures:int = qEngine.getSectionNumMeasures(section);
 								for (var j:int = 0; j < numMeasures; j++) {
@@ -501,7 +501,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 						}
 					}
 
-					// We use held pitches in adjacent chords to replicate poliphony in generated
+					// We use held pitches in adjacent chords to replicate polyphony in generated
 					// chorals. We reckon that held notes in generated melodies are, graphically
 					// superfluous, therefore we will consolidate all these, whenever possible.
 					MusicUtils.consolidatePrimeIntervals(section);
@@ -586,7 +586,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		 * 			The data needed for triggering the API, containing the API name and the arguments
 		 * 			to pass.
 		 */
-		private function _onApiExeccutionRequested(generatorPipe:PTT, inData:Object):void {
+		private function _onApiExecutionRequested(generatorPipe:PTT, inData:Object):void {
 			var apiName:String = (inData[GeneratorBaseKeys.API_NAME] as String);
 			var arguments:Array = (inData[GeneratorBaseKeys.API_ARGUMENTS] as Array);
 			var on_api_executed:Function = function (apiName:String, result:Object):void {
@@ -619,7 +619,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		}
 
 		/**
-		 * Responds to a `GeneratorKeys.NEED_GEN_OUTPUT_TARGETS` notification received throught the
+		 * Responds to a `GeneratorKeys.NEED_GEN_OUTPUT_TARGETS` notification received throughout the
 		 * `GeneratorPipes.OPERATION` pipe.
 		 *
 		 * Execution is triggered by the UIBase's `commitProperties()` method. Compiles and sends back
@@ -718,7 +718,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		}
 
 		/**
-		 * Responds to a `GeneratorKeys.NEED_GEN_PROMPT` request received throught the
+		 * Responds to a `GeneratorKeys.NEED_GEN_PROMPT` request received throughout the
 		 * `GeneratorPipes.OPERATION` pipe.
 		 */
 		private function _onGeneratorPromptRequested(text:String):void {
@@ -726,7 +726,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		}
 
 		/**
-		 * Responds to a `GeneratorKeys.NEED_GEN_DIALOG` request delivered throught the `GeneratorPipes.OPERATION`
+		 * Responds to a `GeneratorKeys.NEED_GEN_DIALOG` request delivered throughout the `GeneratorPipes.OPERATION`
 		 * pipe. Causes the Controller to display a dialog window on behalf of a generator.
 		 */
 		private function _onGeneratorDialogRequested(text:String):void {
@@ -734,7 +734,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 		}
 
 		/**
-		 * Responds to a `GeneratorKeys.NEED_GEN_DEFAULT_DATA` request comming throught the `GENERATORS_INIT_PIPE`.
+		 * Responds to a `GeneratorKeys.NEED_GEN_DEFAULT_DATA` request coming throughout the `GENERATORS_INIT_PIPE`.
 		 * This is executed when user selects a generator entry in the "Binding" combo box control inside the
 		 * Generator Editor panel. Causes the selected Generator to be initialized and readied.
 		 */
@@ -779,7 +779,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 				generatorPipe.subscribe(GeneratorBaseKeys.MODULE_GENERATION_ABORTED, on_generator_output_aborted);
 				generatorPipe.subscribe(GeneratorBaseKeys.NEED_API_EXECUTION, function (...args):void {
 					args.unshift(generatorPipe);
-					_onApiExeccutionRequested.apply(this, args);
+					_onApiExecutionRequested.apply(this, args);
 				});
 				generatorPipe.subscribe(GeneratorBaseKeys.NEED_API_AVAILABILITY, function (...args):void {
 					args.unshift(generatorPipe);
@@ -796,7 +796,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 						// their base classes.
 						//
 						// By contrast, second generation generators (HarmonyGenerator) are modelled using
-						// a scallable model, where parameters can be added to an existing generator as
+						// a scalable model, where parameters can be added to an existing generator as
 						// needed, to enrich its abilities. These generators use an alternative mechanism
 						// for collecting user input (the pervasive, "_parameters" IParameterList), which
 						// makes defining public members for each supported parameter futile. The code 
@@ -812,7 +812,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 
 			// Internal callback to handle the retrieval of the Generator's output and its dispatch to interested parties
 			var on_generator_output_ready:Function = function (...args):void {
-				var outcome:Object = null;
+				var outcome:Object;
 				var generatorData:ProjectData = _controller.queryEngine.getGeneratorNodeData(generatorId) as ProjectData;
 				var outputConnections:Array = (generatorData.getContent(GeneratorKeys.OUTPUT_CONNECTIONS) as Array);
 				var outputsDescription:Array = (generatorData.getContent(GeneratorKeys.OUTPUTS_DESCRIPTION) as Array);
@@ -825,9 +825,9 @@ import ro.ciacob.utils.constants.CommonStrings;
 				outcome = generatorInstance.$getOutput();
 				if (outcome != null) {
 					for (var i:int = 0; i < outputsDescription.length; i++) {
-						var descr:Object = outputsDescription[i];
-						var slotName:String = (descr[GeneratorKeys.SLOT_NAME] as String);
-						var slotType:String = (descr[GeneratorKeys.SLOT_DATA_TYPE] as String);
+						var desc:Object = outputsDescription[i];
+						var slotName:String = (desc[GeneratorKeys.SLOT_NAME] as String);
+						var slotType:String = (desc[GeneratorKeys.SLOT_DATA_TYPE] as String);
 						var slotValue:Object = outcome[slotName];
 						_assertValidOutcome(generatorId.fqn, slotValue, slotType);
 						for (var j:int = 0; j < outputConnections.length; j++) {

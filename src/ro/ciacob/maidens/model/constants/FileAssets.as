@@ -19,6 +19,11 @@ package ro.ciacob.maidens.model.constants {
 		public static const LAUNCHER_QUERY_TEMPLATE:String = 'launcherQuery.tpl';
 		public static const PROJECT_FILE_EXTENSION:String = 'maid';
 
+		public static const AUDIO_ASSETS_HOME:String = 'assets/sounds';
+		public static const AUDIO_ASSET_FILE_TYPE:String = '.audio';
+		public static const AUDIO_WORKER_FILE_KEY : int = 653;
+		public static const AUDIO_WORKER_FILE_LABEL : String = 'Audio Synthesis Engine';
+
 		public static function get CONTENT_DIR():File {
 			return _resolveAppDirPath('%appdir%/assets/content/');
 		}

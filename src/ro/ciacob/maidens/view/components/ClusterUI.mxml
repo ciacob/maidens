@@ -159,7 +159,7 @@
             var cb:CheckBox = event.target as CheckBox;
             if (!cb.selected) {
                 // A tuplet is about to be decommissioned
-                PTT.getPipe().send(ViewKeys.DECOMISSION_TUPLET, _currentCluster);
+                PTT.getPipe().send(ViewKeys.DECOMMISSION_TUPLET, _currentCluster);
             }
             onControlChanged(event, true);
         }
@@ -341,7 +341,7 @@
 	
 	<mx:Spacer height="4" />
 	
-	<mx:HBox horizontalGap="4" enabled="{tuppletToggle.selected}" verticalAlign="middle">
+	<mx:HBox horizontalGap="4" verticalAlign="middle">
 		<mx:Spacer width="-8" />
 		<mx:Label text="Put" styleName="tupletSetupElement"/>
 

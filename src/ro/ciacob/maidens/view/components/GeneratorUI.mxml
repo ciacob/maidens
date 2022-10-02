@@ -23,6 +23,8 @@
 
 	<fx:Script>
 		<![CDATA[
+		import eu.claudius.iacob.maidens.Colors;
+
 		import mx.collections.ArrayCollection;
 		import mx.core.UIComponent;
 		import mx.events.FlexEvent;
@@ -444,19 +446,22 @@
 
 	<!-- Actions -->
 	<mx:Label styleName="editorLabel"
-			  text="Actions (save required):"/>
+			  text="Actions:"/>
 	<mx:HBox>
 		<mx:LinkButton click="_startGeneration()"
 					   enabled="false"
 					   id="generateButton"
+					   color="{Colors.PRIMARY_COLOR_DARK}"
 					   label="Generate"/>
 		<mx:LinkButton click="_openConfiguration()"
 					   enabled="false"
 					   id="configureButton"
+					   color="{Colors.PRIMARY_COLOR_DARK}"
 					   label="Configure..."/>
 		<mx:LinkButton click="{_showGeneratorInfo()}"
 					   enabled="false"
 					   id="infoButton"
+					   color="{Colors.PRIMARY_COLOR_DARK}"
 					   label="Info..."/>
 	</mx:HBox>
 	

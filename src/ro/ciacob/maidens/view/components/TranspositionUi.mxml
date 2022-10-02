@@ -344,7 +344,7 @@
 
 		<!-- Maintain existing notes/create parallel motion -->
 		<mx:HBox width="100%">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.MAINTAN_EXISITNG_NOTES}{CommonStrings.COLON_SPACE}" />
+			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.MAINTAIN_EXISTING_NOTES}{CommonStrings.COLON_SPACE}" />
 			<mx:CheckBox id="keepExistingNotes" change="_onControlChanged()" />
 		</mx:HBox>
 		

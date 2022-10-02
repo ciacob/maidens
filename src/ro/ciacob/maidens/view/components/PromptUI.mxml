@@ -49,12 +49,17 @@
 
         [Bindable]
         private var _buttonUids:Array = [];
+
+        [Bindable]
+        private var _autoClose:Boolean = true;
+
         private var _backgroundChanged:Boolean;
         private var _backgroundColor:uint;
         private var _buttonUidsChanged:Boolean;
         private var _callback:Function;
         private var _text:String;
         private var _textChanged:Boolean;
+        private var _autoCloseChanged:Boolean;
 
         /**
          * Accepts one of the constant values defined in class PromptColors.
@@ -76,17 +81,20 @@
         }
 
         public function hide(bypassAnimation:Boolean = false):void {
-            _collapse();
-            if (bypassAnimation) {
-                percentVisible = 0;
+            if (!_autoClose) {
+                _collapse();
+                if (bypassAnimation) {
+                    percentVisible = 0;
+                }
             }
         }
 
         public function show(bypassAnimation:Boolean = false):void {
-            hide(true);
-            _expand();
-            if (bypassAnimation) {
-                percentVisible = 1;
+            if (percentVisible != 1) {
+                _expand();
+                if (bypassAnimation) {
+                    percentVisible = 1;
+                }
             }
         }
 
@@ -94,6 +102,14 @@
             _text = value;
             _textChanged = true;
             invalidateProperties();
+        }
+
+        public function set autoClose(value:Boolean):void {
+            if (value != _autoClose) {
+                _autoClose = value;
+                _autoCloseChanged = true;
+                invalidateProperties();
+            }
         }
 
         protected function _onButtonClick(event:MouseEvent):void {
@@ -110,28 +126,32 @@
         }
 
         protected function _onPinClick(event:MouseEvent):void {
-            _uninitializeTimer();
+            _unInitializeTimer();
         }
 
         override protected function commitProperties():void {
             super.commitProperties();
-            var isChanged:Boolean = false;
+            var haveChanges:Boolean = false;
             if (_backgroundChanged) {
                 _backgroundChanged = false;
                 displayPanel.setStyle('backgroundColor', _backgroundColor);
-                isChanged = true;
+                haveChanges = true;
             }
             if (_buttonUidsChanged) {
                 _buttonUidsChanged = false;
                 _rebuildButtons(_buttonUids);
-                isChanged = true;
+                haveChanges = true;
             }
             if (_textChanged) {
                 _textChanged = false;
                 message.text = _text;
-                isChanged = true;
+                haveChanges = true;
             }
-            if (isChanged) {
+            if (_autoCloseChanged) {
+                _autoCloseChanged = false;
+                haveChanges = true;
+            }
+            if (haveChanges) {
                 _handleAutoClosing();
             }
         }
@@ -145,11 +165,13 @@
         }
 
         private function _handleAutoClosing():void {
-            if (!_haveButtons) {
+            if (!_haveButtons && _autoClose) {
                 var alphaNumChars:Array = message.text.match(/\w/g);
                 var timeNeededToRead:int = Math.max(alphaNumChars.length * TIME_NEEDED_PER_CHAR,
                         MIN_TIME_TO_SHOW)
                 _resetTimer(timeNeededToRead);
+            } else {
+                _unInitializeTimer();
             }
         }
 
@@ -162,7 +184,7 @@
         }
 
         private function _onAutoCloseTimerComplete(event:TimerEvent):void {
-            _uninitializeTimer();
+            _unInitializeTimer();
             _collapse();
         }
 
@@ -193,7 +215,7 @@
         }
 
         private function _onForceCloseClick(event:MouseEvent):void {
-            _uninitializeTimer();
+            _unInitializeTimer();
             _collapse();
         }
 
@@ -249,12 +271,12 @@
 
         private function _resetTimer(delay:int):void {
             if (_autoCloseTimer != null) {
-                _uninitializeTimer();
+                _unInitializeTimer();
             }
             _initializeTimer(delay);
         }
 
-        private function _uninitializeTimer():void {
+        private function _unInitializeTimer():void {
             if (_autoCloseTimer != null) {
                 _autoCloseTimer.stop();
                 _autoCloseTimer.removeEventListener(TimerEvent.TIMER, _onAutoCloseTimerTick);
@@ -280,7 +302,7 @@
                        label="Ł"
                        styleName="utils"
 					   color="{Colors.PROMPT_UI_FRONT_COLOR}"
-                       visible="{!_haveButtons}"
+                       visible="{!_haveButtons &amp;&amp; _autoClose}"
                        x="{displayPanel.width - MARGIN - forceCloseButton.width}"
                        y="0"/>
 
@@ -314,11 +336,11 @@
                  color="{Colors.PROMPT_UI_FRONT_COLOR}"
                  id="message"
                  selectable="false"
-                 textAlign="left"
-                 toolTip="click to copy to clipboard"
-                 maxWidth="{displayPanel.width - buttonsContainer.width - MARGIN * 3}"
+                 textAlign="{_haveButtons? 'left' : 'center'}"
+                 toolTip="Click to copy to clipboard"
+                 width="{displayPanel.width - (_haveButtons? buttonsContainer.width : 0) - MARGIN * 3}"
                  x="{((displayPanel.width - buttonsContainer.width - MARGIN * 3) - message.width) * 0.5}"
-                 y="{Math.max(MARGIN, (displayPanel.height - message.height) * 0.5)}"/>
+                 y="{Math.max(MARGIN, (displayPanel.height - message.height) * 0.5)}" />
 
         <mx:HBox click="_onButtonClick(event)"
                  id="buttonsContainer"
