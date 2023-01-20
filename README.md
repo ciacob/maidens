@@ -1,5 +1,5 @@
 <h3 align="center">
-<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero: Become a sponsor of MAIDENS!</a><br>
+<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero. Become a sponsor of MAIDENS!</a><br>
 </h3>
 
 ![maidens-image](identity/imagery/maidens.jpg)
@@ -68,5 +68,5 @@ If it helps, you may also use MAIDENS' minimal built-in *score editor*, to make 
 There is also an extensive online [program documentation](https://github.com/ciacob/maidens/wiki) that you are encouraged to read (in fact, you should, if you want to get the most from MAIDENS).
 
 <h3 align="center">
-<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero: Become a sponsor of MAIDENS!</a><br>
+<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero. Become a sponsor of MAIDENS!</a><br>
 </h3>
