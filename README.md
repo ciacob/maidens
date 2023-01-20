@@ -1,3 +1,7 @@
+<h3 align="center">
+<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero: Become a sponsor of MAIDENS!</a><br>
+</h3>
+
 ![maidens-image](identity/imagery/maidens.jpg)
 # MAIDENS
 ###### "Algorithmically draft ideas for your next art music masterpiece"
@@ -46,10 +50,6 @@ MAIDENS is an open source software program that you can use free of charge. To i
 - download the latest pre-built distribution package for your operating system from the [Releases](https://github.com/ciacob/maidens/releases) section;
 - build MAIDENS yourself from source, provided that you are familiar with building Adobe/Harman AIR applications.
 
-> Note that paying [Patreon supporters](https://www.patreon.com/maidens_app) receive added benefits, such as **nightly builds**, **bugfix priority** and **email based support** for using the application to its full potential.
-
-[![support-maidens](identity/imagery/support-button.png)](https://www.patreon.com/maidens_app)
-
 <br/>
 <br/>
 
@@ -67,3 +67,6 @@ If it helps, you may also use MAIDENS' minimal built-in *score editor*, to make 
 
 There is also an extensive online [program documentation](https://github.com/ciacob/maidens/wiki) that you are encouraged to read (in fact, you should, if you want to get the most from MAIDENS).
 
+<h3 align="center">
+<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero: Become a sponsor of MAIDENS!</a><br>
+</h3>
