@@ -7,15 +7,15 @@ angular.module('myApp', ['ngRoute'])
 .config(['$routeProvider', function($routeProvider) {
     $routeProvider
     .when('/home', {
-        templateUrl: '/identity/site/views/home.html',
+        templateUrl: 'identity/site/views/home.html',
         controller: 'homeController'
     })
     .when('/download', {
-        templateUrl: '/identity/site/views/download.html',
+        templateUrl: 'identity/site/views/download.html',
         controller: 'downloadController'
     })
     .when('/documentation', {
-        templateUrl: '/identity/site/views/documentation.html',
+        templateUrl: 'identity/site/views/documentation.html',
         controller: 'documentationController'
     })
     .otherwise({
