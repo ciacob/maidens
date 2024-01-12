@@ -1,18 +1,11 @@
 /*
 Controller for the `documentation` page.
 */
-angular.module("myApp").controller("homeController", [
+angular.module("myApp").controller("documentationController", [
   "$scope",
   "dataService",
   function ($scope, dataService) {
-    $scope.message = "Welcome to the Home page!";
+    $scope.message = "Welcome to the Documentation page!";
     
-    async function fetchData() {
-      var result = await dataService.gitHubAPI.getReleasesList();
-      console.log(result);
-    }
-    
-    // fetchData();
   },
 ]);
-
