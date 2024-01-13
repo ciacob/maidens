@@ -1,31 +1,276 @@
 <!DOCTYPE html>
 <html>
-<body>
-    <h2>Latest Release</h2>
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <style type="text/css">
+      .release-info {
+        border-collapse: collapse;
+        border-collapse: separate;
+        border: 1px solid #888;
+        border-radius: 10px;
+        margin: 10px;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 16px;
+        color: #333;
+      }
+      .release-info .link-color {
+        color: #ff6600;
+      }
+      .release-info a {
+        color: #ff6600;
+      }
+      .release-info .fas {
+        color: #888;
+      }
+      .release-info td {
+        padding: 25px;
+        max-width: 200px;
+      }
+      .release-info * {
+        font-size: 1rem;
+      }
+      .release-info .section-title {
+        text-align: center;
+        padding: 10px 25px 0;
+      }
+      .release-info .section-title h2 {
+        border-bottom: 1px solid #ddd;
+        margin: 0;
+        padding: 0;
+        padding-bottom: 15px;
+      }
+      .release-info .section-footer {
+        text-align: center;
+        padding: 0 25px 10px;
+      }
+      .release-info .section-footer p.old-releases-list {
+        border-top: 1px solid #ddd;
+        margin: 0;
+        padding: 0;
+        padding-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
     <div id="release"></div>
+    <script src="https://cdn.jsdelivr.net/npm/showdown@1.9.1/dist/showdown.min.js"></script>
+    <script src="identity/site/scripts/helper.js"></script>
 
-    <script>
-    fetch('https://api.github.com/repos/ciacob/maidens/releases/latest')
-        .then(response => response.json())
-        .then(release => {
-            // Extract the release details
-            const date = new Date(release.published_at).toDateString();
-            const name = release.name;
-            const description = release.body;
-            const assets = release.assets.map(asset => `<a href="${asset.browser_download_url}">${asset.name}</a>`);
+    <script type="text/javascript">
+      /*
+       * Produces a list with release downloadable files, based or their number, or a
+       * placeholder message in their lack.
+       */
+      const smartListWrap = (items) => {
+        return items.length > 1
+          ? `<p><i class="fas fa-file-download"></i> Files:</p>
+             <ul>
+                  <li>${items.join("</li><li>")}
+             </ul>`
+          : items.length > 0
+          ? `<p><i class="fas fa-file-download"></i> File:</p> ${items[0]}`
+          : `<p><i class="fas fa-heart-crack"></i> No downloadable files found.</p>`;
+      };
 
-            // Extract the first two headers from the description
-            const headers = description.match(/#+\s(.+)/g)?.slice(0, 2) || [];
+      /**
+       * Returns the first header (of whatever rank) found in the given `markdownText`,
+       * also converting it to HTML.
+       */
+      const getFirstHeader = (markdownText) => {
+        const header = markdownText.match(/#+\s(.+)/g)?.shift() || [];
+        const helpers = new Helpers();
+        return helpers.resolveMarkDown(header);
+      };
 
-            // Update the 'release' div
-            document.getElementById('release').innerHTML = `
-                <p><strong>${name}</strong></p>
-                <p>${date}</p>
-                ${headers.join('\n')}
-                <p><strong>Downloadable files:</strong></p>
-                ${assets.join('<br>')}
+      /**
+       * Compares two given multi-part numeric strings, whatever the format, e.g., "1.5.47"
+       * and "-1_0_16_0" are both accepted (the former compares "greater than" the later).
+       * Also, the two string operands need not use the same format either.
+       *
+       * NOTES: This function is meant to be used as an argument for the Array.sort()
+       * method.
+       *
+       * @param a
+       * 		  First multi-part numeric string to compare.
+       *
+       * @param b
+       * 		  Second multi-part numeric string to compare.
+       *
+       * @return
+       * 		  Positive integer if the `a` multi-part compares "greater than" the `b`
+       *      multi-part; negative integer if `a` compares "less than" `b`; and 0 if they
+       *      compare "equal".
+       */
+      const multiPartComparison = (a, b) => {
+        var integers = /(\-?\d{1,})/g;
+
+        // Prepare A
+        var aSegments = a.match(integers);
+        if (aSegments === null) {
+          return 0;
+        }
+        var numASegments = aSegments.length;
+        if (numASegments === 0) {
+          return 0;
+        }
+
+        // Prepare B
+        var bSegments = b.match(integers);
+        if (bSegments === null) {
+          return 0;
+        }
+        var numBSegments = bSegments.length;
+        if (numBSegments === 0) {
+          return 0;
+        }
+
+        // Compare
+        var maxLength = Math.max(numASegments, numBSegments);
+        var i = 0;
+        var rawASegment, rawBSegment, aSegment, bSegment, delta;
+
+        for (i; i < maxLength; i++) {
+          rawASegment = aSegments[i];
+          rawBSegment = bSegments[i];
+          aSegment = parseInt(rawASegment);
+          bSegment = parseInt(rawBSegment);
+          delta = aSegment - bSegment;
+          if (delta !== 0) {
+            return delta;
+          }
+        }
+
+        // Fallback to longest operand if nothing else helps
+        var rawASegmentLen = rawASegment ? rawASegment.length : 0;
+        var rawBSegmentLen = rawBSegment ? rawBSegment.length : 0;
+        return rawASegmentLen - rawBSegmentLen;
+      };
+
+      /**
+       * Infers an OS name and icon based on the extension of the provided `filename`.
+       */
+      const inferOS = (filename) => {
+        // Extract the file extension
+        var extension = filename.split(".").pop();
+
+        // Infer the OS based on the file extension
+        var osLabel, osIcon;
+        switch (extension) {
+          case "exe":
+            osLabel = "Windows";
+            osIcon = "fab fa-windows";
+            break;
+          case "dmg":
+          case "pkg":
+            osLabel = "macOs";
+            osIcon = "fab fa-apple";
+            break;
+          default:
+            osLabel = "OS unknown";
+            osIcon = "fas fa-question-circle";
+            break;
+        }
+
+        // Return an object with the extension, OS label, and OS icon
+        return {
+          extension: extension,
+          osLabel: osLabel,
+          osIcon: osIcon,
+        };
+      };
+
+      // MAIN
+      const numPastReleasesToShow = 2;
+      fetch("https://api.github.com/repos/ciacob/maidens/releases")
+        .then((response) => response.json())
+        .then((releases) => {
+          // Sort the releases in reverse chronological order
+          releases.sort((a, b) => multiPartComparison(b.tag_name, a.tag_name));
+
+          // Extract the latest release and the past three releases
+          const latestRelease = releases[0];
+          const pastReleases = releases.slice(1, numPastReleasesToShow + 1);
+          const numDeltaReleases = Math.max(
+            0,
+            releases.length - (pastReleases.length + 1)
+          );
+
+          // Extract the release details for the latest release
+          const latestVersion = latestRelease.tag_name;
+          const latestDate = new Date(
+            latestRelease.published_at
+          ).toDateString();
+          const latestName = latestRelease.name;
+          const latestDescription = latestRelease.body;
+          const latestMoreInfo = getFirstHeader(latestDescription);
+          const latestAssets = latestRelease.assets.map((asset) => {
+            const fileInfo = inferOS(asset.name);
+            return `<i class="link-color ${fileInfo.osIcon}"></i>
+              <a href="${asset.browser_download_url}" title="${fileInfo.osLabel}">  
+                ${asset.name}
+              </a>`;
+          });
+          const latestUrl = latestRelease.html_url;
+
+          // Prepare the past releases list
+          const pastReleaseLinks = pastReleases.map(
+            (release) => `<i class="fas fa-tag"></i>
+            <a target="_blank" href="${release.html_url}">
+                ${release.tag_name}
+            </a>`
+          );
+          if (numDeltaReleases) {
+            pastReleaseLinks.push(
+              `<i class="fas fa-arrow-up-right-from-square"></i>
+              <a target="_blank" href="https://github.com/ciacob/maidens/releases">
+                 see all (${numDeltaReleases} more ${
+                numDeltaReleases > 1 ? "releases" : "release"
+              })
+              </a>`
+            );
+          }
+
+          // Update the 'release' div
+          document.getElementById("release").innerHTML = `
+              <table class="release-info">
+                <tr>
+                  <td colspan="3" class="section-title">
+                    <h2>Latest Release:</h2>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <p><i class="fas fa-tag"></i> Version:</p>
+                    <p><strong>${latestVersion}</strong></p>
+                    <p><i class="fas fa-calendar-alt"></i> Date:</p>
+                    <p><strong>${latestDate}</strong></p>
+                    <p><i class="fas fa-clipboard-list"></i> Summary:</p>
+                    <p><strong> ${latestName}</strong></p>
+                  </td>
+                  <td class="more-info">
+                    <p><i class="fas fa-circle-info"></i> More information:</p>
+                    ${latestMoreInfo}
+                    <p class="learn-more">
+                      <a href="${latestUrl}" target="_blank">Learn more</a>
+                    </p>
+                  </td>
+                  <td>
+                    ${smartListWrap(latestAssets)}
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="section-footer">
+                    <p class="old-releases-list">Past releases: 
+                      ${pastReleaseLinks.join("&nbsp;")}
+                    </p>
+                  </td>
+                </tr>
+              </table>
             `;
         });
     </script>
-</body>
+  </body>
 </html>
