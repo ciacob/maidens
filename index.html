@@ -6,20 +6,42 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
     />
     <style type="text/css">
-      .release-info {
-        border-collapse: collapse;
-        border-collapse: separate;
+      .readme {
+        padding-top:25px;
+        column-count: 2;
+      }
+      .readme .columns-breaker {
+        column-span: all;
+        text-align: center;
+      }
+      .release-info,
+      .readme {
         border: 1px solid #888;
         border-radius: 10px;
-        margin: 10px;
+        margin: auto;
+        margin-top: 10px;
+        margin-bottom: 10px;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         font-size: 16px;
         color: #333;
+        max-width: 1270px;
       }
-      .release-info .link-color {
+      .readme img {
+        width: calc(100% - 50px);
+        column-span: all;
+        display: block;
+        margin: 25px;
+      }
+      .release-info {
+        border-collapse: collapse;
+        border-collapse: separate;
+      }
+      .release-info .link-color,
+      .readme .link-color {
         color: #ff6600;
       }
-      .release-info a {
+      .release-info a,
+      .readme a {
         color: #ff6600;
       }
       .release-info .fas {
@@ -27,16 +49,40 @@
       }
       .release-info td {
         padding: 25px;
-        max-width: 200px;
       }
-      .release-info.error td {
-        max-width: 600px;
+      .asset-link {
+        white-space: nowrap;
       }
+
+      .readme p,
+      .readme h1,
+      .readme h2,
+      .readme h3,
+      .readme h4,
+      .readme h5,
+      .readme h6 {
+        padding: 0;
+        margin: 0 25px 25px;
+      }
+
+      .readme h2 {
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 10px;
+        padding-top: 45px;
+        text-align: center;
+      }
+
       .release-info h1,
       .release-info h2,
       .release-info h3,
       .release-info h4,
-      .release-info p {
+      .release-info h5,
+      .release-info h6,
+      .release-info p,
+      .readme h4,
+      .readme h5,
+      .readme h6,
+      .readme p {
         font-size: 1rem;
       }
       .release-info .section-title {
@@ -65,6 +111,10 @@
     <div id="release">
       <i class="fa-solid fa-spinner fa-spin-pulse"></i>
     </div>
+    <div id="readme" class="readme">
+      <i class="fa-solid fa-spinner fa-spin-pulse"></i>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/showdown@1.9.1/dist/showdown.min.js"></script>
     <script src="identity/site/scripts/helper.js"></script>
 
@@ -192,14 +242,15 @@
       };
 
       // MAIN
+      // Get information about the latest release
       const numPastReleasesToShow = 2;
       fetch("https://api.github.com/repos/ciacob/maidens/releases")
         .then((response) => {
           if (!response.ok) {
-            console.log (response);
+            console.log(response);
             throw new Error(`HTTP Error while trying to access GitHub API. Details:
               status: ${response.status},
-              statusText: ${response.statusText || '<EMPTY_STRING>'},
+              statusText: ${response.statusText || "<EMPTY_STRING>"},
               type: ${response.type},
               url: ${response.url}
             `);
@@ -228,10 +279,10 @@
           const latestMoreInfo = getFirstHeader(latestDescription);
           const latestAssets = latestRelease.assets.map((asset) => {
             const fileInfo = inferOS(asset.name);
-            return `<i class="link-color ${fileInfo.osIcon}"></i>
+            return `<span class="asset-link"><i class="link-color ${fileInfo.osIcon}"></i>
               <a href="${asset.browser_download_url}" title="${fileInfo.osLabel}">  
                 ${asset.name}
-              </a>`;
+              </a></span>`;
           });
           const latestUrl = latestRelease.html_url;
 
@@ -311,6 +362,64 @@
             </tr>
           </table>
         `;
+        });
+
+      // Retrieve the content in README.md and insert it in page as HTML
+      fetch("https://api.github.com/repos/ciacob/maidens/readme")
+        .then((response) => {
+          if (!response.ok) {
+            console.log(response);
+            throw new Error(`HTTP Error while trying to access GitHub API. Details:
+              status: ${response.status},
+              statusText: ${response.statusText || "<EMPTY_STRING>"},
+              type: ${response.type},
+              url: ${response.url}
+            `);
+          }
+          return response.json();
+        })
+        .then((readme) => {
+          // Decode the Base64 content
+          const rawMarkdown = new TextDecoder().decode(
+            Uint8Array.from(atob(readme.content), (c) => c.charCodeAt(0))
+          );
+
+          // Convert the markdown to HTML
+          const converter = new showdown.Converter();
+          const html = converter.makeHtml(rawMarkdown);
+
+          // Create a temporary div to manipulate the HTML
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = html;
+
+          // Add the 'columns-breaker' class to all H1-H3
+          tempDiv.querySelectorAll("h1, h2, h3").forEach((h) => {
+            h.classList.add("columns-breaker");
+          });
+
+          // Insert the modified HTML into your page
+          document.getElementById("readme").innerHTML = tempDiv.innerHTML;
+        })
+        .catch((error) => {
+          console.error(
+            "Getting the `README.md` page content failed: there was a problem with your fetch operation.",
+            error
+          );
+          document.getElementById("readme").innerHTML = `
+          <table class="release-info error">
+            <tr>
+              <td colspan="3" class="section-footer">
+                <p><i class="fas fa-2xl fa-triangle-exclamation"></i></p>
+                <p>It seems there's a problem accessing the GitHub Readme API at the moment. </p>
+                <p>Please visit the project's
+                  <i class="fas fa-arrow-up-right-from-square"></i>
+                  <a target="_blank" href="https://github.com/ciacob/maidens">home page</a>
+                  to retrieve this content there, instead.
+                </p>
+              </td>
+            </tr>
+          </table>
+          `;
         });
     </script>
   </body>
