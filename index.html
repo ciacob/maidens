@@ -7,12 +7,25 @@
     />
     <style type="text/css">
       .readme {
-        padding-top:25px;
         column-count: 2;
       }
       .readme .columns-breaker {
         column-span: all;
         text-align: center;
+      }
+      .readme h3[align="center"] {
+        padding-top:25px;
+      }
+      .readme blockquote {
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        line-height: 160%;
+        font-style: italic;
+        letter-spacing: 0.1rem;
+        color: #5c5c5c;
+        border-left: 3px solid #ff6600;
+      }
+      .readme .error {
+        padding-top: 25px;
       }
       .release-info,
       .readme {
@@ -50,7 +63,7 @@
       .release-info td {
         padding: 25px;
       }
-      .asset-link {
+      .no-wrap {
         white-space: nowrap;
       }
 
@@ -70,6 +83,10 @@
         padding-bottom: 10px;
         padding-top: 45px;
         text-align: center;
+      }
+
+      .readme p {
+        line-height: 156%;
       }
 
       .release-info h1,
@@ -279,7 +296,7 @@
           const latestMoreInfo = getFirstHeader(latestDescription);
           const latestAssets = latestRelease.assets.map((asset) => {
             const fileInfo = inferOS(asset.name);
-            return `<span class="asset-link"><i class="link-color ${fileInfo.osIcon}"></i>
+            return `<span class="no-wrap"><i class="link-color ${fileInfo.osIcon}"></i>
               <a href="${asset.browser_download_url}" title="${fileInfo.osLabel}">  
                 ${asset.name}
               </a></span>`;
@@ -317,11 +334,11 @@
                     <p><i class="fas fa-tag"></i> Version:</p>
                     <p><strong>${latestVersion}</strong></p>
                     <p><i class="fas fa-calendar-alt"></i> Date:</p>
-                    <p><strong>${latestDate}</strong></p>
-                    <p><i class="fas fa-clipboard-list"></i> Summary:</p>
-                    <p><strong> ${latestName}</strong></p>
+                    <p class="no-wrap"><strong>${latestDate}</strong></p>
                   </td>
                   <td class="more-info">
+                    <p><i class="fas fa-clipboard-list"></i> Summary:</p>
+                    <p><strong> ${latestName}</strong></p>
                     <p><i class="fas fa-circle-info"></i> More information:</p>
                     ${latestMoreInfo}
                     <p class="learn-more">
@@ -348,7 +365,7 @@
             error
           );
           document.getElementById("release").innerHTML = `
-          <table class="release-info error">
+          <table class="release-info error columns-breaker">
             <tr>
               <td colspan="3" class="section-footer">
                 <p><i class="fas fa-2xl fa-triangle-exclamation"></i></p>
@@ -392,10 +409,14 @@
           const tempDiv = document.createElement("div");
           tempDiv.innerHTML = html;
 
-          // Add the 'columns-breaker' class to all H1-H3
+          // Add the 'columns-breaker' class to all H1-H3 and the very first paragraph.
           tempDiv.querySelectorAll("h1, h2, h3").forEach((h) => {
             h.classList.add("columns-breaker");
           });
+
+          var paragraphs = tempDiv.querySelectorAll('p');
+          var firstParagraph = paragraphs[1]; // paragraph at index `0` holds an image.
+          firstParagraph.classList.add("columns-breaker");
 
           // Insert the modified HTML into your page
           document.getElementById("readme").innerHTML = tempDiv.innerHTML;
@@ -406,7 +427,7 @@
             error
           );
           document.getElementById("readme").innerHTML = `
-          <table class="release-info error">
+          <table class="release-info error columns-breaker">
             <tr>
               <td colspan="3" class="section-footer">
                 <p><i class="fas fa-2xl fa-triangle-exclamation"></i></p>
