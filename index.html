@@ -29,7 +29,14 @@
         padding: 25px;
         max-width: 200px;
       }
-      .release-info * {
+      .release-info.error td {
+        max-width: 600px;
+      }
+      .release-info h1,
+      .release-info h2,
+      .release-info h3,
+      .release-info h4,
+      .release-info p {
         font-size: 1rem;
       }
       .release-info .section-title {
@@ -55,7 +62,9 @@
     </style>
   </head>
   <body>
-    <div id="release"></div>
+    <div id="release">
+      <i class="fa-solid fa-spinner fa-spin-pulse"></i>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/showdown@1.9.1/dist/showdown.min.js"></script>
     <script src="identity/site/scripts/helper.js"></script>
 
@@ -72,7 +81,7 @@
              </ul>`
           : items.length > 0
           ? `<p><i class="fas fa-file-download"></i> File:</p> ${items[0]}`
-          : `<p><i class="fas fa-heart-crack"></i> No downloadable files found.</p>`;
+          : `<p><i class="fas fa-triangle-exclamation"></i> No downloadable files found.</p>`;
       };
 
       /**
@@ -185,7 +194,18 @@
       // MAIN
       const numPastReleasesToShow = 2;
       fetch("https://api.github.com/repos/ciacob/maidens/releases")
-        .then((response) => response.json())
+        .then((response) => {
+          if (!response.ok) {
+            console.log (response);
+            throw new Error(`HTTP Error while trying to access GitHub API. Details:
+              status: ${response.status},
+              statusText: ${response.statusText || '<EMPTY_STRING>'},
+              type: ${response.type},
+              url: ${response.url}
+            `);
+          }
+          return response.json();
+        })
         .then((releases) => {
           // Sort the releases in reverse chronological order
           releases.sort((a, b) => multiPartComparison(b.tag_name, a.tag_name));
@@ -270,6 +290,27 @@
                 </tr>
               </table>
             `;
+        })
+        .catch((error) => {
+          console.error(
+            "Getting latest release failed: there was a problem with your fetch operation.",
+            error
+          );
+          document.getElementById("release").innerHTML = `
+          <table class="release-info error">
+            <tr>
+              <td colspan="3" class="section-footer">
+                <p><i class="fas fa-2xl fa-triangle-exclamation"></i></p>
+                <p>It seems there's a problem accessing the GitHub Releases API at the moment. </p>
+                <p>Please visit the 
+                  <i class="fas fa-arrow-up-right-from-square"></i>
+                  <a target="_blank" href="https://github.com/ciacob/maidens/releases">releases page</a>
+                  to check out the latest release.
+                </p>
+              </td>
+            </tr>
+          </table>
+        `;
         });
     </script>
   </body>
