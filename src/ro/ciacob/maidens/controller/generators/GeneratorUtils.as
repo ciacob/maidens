@@ -205,7 +205,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 				ui.pipe = pipe;
 				ui.generatorName = _printGeneratorsList(Vector.<String>([generatorUid]));
 				_controller.registerColorizableUi(ui);
-				_progressWindowUid = windowsManager.createWindow(ui, WindowStyle.PROMPT, true);
+				_progressWindowUid = windowsManager.createWindow(ui, WindowStyle.PROMPT | WindowStyle.NATIVE, true);
 				_onProgressWindowExiting = function (...etc):Boolean {
 					pipe.send(GeneratorKeys.GEN_ABORT_REQUESTED);
 					return false;
@@ -698,7 +698,7 @@ import ro.ciacob.utils.constants.CommonStrings;
 				_genCfgWindowFactory.properties = properties;
 				var windowContent:IWindowContent = (_genCfgWindowFactory.newInstance() as IWindowContent);
 				_controller.registerColorizableUi(windowContent);
-				_controller.genCfgWindowUid = _controller.windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP, true, _controller.mainWindowUid);
+				_controller.genCfgWindowUid = _controller.windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, _controller.mainWindowUid);
 				var windowTitle:String = Strings.sprintf(StaticTokens.CONFIGURE_GENERATOR, _printGeneratorsList(new <String>[generator_instance.fqn]), generator_instance.link);
 				_controller.windowsManager.updateWindowTitle(_controller.genCfgWindowUid, windowTitle);
 				_controller.windowsManager.updateWindowBounds(_controller.genCfgWindowUid, Sizes.MIN_GEN_CFG_WINDOW_BOUNDS, false);

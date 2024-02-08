@@ -7,25 +7,12 @@
                                   verticalScrollPolicy="auto"
                                   width="100%"
                                   styleName="tintorettoBackground"
+                                  xmlns:s="library://ns.adobe.com/flex/spark"
                                   xmlns:fx="http://ns.adobe.com/mxml/2009"
                                   xmlns:mx="library://ns.adobe.com/flex/mx"
                                   xmlns:windows="ro.ciacob.desktop.windows.*"
                                   xmlns:view1="ro.ciacob.maidens.view.*"
                                   xmlns:components="ro.ciacob.maidens.view.components.*">
-
-    <fx:Declarations>
-
-        <!-- Flex Menu (to be used on Windows) -->
-        <mx:MenuBar dataProvider="{appMenuData}"
-                    id="flexMenu"
-                    backgroundSkin="{MainMenuSkin}"
-                    itemSkin="{MainMenuSkin}"
-                    itemClick="_onAppMenuItemClick(event)"
-                    labelField="@label"
-                    showRoot="false"
-                    height="100%"/>
-
-    </fx:Declarations>
 
     <fx:Script>
 		<![CDATA[
@@ -37,7 +24,7 @@
         import eu.claudius.iacob.maidens.skins.DeleteElementSkin;
         import eu.claudius.iacob.maidens.skins.FitSelectionSkin;
         import eu.claudius.iacob.maidens.skins.FitToWidthSkin;
-        import eu.claudius.iacob.maidens.skins.MainMenuSkin;
+        import eu.claudius.iacob.maidens.skins.LockToggleButton;
         import eu.claudius.iacob.maidens.skins.NextPageSkin;
         import eu.claudius.iacob.maidens.skins.NudgeDownSkin;
         import eu.claudius.iacob.maidens.skins.NudgeUpSkin;
@@ -45,24 +32,20 @@
         import eu.claudius.iacob.maidens.skins.PrevPageSkin;
         import eu.claudius.iacob.maidens.skins.StopSkin;
 
-        import mx.controls.Menu;
-        import mx.core.FlexGlobals;
         import mx.core.UIComponent;
         import mx.events.FlexEvent;
-        import mx.events.MenuEvent;
 
         import ro.ciacob.desktop.signals.PTT;
         import ro.ciacob.maidens.generators.constants.MIDI;
-        import ro.ciacob.maidens.model.constants.DataFields;
         import ro.ciacob.maidens.model.constants.ModelKeys;
         import ro.ciacob.maidens.model.constants.StaticFieldValues;
         import ro.ciacob.maidens.model.constants.StaticTokens;
         import ro.ciacob.maidens.model.constants.URLs;
         import ro.ciacob.maidens.view.constants.MenuCommandNames;
-        import ro.ciacob.maidens.view.constants.MenuIds;
         import ro.ciacob.maidens.view.constants.PromptColors;
         import ro.ciacob.maidens.view.constants.PromptKeys;
         import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.utils.OSFamily;
         import ro.ciacob.utils.Strings;
         import ro.ciacob.utils.Time;
         import ro.ciacob.utils.constants.CommonStrings;
@@ -71,21 +54,22 @@
 
         [Bindable]
         private var _minimumZoomFactor:Number = 0.25;
+
         [Bindable]
         private var _haveScoreSelection:Boolean;
-        [Bindable]
-        private var appMenuData:XML;
-        private var _compile_helper_1:MenuCommandNames;
-        private var _ctaMessages:Array;
-        private var _currentCtaIdx:int = 0;
-        private var ptt:PTT;
 
         [Bindable]
         private var _currPageNumber:int;
+
         [Bindable]
         private var _numPages:int;
+
         [Bindable]
         private var _noScore:Boolean;
+
+        private var _ctaMessages:Array;
+        private var _currentCtaIdx:int = 0;
+        private var ptt:PTT;
 
         /**
          * Syntactic sugar. Subscribes given callback to given PTT key, also considering
@@ -102,33 +86,14 @@
         }
 
         /**
-         * Fired when a menu item was clicked.
-         * Merely forward to controller, which will handle this.
-         */
-        private function _onAppMenuItemClick(event:Event):void {
-            var selectedItem:XML = null;
-            if ('item' in event) {
-                selectedItem = (event['item'] as XML);
-            }
-            if (selectedItem != null) {
-                var commandName:String = Strings.trim(selectedItem.@commandName);
-                var commandArgs:Array = Strings.trim(selectedItem.@commandArguments || '').split(CommonStrings.COMMA);
-                if (!Strings.isEmpty(commandName)) {
-                    GLOBAL_PIPE.send(ViewKeys.APP_MENU_TRIGGERED, {
-                        'commandName': commandName,
-                        'commandArgs': commandArgs
-                    });
-                }
-            }
-        }
-
-        /**
          * Fired when a toolbar item was clicked
          * Merely forward to controller, which will handle this.
          */
         private function _onAppToolbarItemClick(event:Event, commandName:String):void {
-            var button:UIComponent = (event.target as UIComponent);
-            button.enabled = false;
+            if (event) {
+                var button:UIComponent = (event.target as UIComponent);
+                button.enabled = false;
+            }
             if (!Strings.isEmpty(commandName)) {
                 GLOBAL_PIPE.send(ViewKeys.APP_MENU_TRIGGERED, {'commandName': commandName});
             }
@@ -141,7 +106,6 @@
         private function _onPreinitialize(event:FlexEvent):void {
             setStyle('pictureAlpha', 0.2);
             ptt = PTT.getPipe();
-            appMenuData = FlexGlobals.topLevelApplication.appMenuData;
         }
 
         /**
@@ -149,29 +113,10 @@
          * rendered). Sort of a "stage two" constructor function for MXML classes.
          */
         private function _onInitialize(event:FlexEvent):void {
-            appCtrlBar.addChildAt(flexMenu, 0);
-            flexMenu.addEventListener(MenuEvent.MENU_SHOW, _onMenuShow);
-            flexMenu.addEventListener(MenuEvent.MENU_HIDE, _onMenuHide);
 
-            // The application control bar will be centered on macOS (centered layout is
-            // something like a tradition on OSX family) and left aligned on Windows, running
-            // to the right of the custom menu.
-            appCtrlBar.setStyle('horizontalAlign', 'left');
-
-            // Initialize application wide functionality
+            // Initialize application-wide functionality
             GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT, _onPromptRequested);
             GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT_DISCARDED, _onPromptDecommissioned);
-            GLOBAL_PIPE.subscribe(ViewKeys.UNDO_REDO_STATUSQUO, _onUndoRedoStatusUpdate);
-
-            // Monitor changes to current theme to update the menu accordingly
-            GLOBAL_PIPE.subscribe(ViewKeys.COLORIZATION_UPDATED, _onColorizationChanged);
-
-            // Initialize dynamic menu items
-            _updateMenuItem(MenuIds.UNDO_ITEM, StaticTokens.CANNOT_UNDO, false);
-            _updateMenuItem(MenuIds.REDO_ITEM, StaticTokens.CANNOT_REDO, false);
-            _updateMenuItem(MenuIds.COPY_ITEM, StaticTokens.CANNOT_COPY, false);
-            _updateMenuItem(MenuIds.CUT_ITEM, StaticTokens.CANNOT_CUT, false);
-            _updateMenuItem(MenuIds.PASTE_ITEM, StaticTokens.CANNOT_PASTE, false);
 
             // Initialize toolbar related functionality
             retroactivelySubscribe(ViewKeys.STRUCTURE_OPERATIONS_STATUS, _onOperationsStatusUpdate);
@@ -184,54 +129,12 @@
 
             // Initialize the "call to action" carousel
             _ctaMessages = [
-                Strings.sprintf(StaticTokens.CTA_REPORT_BUGS, URLs.CTA_REPORT_BUGS),
-                Strings.sprintf(StaticTokens.CTA_DONATE, URLs.CTA_DONATE),
-                Strings.sprintf(StaticTokens.CTA_SUBSCRIBE, URLs.CTA_SUBSCRIBE),
-                Strings.sprintf(StaticTokens.CTA_SPREAD_THE_WORD, URLs.CTA_SPREAD_THE_WORD)
+                [StaticTokens.CTA_REPORT_BUGS, URLs.CTA_REPORT_BUGS],
+                [StaticTokens.CTA_DONATE, URLs.CTA_DONATE],
+                [StaticTokens.CTA_DISCUSS, URLs.CTA_DISCUSS],
+                [StaticTokens.CTA_SPREAD_THE_WORD, URLs.CTA_SPREAD_THE_WORD]
             ];
             _showNextCta();
-        }
-
-        /**
-         * Executed when the current theme is changed, either by the user, via the "View -> Theme"
-         * sub-menu, or by the Controller, by reading a property from the application persistence.
-         *
-         * @param   themeName
-         *          The name of the current theme, in its raw format, e.g., "$LIGHT". See the
-         *          constants in class UiColorizationThemes.
-         */
-        private function _onColorizationChanged(themeName:String):void {
-            var themeItems:XMLList = appMenuData.descendants().(hasOwnProperty('@id') &&
-            @id == MenuIds.THEME_SUBMENU).item;
-            var i:int;
-            var item:XML;
-            var mustBeSelected:Boolean;
-            for (i = 0; i < themeItems.length(); i++) {
-                item = (themeItems[i] as XML);
-                mustBeSelected = (item.@commandArguments.toString() == themeName);
-                _updateXMLItem(item, null, true, mustBeSelected);
-            }
-        }
-
-        /**
-         * Executed on Windows, when a sub-menu of the menu bar opens or a childless menu item
-         * is clicked.
-         */
-        private function _onMenuShow(event:MenuEvent):void {
-            var menu:Menu = event.menu;
-            if (menu) {
-                GLOBAL_PIPE.send(ViewKeys.APP_MENU_SHOWN, menu);
-            }
-        }
-
-        /**
-         * Executed on Windows, when a sub-menu of the menu bar hides.
-         */
-        private function _onMenuHide(event:MenuEvent):void {
-            var menu:Menu = event.menu;
-            if (menu) {
-                GLOBAL_PIPE.send(ViewKeys.APP_MENU_HIDDEN, menu);
-            }
         }
 
         /**
@@ -245,7 +148,7 @@
          * Responds to the MIDI playback started signal, by disabling the "playback" button
          * and enabling the "stop" button.
          */
-        private function _onMidiPlaybackStarted(...args):void {
+        private function _onMidiPlaybackStarted(...ignore):void {
             _updatePlaybackButtons(MIDI.PLAYING_STATE);
         }
 
@@ -253,7 +156,7 @@
          * Responds to the MIDI playback stopped signal, by disabling the "stop" button
          * and enabling the "playback" button.
          */
-        private function _onMidiPlaybackStopped(...args):void {
+        private function _onMidiPlaybackStopped(...ignore):void {
             _updatePlaybackButtons(MIDI.STOPPED_STATE);
         }
 
@@ -279,54 +182,6 @@
         }
 
         /**
-         * Changes the label, enables or disables, or adds or removes a checkmark
-         * to a menu item, be it inside a native or Flex menu.
-         */
-        private function _updateMenuItem(itemId:String, label:String = null, enablement:Boolean = true, checked:Boolean = false):void {
-            var items:XMLList = appMenuData.descendants().(hasOwnProperty('@id') && @id == itemId);
-            var numItems:uint = items.length();
-            for (var i:int = 0; i < numItems; i++) {
-                var item:XML = items[i] as XML;
-                _updateXMLItem(item, label, enablement, checked);
-            }
-
-        }
-
-        /**
-         * Lower-level method that actually carries on the task handled to "_updateMenuItem()",
-         * once the actual XML Item responsible for representing a menu item has been identified.
-         * Can also be directly called if this information is known beforehand.
-         * @see _updateMenuItem()
-         */
-        private function _updateXMLItem(item:XML, label:String = null, enablement:Boolean = true, checked:Boolean = false):void {
-            if (label) {
-                item.@label = label;
-            }
-            item.@enabled = enablement;
-            item.@type = (checked ? 'check' : '');
-            item.@toggled = (checked ? 'true' : 'false');
-        }
-
-        /**
-         * Triggered when there has been a notification received that deals with the
-         * availability of the Undo/Redo buttons, as well as with additional related info.
-         */
-        private function _onUndoRedoStatusUpdate(status:Object):void {
-            var canUndo:Boolean = status[ViewKeys.CAN_UNDO] as Boolean;
-            var canRedo:Boolean = status[ViewKeys.CAN_REDO] as Boolean;
-            var undoDescription:String = status[ViewKeys.UNDO_DESCRIPTION] as String;
-            var redoDescription:String = status[ViewKeys.REDO_DESCRIPTION] as String;
-            if (undoDescription) {
-                undoDescription = Strings.sprintf(StaticTokens.UNDO_LABEL, undoDescription);
-            }
-            if (redoDescription) {
-                redoDescription = Strings.sprintf(StaticTokens.REDO_LABEL, redoDescription);
-            }
-            _updateMenuItem(MenuIds.UNDO_ITEM, undoDescription || StaticTokens.CANNOT_UNDO, canUndo);
-            _updateMenuItem(MenuIds.REDO_ITEM, redoDescription || StaticTokens.CANNOT_REDO, canRedo);
-        }
-
-        /**
          * Triggered when a notification is received that deals with the availability
          * of common functions, such as creating, deleting or moving items around,
          * performing copy/paste operations, etc.
@@ -337,40 +192,6 @@
             removeButton.enabled = (status[ViewKeys.REMOVE_ELEMENT_AVAILABLE] as Boolean);
             moveUpButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_UP_AVAILABLE] as Boolean);
             moveDownButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_DOWN_AVAILABLE] as Boolean);
-
-            // Update menu items
-            var selectionType:String = status[ViewKeys.SELECTION_TYPE] as String;
-            var haveSelection:Boolean = (selectionType != null);
-            var haveEmptySelection:Boolean = haveSelection && (status[ViewKeys.ELEMENT_EMPTY] as Boolean);
-            // var haveNonDeletableSelection:Boolean = haveSelection && !(status[ViewKeys.REMOVE_ELEMENT_AVAILABLE] as Boolean);
-
-            // Update items in the Copy/Cut/Paste menu
-            var pasteSrcType:String = status[ViewKeys.PASTE_SOURCE_TYPE] as String;
-            // var havePasteSrc:Boolean = (pasteSrcType != null);
-            var canCopy:Boolean = status[ViewKeys.COPY_ELEMENT_AVAILABLE] as Boolean;
-            var canCut:Boolean = status[ViewKeys.CUT_ELEMENT_AVAILABLE] as Boolean;
-            var canPaste:Boolean = status[ViewKeys.PASTE_ELEMENT_AVAILABLE] as Boolean;
-            _updateMenuItem(MenuIds.COPY_ITEM,
-                    canCopy ? Strings.sprintf(StaticTokens.COPY_LABEL, selectionType) : StaticTokens.CANNOT_COPY,
-                    canCopy
-            );
-            _updateMenuItem(MenuIds.CUT_ITEM,
-                    canCut ? Strings.sprintf(StaticTokens.CUT_LABEL, selectionType) : StaticTokens.CANNOT_CUT,
-                    canCut
-            );
-            _updateMenuItem(MenuIds.PASTE_ITEM,
-                    canPaste ? Strings.sprintf(StaticTokens.PASTE_LABEL, pasteSrcType) : StaticTokens.CANNOT_PASTE,
-                    canPaste
-            );
-
-            // Update items in the Macros menu
-            var haveTransposableSelection:Boolean = haveSelection && !haveEmptySelection && (
-                    selectionType == DataFields.SECTION || selectionType == DataFields.PART || selectionType == DataFields.MEASURE ||
-                    selectionType == DataFields.VOICE || selectionType == DataFields.CLUSTER
-            );
-            _updateMenuItem(MenuIds.TRANSPOSE_ITEM, null, haveTransposableSelection);
-            var haveScaleableSelection:Boolean = (haveTransposableSelection && selectionType != DataFields.CLUSTER);
-            _updateMenuItem(MenuIds.SCALE_INTERVALS_ITEM, null, haveScaleableSelection);
         }
 
         private function _onNavigationStateChange(state:Object):void {
@@ -415,7 +236,7 @@
          * Triggered when a specific request has been received to hide the existing prompt (usually the case when the
          * prompt has been opened for an undefined period of time via setting its `autoClose` property to `false`).
          */
-        private function _onPromptDecommissioned(...args):void {
+        private function _onPromptDecommissioned(...ignore):void {
             promptsUi.hide();
         }
 
@@ -509,9 +330,10 @@
          * Loads and displays the next message in queue in the "call to action" carousel.
          */
         private function _showCtaMessage():void {
-            var message:String = _ctaMessages[_currentCtaIdx] as String;
-            callToAction.htmlText = message;
+            var cta:Array = (_ctaMessages[_currentCtaIdx] as Array);
+            var message:String = cta[0] as String;
             TweenMax.to(callToAction, StaticFieldValues.CTA_SHOW_TIME, {alpha: 1, onComplete: _scheduleNextCta});
+            callToAction.label = message;
         }
 
         /**
@@ -520,21 +342,29 @@
         private function _scheduleNextCta():void {
             Time.delay(StaticFieldValues.CTA_SPIN_DELAY, _showNextCta);
         }
+
+        /**
+         * Executed when user clicks on one of the messages that tun in a loop at the bottom of the main UI.
+         */
+        private function _onCallToActionClicked():void {
+            var cta:Array = (_ctaMessages[_currentCtaIdx] as Array);
+            var url:String = (cta[1] as String);
+            var urlReq:URLRequest = new URLRequest(url);
+            navigateToURL(urlReq);
+        }
         ]]>
 	</fx:Script>
 
     <!-- Application level toolbar -->
-    <mx:Box horizontalAlign="center"
+    <mx:Box horizontalAlign="{OSFamily.isMac? 'center' : 'left'}"
             verticalAlign="middle"
             id="appCtrlBar"
             direction="horizontal"
             horizontalGap="{Sizes.SMALL_BUTTON_WIDTH * 0.1}"
             paddingLeft="{Sizes.MAIN_UI_HORIZONTAL_MARGIN}"
             paddingRight="{Sizes.MAIN_UI_HORIZONTAL_MARGIN}"
-            paddingTop="0"
-            paddingBottom="0"
             width="{width}"
-            height="{Sizes.CONTROL_BAR_HEIGHT + 2 * Sizes.MAIN_TOOLBAR_VERTICAL_MARGIN}"
+            height="{Sizes.CONTROL_BAR_HEIGHT + 2 * Sizes.MAIN_UI_HORIZONTAL_MARGIN}"
             backgroundColor="{Colors.MAIN_CONTROL_BAR_COLOR}"
             backgroundAlpha="{Colors.CHROME_CONTROLS_BG_ALPHA}">
 
@@ -552,6 +382,8 @@
                    skin="{DeleteElementSkin}"
                    toolTip="{StaticTokens.DELETE_ELEMENT}"/>
 
+        <mx:Spacer width="{Sizes.SEPARATOR_WIDTH}"/>
+
         <!-- NUDGE UP -->
         <mx:Button click="_onAppToolbarItemClick(event, MenuCommandNames.NUDGE_ITEM_BEFORE)"
                    enabled="false"
@@ -565,6 +397,15 @@
                    id="moveDownButton"
                    toolTip="{StaticTokens.NUDGE_ELEMENT_AFTER}"
                    skin="{NudgeDownSkin}"/>
+
+        <!-- NUDGE LOCK -->
+        <s:ToggleButton
+                change="_onAppToolbarItemClick(null, nudgeLockButton.selected? MenuCommandNames.NUDGE_LOCK_ON : MenuCommandNames.NUDGE_LOCK_OFF)"
+                enabled="true"
+                selected="true"
+                id="nudgeLockButton"
+                toolTip="{StaticTokens.NUDGE_LOCK}"
+                skinClass="{LockToggleButton}" width="{Sizes.CONTROL_BAR_HEIGHT}" height="{Sizes.CONTROL_BAR_HEIGHT}" />
 
         <mx:Spacer width="{Sizes.SEPARATOR_WIDTH}"/>
 
@@ -643,11 +484,15 @@
     </mx:Box>
 
     <!-- Carousel of "call to action" messages -->
-    <mx:Text id="callToAction"
-             y="{appMainContent.y + appMainContent.height + ((Sizes.MAIN_UI_BOTTOM_MARGIN - callToAction.height) * 0.4)}"
-             width="{width - Sizes.MAIN_UI_HORIZONTAL_MARGIN * 2}"
-             styleName="callToActionText">
-    </mx:Text>
+    <mx:LinkButton id="callToAction"
+                   click="_onCallToActionClicked()"
+                   y="{appMainContent.y + appMainContent.height + ((Sizes.MAIN_UI_BOTTOM_MARGIN - callToAction.height) * 0.4)}"
+                   horizontalCenter="0"
+                   styleName="callToActionText"
+                   textDecoration="none"
+                   letterSpacing="1"
+                   color="{Colors.SCORE_FOREGROUND}">
+    </mx:LinkButton>
 
     <!-- The main UI -->
     <mx:TabNavigator id="appMainContent"

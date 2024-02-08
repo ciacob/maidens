@@ -15,7 +15,7 @@ package ro.ciacob.maidens.view.constants {
 		public static const QUIT_MENU_ITEM : String = 'quitMenuItem';
 		public static const ISSUES_ITEM : String = 'contactItem';
 		public static const RELEASES_ITEM : String = 'newsItem';
-		public static const PATREON_ITEM : String = 'patreonItem';
+		public static const SPONSOR_ITEM : String = 'sponsorItem';
 		public static const THEME_SUBMENU : String = 'themeSubmenu';
 		
 	}

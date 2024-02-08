@@ -1,7 +1,7 @@
 package ro.ciacob.maidens.model.constants {
 
 	public final class StaticTokens {
-		public static const AUDIO_DROPOUT_NOTICE : String = 'Audio dropout occurred. Playback will resume shortly.'
+		public static const AUDIO_DROPOUT_NOTICE : String = 'Audio dropout occurred. Attempting to resume playback...'
 		public static const ALL_CLEFS:String = 'All clefs';
 		public static const ALL_PROJECT_GENERATORS_INITIALIZED:String = 'All generators used by this project were successfully initialized.';
 		public static const API_WRONG_ARGUMENTS_NUMBER:String = 'Wrong number of arguments given. The API %s accepts exactly %d arguments — %d given.';
@@ -100,8 +100,8 @@ package ro.ciacob.maidens.model.constants {
 		public static const GENERATOR_WRITE_OPERATION : String = 'writing to "%s"';
 		public static const TRANSPOSITION_OPERATION : String = '%s transposition';
 		public static const SCALE_INTERVALS_OPERATION : String = '%s scaling';
-		public static const CANNOT_UNDO : String = 'Cannot undo';
-		public static const CANNOT_REDO : String = 'Cannot redo';
+		public static const UNDO_PLACEHOLDER : String = 'Undo';
+		public static const REDO_PLACEHOLDER : String = 'Redo';
 		public static const UNDO_LABEL : String = 'Undo (back to %s)';
 		public static const REDO_LABEL : String = 'Redo (go to %s)';
 		public static const NOTHING_TO_COPY : String = 'Nothing to copy';
@@ -110,9 +110,9 @@ package ro.ciacob.maidens.model.constants {
 		public static const COPY_LABEL : String = 'Copy %s';
 		public static const CUT_LABEL : String = 'Cut %s';
 		public static const PASTE_LABEL : String = 'Paste %s';
-		public static const CANNOT_COPY : String = 'Cannot copy';
-		public static const CANNOT_CUT : String = 'Cannot cut';
-		public static const CANNOT_PASTE : String = 'Cannot paste';
+		public static const COPY_PLACEHOLDER : String = 'Copy';
+		public static const CUT_PLACEHOLDER : String = 'Cut';
+		public static const PASTE_PLACEHOLDER : String = 'Paste';
 		public static const OVER : String = 'over %s';
 		public static const NO_SELECTION : String = 'no selection';
 		public static const NON_DELETABLE : String = 'non deletable %s';
@@ -150,7 +150,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const DOCUMENTATION : String = 'Read the Wiki';
 		public static const REPORT_ISSUES : String = 'Report issue';
 		public static const CHECK_RELEASES : String = 'Check for new releases';
-		public static const BECOME_A_PATRON : String = 'Become a patron...';
+		public static const BECOME_A_SPONSOR : String = 'Become a sponsor';
 		public static const TRANSPOSE : String = 'Transpose';
 		public static const SELECT_INTERVAL : String = 'Select interval...';
 		public static const SCALE_INTERVALS : String = 'Scale intervals';
@@ -185,6 +185,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const DELETE_ELEMENT : String = 'Delete element';
 		public static const NUDGE_ELEMENT_BEFORE : String = 'Nudge element before';
 		public static const NUDGE_ELEMENT_AFTER : String = 'Nudge element after';
+		public static const NUDGE_LOCK : String = 'Nudge mode';
 		public static const PREPARING_MIDI : String = 'Preparing MIDI...';
 		public static const LOADING_SOUNDS : String = 'Loading sounds%s';
 		public static const PREPARING_AUDIO : String = 'Generating audio data...';
@@ -192,9 +193,9 @@ package ro.ciacob.maidens.model.constants {
 		public static const RECORDING_COMPLETE:String = 'Recording Complete';
 		public static const RECORDING_CANCELLED:String = 'Recording Cancelled';
 		public static const UNISONS_FORBIDDEN : String = 'MAIDENS does not allow same-voice unisons.';
-		public static const CTA_SPREAD_THE_WORD : String = 'Help MAIDENS. <a href="%s"><u>Spread the word<font size="20"> ¤</font></u></a>';
-		public static const CTA_REPORT_BUGS : String = 'Help MAIDENS. <a href="%s"><u>Report bugs<font size="20"> ¤</font></u></a>';
-		public static const CTA_DONATE : String = 'Help MAIDENS. <a href="%s"><u>Become a patron<font size="20"> ¤</font></u></a>';
-		public static const CTA_SUBSCRIBE : String = 'Help MAIDENS. <a href="%s"><u>Stay in touch<font size="20"> ¤</font></u></a>';
+		public static const CTA_SPREAD_THE_WORD : String = 'Spread the word...';
+		public static const CTA_REPORT_BUGS : String = 'Report bugs...';
+		public static const CTA_DISCUSS : String = 'Ask a question...';
+		public static const CTA_DONATE : String = 'Be a hero. Become a sponsor of MAIDENS!';
 	}
 }

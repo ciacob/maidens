@@ -6,92 +6,10 @@
                        width="580"
                        height="300"
                        preinitialize="_onPreinitialize(event)"
-                       initialize="_onInitialize (event)"
+                       applicationComplete="_onApplicationComplete(event)"
                        xmlns:s="library://ns.adobe.com/flex/spark"
                        xmlns:fx="http://ns.adobe.com/mxml/2009"
                        xmlns:mx="library://ns.adobe.com/flex/mx">
-
-    <fx:Declarations>
-        <!-- Menu structure to serve as source of menu items -->
-        <fx:XML id="appMenuData">
-            <item>
-                <!-- File -->
-                <item label="{StaticTokens.FILE}">
-                    <item commandName="{MenuCommandNames.CREATE_NEW_PROJECT}"
-                          label="{StaticTokens.NEW}"/>
-                    <item commandName="{MenuCommandNames.CREATE_PROJECT_FROM_TEMPLATE}"
-                          label="{StaticTokens.NEW_FROM_TEMPLATE}"/>
-                    <item commandName="{MenuCommandNames.OPEN_EXISTING_PROJECT}"
-                          label="{StaticTokens.OPEN}..."/>
-                    <item type="separator"/>
-                    <item commandName="{MenuCommandNames.SAVE_PROJECT}"
-                          label="{StaticTokens.SAVE}"/>
-                    <item commandName="{MenuCommandNames.SAVE_PROJECT_AS}"
-                          label="{StaticTokens.SAVE_AS}..."/>
-                    <item type="separator"/>
-                    <item label="{StaticTokens.EXPORT}">
-                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_MIDI}"
-                              label="{StaticTokens.TO_MIDI_FILE}..."/>
-                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_ABC}"
-                              label="{StaticTokens.TO_ABC_NOTATION_FILE}..."/>
-                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_XML}"
-                              label="{StaticTokens.TO_XML_NOTATION_FILE}..."/>
-                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_PDF}"
-                              label="{StaticTokens.TO_PDF_FILE}..."/>
-                        <item commandName="{MenuCommandNames.EXPORT_PROJECT_TO_WAV}"
-                              label="{StaticTokens.TO_WAV_FILE}..."/>
-                    </item>
-                    <item type="separator"/>
-                    <item id="{MenuIds.QUIT_MENU_ITEM}" commandName="{MenuCommandNames.EXIT_APPLICATION}"
-                          label="{StaticTokens.EXIT}"/>
-                </item>
-
-                <!-- Edit -->
-                <item label="{StaticTokens.EDIT}">
-                    <item id="{MenuIds.UNDO_ITEM}" commandName="{MenuCommandNames.UNDO}" label=""/>
-                    <item id="{MenuIds.REDO_ITEM}" commandName="{MenuCommandNames.REDO}" label=""/>
-                    <item type="separator"/>
-                    <item id="{MenuIds.COPY_ITEM}" commandName="{MenuCommandNames.COPY}" label=""/>
-                    <item id="{MenuIds.CUT_ITEM}" commandName="{MenuCommandNames.CUT}" label=""/>
-                    <item id="{MenuIds.PASTE_ITEM}" commandName="{MenuCommandNames.PASTE}" label=""/>
-                </item>
-
-                <!-- View -->
-                <item label="{StaticTokens.VIEW}">
-                    <item id="{MenuIds.THEME_SUBMENU}" label="{StaticTokens.THEME}">
-                    </item>
-                </item>
-
-                <!-- Macros -->
-                <item label="{StaticTokens.MACROS}">
-                    <item id="{MenuIds.TRANSPOSE_ITEM}" commandName="{MenuCommandNames.TRANSPOSE}"
-                          label="{StaticTokens.TRANSPOSE}..."/>
-                    <item id="{MenuIds.SCALE_INTERVALS_ITEM}" commandName="{MenuCommandNames.SCALE_INTERVALS}"
-                          label="{StaticTokens.SCALE_INTERVALS}..."/>
-                </item>
-
-                <!-- Help -->
-                <item label="{StaticTokens.HELP}">
-                    <item id="{MenuIds.DOC_ITEM}" commandName="{MenuCommandNames.OPEN_DOCUMENTATION_URL}"
-                          label="{StaticTokens.DOCUMENTATION}"/>
-                    <item id="{MenuIds.ISSUES_ITEM}" commandName="{MenuCommandNames.OPEN_ISSUES_URL}"
-                          label="{StaticTokens.REPORT_ISSUES}"/>
-                    <item id="{MenuIds.RELEASES_ITEM}" commandName="{MenuCommandNames.OPEN_RELEASES_URL}"
-                          label="{StaticTokens.CHECK_RELEASES}"/>
-                    <item type="separator"/>
-                    <item id="{MenuIds.PATREON_ITEM}" commandName="{MenuCommandNames.OPEN_PATREON_URL}"
-                          label="{StaticTokens.BECOME_A_PATRON}"/>
-                </item>
-
-                <!-- DEBUG. Remove upon release -->
-                <!--
-                <item label="DEBUG">
-                    <item label="Show playback score" commandName="{MenuCommandNames.DEBUG_SHOW_PLAYBACK_SCORE}"/>
-                </item>
-                -->
-            </item>
-        </fx:XML>
-    </fx:Declarations>
 
     <!-- Application Style -->
     <fx:Style source="../../maidens-ui-commons/src/eu/claudius/iacob/maidens/assets/common.css"/>
@@ -103,8 +21,9 @@
         import eu.claudius.iacob.EmbeddedFontsHelper;
         import eu.claudius.iacob.maidens.Colors;
         import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudiusiacob.desktop.GlobalMenu;
+        import eu.claudiusiacob.desktop.GlobalMenuEvent;
 
-        import mx.core.FlexGlobals;
         import mx.events.FlexEvent;
 
         import ro.ciacob.desktop.signals.PTT;
@@ -112,26 +31,36 @@
         import ro.ciacob.desktop.windows.WindowActivity;
         import ro.ciacob.desktop.windows.WindowStyle;
         import ro.ciacob.desktop.windows.WindowsManager;
+        import ro.ciacob.desktop.windows.WindowsManagerEvent;
         import ro.ciacob.maidens.controller.Controller;
+        import ro.ciacob.maidens.model.constants.DataFields;
+        import ro.ciacob.maidens.model.constants.GlobalMenuData;
         import ro.ciacob.maidens.model.constants.StaticTokens;
         import ro.ciacob.maidens.view.MainUi;
         import ro.ciacob.maidens.view.constants.MenuCommandNames;
-        import ro.ciacob.maidens.view.constants.MenuIds;
         import ro.ciacob.maidens.view.constants.UiColorizationThemes;
         import ro.ciacob.maidens.view.constants.ViewKeys;
         import ro.ciacob.utils.Descriptor;
+        import ro.ciacob.utils.OSFamily;
         import ro.ciacob.utils.ScreenUtils;
         import ro.ciacob.utils.Strings;
         import ro.ciacob.utils.Time;
+        import ro.ciacob.utils.constants.CommonStrings;
+
+        private static const GLOBAL_PIPE:PTT = PTT.getPipe();
+        private static const ALL_THEMES:Array = UiColorizationThemes.getAllThemes();
 
         private var _mainWinUid:String;
         private var _rootContent:Object
         private var _wManager:WindowsManager;
         private var _screenBounds:Rectangle;
+        private var _globalMenu:GlobalMenu;
+        private var _splashNativeWindow:NativeWindow;
 
         // We need to actually "use" the EmbeddedFontsHelper class, or else it won't be compiled 
         // (although included) and the embedded fonts will not be available.
-        private const _compileHelper1:Class = EmbeddedFontsHelper;
+        private const ignore_compileHelper1:Class = EmbeddedFontsHelper;
+
 
         /**
          * Equivalent of a constructor function for MXML classes.
@@ -139,26 +68,45 @@
          */
         private function _onPreinitialize(event:FlexEvent):void {
 
-            // Start loading the application after the splash screen has been drawn
-            addEventListener(FlexEvent.UPDATE_COMPLETE, _onUpdateComplete);
+            // Monitor changes to current theme to update the global menu accordingly
+            GLOBAL_PIPE.subscribe(ViewKeys.COLORIZATION_UPDATED, _onColorizationChanged);
 
-            // Initialize the menu
-            // We use a custom menu. The custom menu is attached in class MainUi,
-            // in method `onInitialize()`.
-            FlexGlobals.topLevelApplication.appMenuData = appMenuData;
+            // Monitor changes to Undo/Redo availability
+            GLOBAL_PIPE.subscribe(ViewKeys.UNDO_REDO_STATUSQUO, _onUndoRedoStatusUpdate);
 
-            // Create root window content
+            // Monitor changes that affect editing operations availability (e.g., copy/paste/cut, macros, etc.).
+            GLOBAL_PIPE.subscribe(ViewKeys.STRUCTURE_OPERATIONS_STATUS, _onOperationsStatusUpdate);
+
+            // Initialize our handler for the "global menu". This is the menu that attaches to the main
+            // window on Windows, or becomes the application menu on macOS. On mac OS, we can already attach the menu;
+            // on Windows, we must wait for the main window to become available.
+            _globalMenu = new GlobalMenu(GlobalMenuData.STRUCURE, NativeApplication.nativeApplication,
+                    Descriptor.getAppSignature());
+            _globalMenu.addEventListener(GlobalMenuEvent.ITEM_SELECT, _onGlobalItemSelected);
+            if (OSFamily.isMac) {
+                _globalMenu.attach();
+            }
+
+            // Look up for the splash screen finishing drawing. We will start loading the rest of the application once
+            // it does.
+            addEventListener(FlexEvent.UPDATE_COMPLETE, _onSplashScreenDone);
+
+            // Create the content for the main window
             _rootContent = new MainUi;
 
-            // Create main window.
+            // Create main window itself.
             _wManager = new WindowsManager;
-            _mainWinUid = _wManager.createWindow(IWindowContent(_rootContent), WindowStyle.MAIN_NO_FOOTER);
+            _wManager.addEventListener(WindowsManagerEvent.MAIN_WINDOW_BLOCKED, _onMainWindowBlocked);
+            _wManager.addEventListener(WindowsManagerEvent.MAIN_WINDOW_UNBLOCKED, _onMainWindowUnblocked);
+            _mainWinUid = _wManager.createWindow(IWindowContent(_rootContent),
+                    WindowStyle.MAIN_NO_FOOTER | WindowStyle.NATIVE);
             if (_mainWinUid != null) {
                 _wManager.observeWindowActivity(_mainWinUid, WindowActivity.BEFORE_DESTROY, _onDirectWindowClose, this);
                 _wManager.observeWindowActivity(_mainWinUid, WindowActivity.FOCUS, _onMainWindowShown, this);
-                _wManager.updateWindowMinSize(_mainWinUid, Sizes.MIN_MAIN_WINDOW_BOUNDS.width, Sizes.MIN_MAIN_WINDOW_BOUNDS.height);
+                _wManager.updateWindowMinSize(_mainWinUid, Sizes.MIN_MAIN_WINDOW_BOUNDS.width,
+                        Sizes.MIN_MAIN_WINDOW_BOUNDS.height);
             } else {
-                throw(new Error('Window Manager could not create the main window.'));
+                throw (new Error('Window Manager could not create the main window.'));
             }
 
             // Listen for title change requests
@@ -166,17 +114,41 @@
         }
 
         /**
-         * Executed when the main window content has been initialized but not laid out. The window is not
-         * visible at this point.
+         * Executed when the main window becomes "blocked", e.g., by a modal child window. Disables the global menu,
+         * if there is one.
+         * @param event
          */
-        private function _onInitialize(event:FlexEvent):void {
+        private function _onMainWindowBlocked (event : WindowsManagerEvent) : void {
+            if (_globalMenu) {
+                _globalMenu.block();
+            }
         }
 
         /**
-         * Executed after the splash screen has been successfully drawn
+         * Executed when the main window becomes "un-blocked", e.g., by closing a modal child window that previously
+         * "blocked" it. Re-enables the global menu, if there is one.
+         * @param event
          */
-        private function _onUpdateComplete(event:FlexEvent):void {
-            removeEventListener(FlexEvent.UPDATE_COMPLETE, _onUpdateComplete);
+        private function _onMainWindowUnblocked (event : WindowsManagerEvent) : void {
+            if (_globalMenu) {
+                _globalMenu.unblock();
+            }
+        }
+
+        /**
+         * This function serves as the initial opportunity to confirm the existence of the NativeWindow for the splash
+         * screen. It's essential for distinguishing the main window's NativeWindow at a subsequent stage.
+         * @param event
+         */
+        private function _onApplicationComplete(event:FlexEvent):void {
+            _splashNativeWindow = this.nativeWindow;
+        }
+
+        /**
+         * Executed after the splash screen has been successfully drawn.
+         */
+        private function _onSplashScreenDone(event:FlexEvent):void {
+            removeEventListener(FlexEvent.UPDATE_COMPLETE, _onSplashScreenDone);
             _screenBounds = ScreenUtils.getAvailableScreenBoundsFor(this, true);
 
             // Center the splash screen window
@@ -185,9 +157,8 @@
             nativeWindow.x = winX;
             nativeWindow.y = winY;
 
-            // Fit and center main app window to the main screen.
+            // Fit and center main window to the main screen. The window itself is still hidden at this stage.
             Time.delay(2, function ():void {
-
                 var appBounds:Rectangle = Sizes.FULL_HD_THRESHOLD_BOUNDS.clone();
                 if (appBounds.width > _screenBounds.width) {
                     appBounds.width = _screenBounds.width;
@@ -201,21 +172,9 @@
                 _setMainWindowTitle();
 
                 // Initialize the application
-                // and show the main window
-                var controller:Controller = new Controller(DisplayObjectContainer(_rootContent), _wManager, _mainWinUid);
+                new Controller(DisplayObjectContainer(_rootContent), _wManager, _mainWinUid);
 
-                // Add the list of available themes to the View -> Themes menu
-                var themes:Array = UiColorizationThemes.getAllThemes();
-                _generateMenuItems(MenuIds.THEME_SUBMENU, themes.map(
-                        function (themeInfo:Object, ...etc):Object {
-                            return {
-                                'label': themeInfo.name,
-                                'command': MenuCommandNames.APPLY_THEME,
-                                'commandArguments': [themeInfo.key],
-                                'checked': (controller.currColorMatrix == themeInfo.matrix)
-                            };
-                        }
-                ));
+                // Show the main window; its content will be revealed with a "fade-in" animation.
                 _rootContent.alpha = 0;
                 _wManager.showWindow(_mainWinUid);
                 Time.delay(2, function ():void {
@@ -225,64 +184,145 @@
         }
 
         /**
-         * Dynamically generates the items of a given sub-menu.
-         * @param   menuId
-         *          The "id" of the target sub-menu.
-         * @param   itemDescriptors
-         *          An Array with Objects having the following structure:
-         *          - 'label': String; value for the "label" attribute of the new menu item;
-         *          - 'checked': Boolean; whether to assign "true" to the item's "toggled" attribute;
-         *          - 'command': String; value for the "commandName" attribute;
-         *          - 'commandArguments': Array; will be joined with comma and set as the value of the
-         *             "commandArguments" attribute.
-         * This method changes the `appMenuData` XML structure in place; no value is returned.
+         * Executed when user makes an attempt to close the main window. We interpret this as a request to exit the
+         * application (including on macOS), which we'll fulfill when safe.
+         * @param ignore
          */
-        private function _generateMenuItems(menuId:String, itemDescriptors:Array):void {
-            var submenu:XML = appMenuData.descendants().(hasOwnProperty('@id') && @id == menuId)[0];
-            if (submenu) {
-                var i:int;
-                for (i = 0; i < itemDescriptors.length; i++) {
-                    var descriptor:Object = itemDescriptors[i];
-                    var itemSrc:String = '<item label="' + descriptor.label + '" commandName="' +
-                            descriptor.command + '" commandArguments="' +
-                            descriptor.commandArguments.join(',') + '" toggled="' +
-                            (descriptor.checked ? 'true" type="check' : 'false') + '" />';
-                    var itemXML:XML = XML(itemSrc);
-                    submenu.appendChild(itemXML);
-                }
-            }
-        }
-
-        private static function _onDirectWindowClose(uid:String):Boolean {
+        private static function _onDirectWindowClose(ignore:String):Boolean {
             PTT.getPipe().send(ViewKeys.APP_EXIT_BUTTON_CLICK);
             return false;
         }
 
+        /**
+         * Executed in response to an internal request of modifying the title of the application's main window.
+         * @param title
+         */
         private function _onTitleUpdateRequested(title:String):void {
             _setMainWindowTitle(title);
         }
 
-        private function _setMainWindowTitle(title:String = null):void {
-            if (_wManager.isWindowAvailable(_mainWinUid)) {
-                title = Strings.trim(title);
-                title = title || _getDefaultTitle();
-                _wManager.updateWindowTitle(_mainWinUid, title);
+        /**
+         * Executed in response to the user selecting an item in the application (macOS) or main window (Windows) menu,
+         * via either mouse or keyboard.
+         * @param event
+         */
+        private function _onGlobalItemSelected(event:GlobalMenuEvent):void {
+            var cmdTokens:Array = event.cmdName.split(CommonStrings.BROKEN_VERTICAL_BAR);
+            var commandName:String = cmdTokens[0];
+            var commandArgs:Array = cmdTokens[1] ? cmdTokens[1].split(CommonStrings.COMMA) : [];
+            GLOBAL_PIPE.send(ViewKeys.APP_MENU_TRIGGERED, {
+                'commandName': commandName,
+                'commandArgs': commandArgs
+            });
+        }
+
+        /**
+         * Executed when the current theme is changed, either by the user, via the "View -> Theme"
+         * sub-menu, or by the Controller, by reading a property from the application persistence.
+         *
+         * @param   themeName
+         *          The name of the current theme, in its raw format, e.g., "$LIGHT". See the
+         *          constants in class UiColorizationThemes.
+         */
+        private function _onColorizationChanged(themeName:String):void {
+            var testCmdName:String = [MenuCommandNames.APPLY_THEME, themeName]
+                    .join(CommonStrings.BROKEN_VERTICAL_BAR);
+            for each (var themeInfo:Object in ALL_THEMES) {
+                var itemCmdName:String = [MenuCommandNames.APPLY_THEME, themeInfo.key]
+                        .join(CommonStrings.BROKEN_VERTICAL_BAR);
+                _globalMenu.setItemChecked(itemCmdName, itemCmdName == testCmdName);
             }
         }
 
         /**
-         * Helper, returns the application title set in its descriptor XML file
+         * Triggered when there has been a notification received that deals with the
+         * availability of the Undo/Redo buttons, as well as with additional related info.
          */
-        private static function _getDefaultTitle():String {
-            return Descriptor.getAppSignature(true);
+        private function _onUndoRedoStatusUpdate(status:Object):void {
+            var canUndo:Boolean = status[ViewKeys.CAN_UNDO] as Boolean;
+            var canRedo:Boolean = status[ViewKeys.CAN_REDO] as Boolean;
+            var undoDescription:String = status[ViewKeys.UNDO_DESCRIPTION] as String;
+            var redoDescription:String = status[ViewKeys.REDO_DESCRIPTION] as String;
+            if (undoDescription) {
+                undoDescription = Strings.sprintf(StaticTokens.UNDO_LABEL, undoDescription);
+            }
+            if (redoDescription) {
+                redoDescription = Strings.sprintf(StaticTokens.REDO_LABEL, redoDescription);
+            }
+            _globalMenu.setItemLabel(MenuCommandNames.UNDO, canUndo ? undoDescription : StaticTokens.UNDO_PLACEHOLDER);
+            _globalMenu.setItemEnablement(MenuCommandNames.UNDO, canUndo);
+            _globalMenu.setItemLabel(MenuCommandNames.REDO, canRedo ? redoDescription : StaticTokens.REDO_PLACEHOLDER);
+            _globalMenu.setItemEnablement(MenuCommandNames.REDO, canRedo);
         }
 
         /**
-         * Executed when the main window is shown. Used to close the splash screen.
+         * Triggered when a notification is received that deals with the availability
+         * of common functions, such as creating, deleting or moving items around,
+         * performing copy/paste operations, etc.
          */
-        private function _onMainWindowShown(uid:String):void {
+        private function _onOperationsStatusUpdate(status:Object):void {
+            // Update menu items
+            var selectionType:String = status[ViewKeys.SELECTION_TYPE] as String;
+            var haveSelection:Boolean = (selectionType != null);
+            var haveEmptySelection:Boolean = haveSelection && (status[ViewKeys.ELEMENT_EMPTY] as Boolean);
+
+            // Update items in the Copy/Cut/Paste menu
+            var pasteSrcType:String = status[ViewKeys.PASTE_SOURCE_TYPE] as String;
+            var canCopy:Boolean = status[ViewKeys.COPY_ELEMENT_AVAILABLE] as Boolean;
+            var canCut:Boolean = status[ViewKeys.CUT_ELEMENT_AVAILABLE] as Boolean;
+            var canPaste:Boolean = status[ViewKeys.PASTE_ELEMENT_AVAILABLE] as Boolean;
+            _globalMenu.setItemLabel(MenuCommandNames.COPY,
+                    canCopy ? Strings.sprintf(StaticTokens.COPY_LABEL, selectionType) : StaticTokens.COPY_PLACEHOLDER);
+            _globalMenu.setItemEnablement(MenuCommandNames.COPY, canCopy);
+            _globalMenu.setItemLabel(MenuCommandNames.CUT,
+                    canCut ? Strings.sprintf(StaticTokens.CUT_LABEL, selectionType) : StaticTokens.CUT_PLACEHOLDER);
+            _globalMenu.setItemEnablement(MenuCommandNames.CUT, canCut);
+            _globalMenu.setItemLabel(MenuCommandNames.PASTE,
+                    canPaste ? Strings.sprintf(StaticTokens.PASTE_LABEL, pasteSrcType) : StaticTokens.PASTE_PLACEHOLDER);
+            _globalMenu.setItemEnablement(MenuCommandNames.PASTE, canPaste);
+
+            // Update items in the Macros menu
+            var haveTransposableSelection:Boolean = haveSelection && !haveEmptySelection && (
+                    selectionType == DataFields.SECTION ||
+                    selectionType == DataFields.PART ||
+                    selectionType == DataFields.MEASURE ||
+                    selectionType == DataFields.VOICE ||
+                    selectionType == DataFields.CLUSTER
+            );
+            var haveScaleableSelection:Boolean = (haveTransposableSelection && selectionType != DataFields.CLUSTER);
+            _globalMenu.setItemEnablement(MenuCommandNames.TRANSPOSE, haveTransposableSelection);
+            _globalMenu.setItemEnablement(MenuCommandNames.SCALE_INTERVALS, haveScaleableSelection);
+        }
+
+        /**
+         * Executed when the main window is shown. Used to close the splash screen and to attach the main menu to the
+         * main window (on Windows).
+         */
+        private function _onMainWindowShown(ignore:String):void {
             _wManager.stopObservingWindowActivity(_mainWinUid, WindowActivity.FOCUS, _onMainWindowShown);
             Time.delay(1, nativeWindow.close);
+            if (OSFamily.isWindows) {
+                var openedWindows:Array = NativeApplication.nativeApplication.openedWindows;
+                for each (var win:NativeWindow in openedWindows) {
+                    if (win != _splashNativeWindow) {
+                        _globalMenu.registerMainWindow(win);
+                        _globalMenu.attach();
+                        break;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Changes the title displayed by the main window of the application.
+         * @param title
+         */
+        private function _setMainWindowTitle(title:String = null):void {
+            if (_wManager.isWindowAvailable(_mainWinUid)) {
+                title = Strings.trim(title);
+                title = title || Descriptor.getAppSignature(true);
+                _wManager.updateWindowTitle(_mainWinUid, title);
+            }
         }
         ]]>
     </fx:Script>
@@ -295,21 +335,30 @@
                chromeColor="{Colors.SPLASH_TEXT_BACKROUND}"/>
     <mx:Label id="copyrightLabel"
               text="by {Descriptor.getAppCopyright(false)}"
-              bottom="{Sizes.SPLASH_BOTTOM_MARGIN}"
+              bottom="{Sizes.SPLASH_BOTTOM_MARGIN + 10}"
               right="{Sizes.SPLASH_RIGHT_MARGIN}"
-              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE}"
+              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 1.3}"
               color="{Colors.SPLASH_TEXT_FOREGROUND}"/>
     <mx:Label id="versionLabel"
               text="{Descriptor.getAppVersion()}"
               y="{copyrightLabel.y - versionLabel.height}"
               right="{Sizes.SPLASH_RIGHT_MARGIN}"
               color="{Colors.SPLASH_TEXT_FOREGROUND}"
-              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 1.5}"/>
+              fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 2}"/>
     <mx:Label id="appNameLabel"
               text="{Descriptor.getAppSignature()}"
               color="{Colors.SPLASH_TEXT_FOREGROUND}"
               x="{versionLabel.x - appNameLabel.width}"
               y="{copyrightLabel.y - appNameLabel.height * 0.9}"
               fontSize="{Sizes.SPLASH_BASE_FONT_SIZE * 4}"
-              fontWeight="bold" />
+              fontWeight="bold"/>
+    <mx:Text id="appDescription"
+             letterSpacing="1.1"
+             text="{Descriptor.read('description')}"
+             textAlign="center"
+             horizontalCenter="0"
+             bottom="5"
+             width="99%"
+             selectable="false"
+             color="{Colors.SPLASH_TEXT_FOREGROUND}"/>
 </s:WindowedApplication>

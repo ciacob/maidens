@@ -14,7 +14,7 @@ package ro.ciacob.maidens.view.constants {
 		public static const OPEN_DOCUMENTATION_URL : String = 'openDocumentationUrl';
 		public static const OPEN_ISSUES_URL : String = 'openContactUrl';
 		public static const OPEN_RELEASES_URL : String = 'openNewsUrl';
-		public static const OPEN_PATREON_URL : String = 'openPatreonUrl';
+		public static const BECOME_SPONSOR_URL : String = 'becomeSponsorUrl';
 		public static const UNDO : String = 'undo';
 		public static const REDO : String = 'redo';
 		public static const COPY : String = 'copy';
@@ -26,6 +26,8 @@ package ro.ciacob.maidens.view.constants {
 		public static const DELETE_ITEM : String = 'deleteItem';
 		public static const NUDGE_ITEM_BEFORE : String = 'nudgeItemBefore';
 		public static const NUDGE_ITEM_AFTER : String = 'nudgeItemAfter';
+		public static const NUDGE_LOCK_ON : String = 'nudgeLockOn';
+		public static const NUDGE_LOCK_OFF : String = 'nudgeLockOff';
 		public static const START_PLAYBACK : String = 'startPlayback';
 		public static const STOP_PLAYBACK : String = 'stopPlayback';
 		public static const PREVIOUS_PAGE : String = 'previousPage';

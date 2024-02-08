@@ -190,7 +190,8 @@ public class Controller {
                 null,
                 null,
                 null,
-                registerColorizableUi);
+                registerColorizableUi,
+                true);
 
         // Initialize the persistence system
         _persistenceEngine = new Persistence(Descriptor.getAppSignature());
@@ -230,8 +231,8 @@ public class Controller {
     private static const PASTE_SINGLE:String = 'pasteSingle';
     private static const GLOBAL_PIPE:PTT = PTT.getPipe();
     private static const RENDER_PIPE:PTT = PTT.getPipe(AudioPipes.RENDER_PIPE);
-    private static const STREAMING_DELAY:int = 4;
-    private static const RENDER_WINDOW_CLOSE_DELAY:int = 2;
+    private static const STREAMING_DELAY:int = 1;
+    private static const RENDER_WINDOW_CLOSE_DELAY:int = 1;
 
 
     // -----------------
@@ -444,7 +445,8 @@ public class Controller {
     private var _mainWindowUid:String;
 
     /**
-     * TODO: Document.
+     * Holds an instance of the "persistence engine" (see the Persistence Library), a simple mechanism to deposit values
+     * cross sessions.
      */
     private var _persistenceEngine:Persistence;
 
@@ -508,6 +510,14 @@ public class Controller {
      * theme other than the default.
      */
     private var _colorizableUi:Object;
+
+    /**
+     * Saves the current operating mode of the "nudge" buttons. When `true` (default), "nudging" must respect current
+     * container's boundaries, e.g., clusters cannot be nudged outside their voice/measure; when `false`, "nudging" can
+     * cross boundaries, subject to specific rules (e.g., clusters can be nudged to the same voice of adjacent
+     * measures).
+     */
+    private var _nudgeLock:Boolean = true;
 
     /**
      * Color matrix to be applied to all the items collected in `_colorizationClients`.
@@ -704,7 +714,7 @@ public class Controller {
      * Only used as a filter function to retrieve Part nodes having a specific uid. Do not employ in other
      * scenarios.
      */
-    private function __partsByUuid(part:ProjectData, ...args):Boolean {
+    private function __partsByUuid(part:ProjectData, ...ignore):Boolean {
         return (part.getContent(DataFields.PART_MIRROR_UID) === __beingSearchedForPartUuid);
     }
 
@@ -749,13 +759,24 @@ public class Controller {
     }
 
     /**
-     * TODO: use queryEngine.commitMeasureData() instead
-     * FIXME: use queryEngine.commitMeasureData() instead
+     * Commits given data to all the measures that are part of the same measure stack as
+     * the current measure. In other words, measures residing in different parts, but having
+     * the same measure number, are to be sent the same content.
+     *
+     * This is because the hierarchical model we use to represent music fails to cope to
+     * the classical paradox: do we have parts containing measures, or measures containing
+     * parts?
+     *
+     * @param    measureData
+     *           Expectedly, a "measure" clone, as the one returned by the Score Editor.
+     *
+     * @param    targetRoute
+     *           The route of a "real" measure in the stack to update.
      */
     private function _commitMeasureData(measureData:ProjectData, targetRoute:String, updateViews:Boolean = true):void {
+
         // Measures residing in different parts, but having the same index are to be
-        // sent
-        // the same content upon committing.
+        // sent the same content upon committing.
         var currentMeasure:ProjectData = ProjectData(_model.currentProject.getElementByRoute(targetRoute));
         if (currentMeasure != null) {
             var committedContent:Object = measureData.getContentMap();
@@ -1092,8 +1113,8 @@ public class Controller {
         $subscribe(ViewKeys.CHANGING_VOICE_POSITION, _onVoiceChanging);
         $subscribe(ViewKeys.DECOMMISSION_TUPLET, _onTupletDecommissioningRequested);
         $subscribe(ViewKeys.RESET_TUPLET, _onTupletResetRequested);
-        $subscribe(ViewKeys.APP_MENU_SHOWN, registerColorizableUi);
-        $subscribe(ViewKeys.APP_MENU_HIDDEN, registerColorizableUi);
+        $subscribe(ViewKeys.POPUP_SHOWN, registerColorizableUi);
+        $subscribe(ViewKeys.POPUP_HIDDEN, registerColorizableUi);
         $subscribe(ViewKeys.SECTION_TOGGLE_STATE, onSectionToggleStateChange);
         var $subscribeTree:Function = PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE).subscribe;
         $subscribeTree(ViewKeys.STRUCTURE_TREE_READY, _onStructureTreeReady);
@@ -1116,7 +1137,9 @@ public class Controller {
 
     private function _readFromPersistence():void {
         // Apply last used theme
-        currColorMatrix = UiColorizationThemes[_persistenceEngine.persistence(PersistenceKeys.THEME)];
+        var lastThemeName : String = _persistenceEngine.persistence(PersistenceKeys.THEME);
+        currColorMatrix = UiColorizationThemes[lastThemeName];
+        GLOBAL_PIPE.send(ViewKeys.COLORIZATION_UPDATED, lastThemeName);
         applyCurrentColorization();
 
         // Apply last section toggle states
@@ -1191,7 +1214,7 @@ public class Controller {
                     GLOBAL_PIPE.send(ViewKeys.EXTERNALLY_UNHIGHLIGHTED_SCORE_ITEM, clusterId);
                     break;
                 case OperationTypes.TYPE_CLOSE_SCORE:
-                    Time.delay (1, _onStopRequested);
+                    Time.delay(1, _onStopRequested);
                     break;
             }
         }
@@ -1330,7 +1353,7 @@ public class Controller {
         var ui:RenderProgressUI = new RenderProgressUI;
         ui.pipe = RENDER_PIPE;
         registerColorizableUi(ui);
-        _renderWindowUid = windowsManager.createWindow(ui, WindowStyle.PROMPT, true);
+        _renderWindowUid = windowsManager.createWindow(ui, WindowStyle.PROMPT | WindowStyle.NATIVE, true);
 
         // Executed when user closes the render window by its "x" button, thus cancelling the process. Mirrors
         // the effects of the user having pressed the "Abort" button inside the render window.
@@ -1632,7 +1655,7 @@ public class Controller {
                     (wContent as TranspositionUi).initialData = _transpositionUserConfig;
                 }
                 registerColorizableUi(wContent);
-                _transpositionWindowUid = _windowsManager.createWindow(wContent, WindowStyle.HEADER | WindowStyle.TOP, true, _mainWindowUid);
+                _transpositionWindowUid = _windowsManager.createWindow(wContent, WindowStyle.HEADER | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
                 var wTitle:String = Strings.sprintf(StaticTokens.TRANSPOSE_WINDOW_TITLE, selectionType);
                 _windowsManager.updateWindowTitle(_transpositionWindowUid, wTitle);
                 var wSize:Rectangle = Sizes.MIN_TRANSPOSITION_WINDOW_BOUNDS;
@@ -1658,7 +1681,7 @@ public class Controller {
                     (wContent as ScaleIntervalsUI).initialData = _scaleIntervalsUserConfig;
                 }
                 registerColorizableUi(wContent);
-                _scaleIntervalsWindowUid = _windowsManager.createWindow(wContent, WindowStyle.HEADER | WindowStyle.TOP, true, _mainWindowUid);
+                _scaleIntervalsWindowUid = _windowsManager.createWindow(wContent, WindowStyle.HEADER | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
                 var wTitle:String = Strings.sprintf(StaticTokens.SCALE_INTERVALS_WINDOW_TITLE, selectionType);
                 _windowsManager.updateWindowTitle(_scaleIntervalsWindowUid, wTitle);
                 var wSize:Rectangle = Sizes.MIN_SCALE_INTERVALS_WINDOW_BOUNDS;
@@ -1908,7 +1931,7 @@ public class Controller {
             windowContent.fileFilter = fileTypesAllowed;
             // Create and configure the window that will display the component
             registerColorizableUi(windowContent);
-            _fileBrowserWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP, true, _mainWindowUid);
+            _fileBrowserWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
             _windowsManager.updateWindowTitle(_fileBrowserWindowUid, windowTitle);
             _windowsManager.updateWindowBounds(_fileBrowserWindowUid, Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS, false);
             _windowsManager.updateWindowMinSize(_fileBrowserWindowUid, Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS.width, Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS.height, true);
@@ -1931,7 +1954,7 @@ public class Controller {
      * @return
      */
     private static function _openPatreonUrl():void {
-        navigateToURL(new URLRequest(URLs.PATREON_HOME_PAGE));
+        navigateToURL(new URLRequest(URLs.SPONSORS_HOME_PAGE));
     }
 
     /**
@@ -2235,7 +2258,7 @@ public class Controller {
     /**
      * Shows info about a given project in the application title and tab bar.
      */
-    private function _updateProjectInfo(...args):void {
+    private function _updateProjectInfo(...ignore):void {
         var titleData:Array = [Descriptor.getAppSignature(), Descriptor.getAppVersion(true)];
         var currFileName:String = StaticTokens.NEW_FILE;
         if (_model.currentProject != null) {
@@ -2273,25 +2296,142 @@ public class Controller {
     }
 
     /**
-     * TODO: document
-     * @return
+     * Analyzes a ProjectData instance and returns an Object with contextual information, such as:
+     *  {
+     *      'isEmpty' : Boolean,
+     *      'isFirstChild' : Boolean,
+     *      'isFirstChildOfFirstParent' : Boolean,
+     *      'isLastChild' : Boolean,
+     *      'isLastChildOfLastParent' : Boolean,
+     *      'isLastAvailableChild' : Boolean
+     *  }
+     */
+    private function _getElementContext(element:ProjectData):Object {
+        var context : Object = {
+            'isEmpty': false,
+            'isFirstChild': false,
+            'isFirstChildOfFirstParent': false,
+            'isLastChild': false,
+            'isLastChildOfLastParent': false,
+            'isLastAvailableChild': false
+        };
+        if (!element) {
+            return context;
+        }
+        var elementParent:ProjectData = ProjectData(element.dataParent);
+        var elementIndex:int = element.index;
+        var isEmpty:Boolean = (element.numDataChildren == 0);
+        var isFirstChild:Boolean = (elementIndex == 0);
+        var isFirstChildOfFirstParent:Boolean = _nudgeLock ? false : _isAbsoluteFirstOfType(element);
+        var isLastChild:Boolean = (elementParent != null && elementIndex == elementParent.numDataChildren - 1);
+        var isLastChildOfLastParent:Boolean = _nudgeLock ? false : _isAbsoluteLastOfType(element);
+        var isLastAvailableChild:Boolean = (elementParent != null && elementParent.numDataChildren == 1);
+        context = {
+            'isEmpty': isEmpty,
+            'isFirstChild': isFirstChild,
+            'isFirstChildOfFirstParent': isFirstChildOfFirstParent,
+            'isLastChild': isLastChild,
+            'isLastChildOfLastParent': isLastChildOfLastParent,
+            'isLastAvailableChild': isLastAvailableChild
+        };
+        return context;
+    }
+
+    /**
+     * Returns `true` if provided `element` is the first element of its type, which implies being the first child of
+     * its parent, and that parent being the first child of its parent, and so on, recursively, until the top-most node
+     * in the hierarchy is reached. Returns `false` otherwise. Note that quirks are employed in specific situations, such
+     * as Clusters (we will disregard/treat transparently their parent Voice), Measures (same for their parent Part) or
+     * Sections (same for their parent Score).
+     *
+     * @param   element
+     *          Element to test. MUST BE NOT NULL.
+     *
+     * @return  True if element is the absolute first element of its type in the hierarchy.
+     */
+    private function _isAbsoluteFirstOfType(element:ProjectData):Boolean {
+        var elementIndex:int = element.index;
+
+        // Handle top of hierarchy case.
+        if (elementIndex == -1) {
+            return true;
+        }
+        var elementParent:ProjectData = ProjectData(element.dataParent);
+        var isFirstChild:Boolean = (elementIndex == 0);
+
+        // Optimization (don't check upper hierarchy if element itself fails condition)
+        if (!isFirstChild) {
+            return false;
+        }
+
+        if (!_nudgeLock && elementParent) {
+            if (ModelUtils.isCluster(element) || ModelUtils.isMeasure(element) || ModelUtils.isSection(element)) {
+                elementParent = (elementParent.dataParent as ProjectData);
+            }
+        }
+        if (elementParent) {
+            return isFirstChild && _isAbsoluteFirstOfType(elementParent);
+        }
+        return isFirstChild;
+    }
+
+    /**
+     * Returns `true` if provided `element` is the last element of its type, which implies being the last child of
+     * its parent, and that parent being the last child of its parent, and so on, recursively, until the top-most node
+     * in the hierarchy is reached. Returns `false` otherwise. Note that quirks are employed in specific situations, such
+     * as Clusters (we will disregard/treat transparently their parent Voice), Measures (same for their parent Part) or
+     * Sections (same for their parent Score).
+     *
+     * @param   element
+     *          Element to test. MUST BE NOT NULL.
+     *
+     * @return  True if element is the absolute last element of its type in the hierarchy.
+     */
+    private function _isAbsoluteLastOfType(element:ProjectData):Boolean {
+        var elementIndex:int = element.index;
+
+        // Handle top of hierarchy case.
+        if (elementIndex == -1) {
+            return true;
+        }
+        var elementParent:ProjectData = ProjectData(element.dataParent);
+        var isLastChild:Boolean = (elementParent != null && elementIndex == elementParent.numDataChildren - 1);
+
+        // Optimization (don't check upper hierarchy if element itself fails condition)
+        if (!isLastChild) {
+            return false;
+        }
+
+        if (!_nudgeLock && elementParent) {
+            if (ModelUtils.isCluster(element) || ModelUtils.isMeasure(element) || ModelUtils.isSection(element)) {
+                elementParent = (elementParent.dataParent as ProjectData);
+            }
+        }
+        if (elementParent) {
+            return isLastChild && _isAbsoluteLastOfType(elementParent);
+        }
+        return isLastChild;
+    }
+
+    /**
+     * Updates the enablement state of UI commands (toolbar or menu buttons) related to creating, deleting or nudging
+     * nodes. Does not return a value, instead, it sends information through the global pipe, under the
+     * "ViewKeys.STRUCTURE_OPERATIONS_STATUS" key.
      */
     private function _updateStructureOperationsStatus():void {
+
+        var selContext:Object = _getElementContext(lastSelection);
+        var isEmpty:Boolean = (selContext.isEmpty as Boolean);
         var canAddChild:Boolean = false;
         var canRemoveSelf:Boolean = false;
         var canNudgeSelfUp:Boolean = false;
         var canNudgeSelfDown:Boolean = false;
         var canCopySelfToClipboard:Boolean = false;
         var canCutSelfToClipboard:Boolean = false;
-        if (lastSelection != null) {
-            var selectionParent:ProjectData = ProjectData(lastSelection.dataParent);
-            var selIndex:int = lastSelection.index;
-            var isEmpty:Boolean = (lastSelection.numDataChildren == 0);
-            var isFirstChild:Boolean = (selIndex == 0);
-            var isLastChild:Boolean = (selectionParent != null && selIndex == selectionParent.numDataChildren - 1);
-            var isLastAvailableChild:Boolean = (selectionParent != null && selectionParent.numDataChildren == 1);
 
-            // Parts can be stacked (e.g., two Violins will count as on Part of "type" Violin).
+        if (lastSelection != null) {
+
+            // Parts can be stacked (e.g., two Violins will count as one Part of "type" Violin).
             // As it only makes sense to move the stack, as a whole, we disable the "nudge" functions for all
             // subsequent instruments in the stack (e.g., one will not be able to directly "nudge" up or down
             // the second Violin, but only by means of doing so to the first Violin).
@@ -2299,9 +2439,9 @@ public class Controller {
             if (ModelUtils.isPart(lastSelection)) {
                 isFirstPartInStack = lastSelection.getContent(DataFields.PART_ORDINAL_INDEX) == 0;
                 if (isFirstPartInStack) {
-                    if (!isLastAvailableChild) {
-                        isFirstChild = lastSelection.getContent(ViewKeys.FIRST_PART_IN_SCORE) as Boolean;
-                        isLastChild = lastSelection.getContent(ViewKeys.LAST_PART_IN_SCORE) as Boolean;
+                    if (!selContext.isLastAvailableChild) {
+                        selContext.isFirstChild = lastSelection.getContent(ViewKeys.FIRST_PART_IN_SCORE) as Boolean;
+                        selContext.isLastChild = lastSelection.getContent(ViewKeys.LAST_PART_IN_SCORE) as Boolean;
                     }
                 }
             }
@@ -2330,9 +2470,9 @@ public class Controller {
             }
             if (ModelUtils.isPart(lastSelection)) {
                 canAddChild = true;
-                canRemoveSelf = !isLastAvailableChild;
-                canNudgeSelfUp = isFirstPartInStack && !isFirstChild;
-                canNudgeSelfDown = isFirstPartInStack && !isLastChild;
+                canRemoveSelf = !selContext.isLastAvailableChild;
+                canNudgeSelfUp = isFirstPartInStack && !selContext.isFirstChild;
+                canNudgeSelfDown = isFirstPartInStack && !selContext.isLastChild;
                 canCopySelfToClipboard = canCutSelfToClipboard = false;
             }
             if (ModelUtils.isMeasure(lastSelection)) {
@@ -2340,9 +2480,9 @@ public class Controller {
                 // Voices cannot be manually added
                 canAddChild = false;
                 canRemoveSelf = true;
-                canNudgeSelfUp = !isFirstChild;
-                canNudgeSelfDown = !isLastChild;
-                canCopySelfToClipboard = canCutSelfToClipboard = !isEmpty;
+                canNudgeSelfUp = _nudgeLock ? !selContext.isFirstChild : !selContext.isFirstChildOfFirstParent;
+                canNudgeSelfDown = _nudgeLock ? !selContext.isLastChild : !selContext.isLastChildOfLastParent;
+                canCopySelfToClipboard = canCutSelfToClipboard = !selContext.isEmpty;
             }
             if (ModelUtils.isVoice(lastSelection)) {
 
@@ -2354,12 +2494,12 @@ public class Controller {
 
                 // Voices cannot be manually removed
                 canRemoveSelf = canCutSelfToClipboard = false;
-                canCopySelfToClipboard = !isEmpty;
+                canCopySelfToClipboard = !selContext.isEmpty;
             }
             if (ModelUtils.isCluster(lastSelection)) {
                 canAddChild = canRemoveSelf = canCopySelfToClipboard = canCutSelfToClipboard = true;
-                canNudgeSelfUp = !isFirstChild;
-                canNudgeSelfDown = !isLastChild;
+                canNudgeSelfUp = _nudgeLock ? !selContext.isFirstChild : !selContext.isFirstChildOfFirstParent;
+                canNudgeSelfDown = _nudgeLock ? !selContext.isLastChild : !selContext.isLastChildOfLastParent;
             }
             if (ModelUtils.isNote(lastSelection)) {
                 canAddChild = canCopySelfToClipboard = canCutSelfToClipboard = false;
@@ -2625,7 +2765,7 @@ public class Controller {
      * TODO: document
      * @return
      */
-    private function _onAppExitRequested(...args):void {
+    private function _onAppExitRequested(...ignore):void {
         _exitApplication();
     }
 
@@ -2694,6 +2834,14 @@ public class Controller {
                     _onStructureItemNudgeUp(lastSelection.route);
                 }
                 break;
+            case MenuCommandNames.NUDGE_LOCK_ON:
+                _nudgeLock = true;
+                _updateStructureOperationsStatus();
+                break;
+            case MenuCommandNames.NUDGE_LOCK_OFF:
+                _nudgeLock = false;
+                _updateStructureOperationsStatus();
+                break;
             case MenuCommandNames.UNDO:
                 _undo();
                 break;
@@ -2745,7 +2893,7 @@ public class Controller {
             case MenuCommandNames.OPEN_RELEASES_URL:
                 _openNewsUrl();
                 break;
-            case MenuCommandNames.OPEN_PATREON_URL:
+            case MenuCommandNames.BECOME_SPONSOR_URL:
                 _openPatreonUrl();
                 break;
         }
@@ -2755,7 +2903,7 @@ public class Controller {
      * TODO: document
      * @return
      */
-    private static function _onBarTypesRequested(...args):void {
+    private static function _onBarTypesRequested(...ignore):void {
         var barTypes:Array = BarTypes.getAllTypes();
         GLOBAL_PIPE.send(ViewKeys.BAR_TYPES_LIST, barTypes);
     }
@@ -2764,7 +2912,7 @@ public class Controller {
      * TODO: document
      * @return
      */
-    private static function _onBracketTypesRequested(...args):void {
+    private static function _onBracketTypesRequested(...ignore):void {
         var bracketTypes:Array = ConstantUtils.getAllValues(BracketTypes);
         GLOBAL_PIPE.send(ViewKeys.BRACKETS_TYPES_LIST, bracketTypes);
     }
@@ -2772,7 +2920,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private static function _onClefTypesRequested(...args):void {
+    private static function _onClefTypesRequested(...ignore):void {
         var clefTypes:Array = ClefTypes.getAllTypes();
         GLOBAL_PIPE.send(ViewKeys.CLEF_TYPES_LIST, clefTypes);
     }
@@ -2780,7 +2928,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private function _onCurrentPartNameRequested(...args):void {
+    private function _onCurrentPartNameRequested(...ignore):void {
         var name:String = null;
         if (_currentPart != null) {
             name = _currentPart.getContent(DataFields.PART_NAME) as String;
@@ -2828,7 +2976,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private static function _onDurationsListRequested(...args):void {
+    private static function _onDurationsListRequested(...ignore):void {
         var list:Array = [];
         var keys:Array = ConstantUtils.getAllNames(DurationFractions);
         for (var i:int = 0; i < keys.length; i++) {
@@ -2880,7 +3028,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private function _onFileBrowserXClose(...args):void {
+    private function _onFileBrowserXClose(...ignore):void {
         _closeFileBrowserWindow();
         _fileSelectedCallback = null;
         _fileSelectedCallbackContext = null;
@@ -2932,7 +3080,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private static function _onMaxVoicesPerStaffRequested(...args):void {
+    private static function _onMaxVoicesPerStaffRequested(...ignore):void {
         GLOBAL_PIPE.send(ViewKeys.MAX_VOICES_PER_STAFF_NUMBER, Voices.NUM_VOICES_PER_STAFF);
     }
 
@@ -3096,7 +3244,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private static function _onPartNamesRequested(...args):void {
+    private static function _onPartNamesRequested(...ignore):void {
         var partNames:Array = PartNames.getAllPartNames();
         GLOBAL_PIPE.send(ViewKeys.PART_NAMES_LIST, partNames);
     }
@@ -3104,7 +3252,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private function _onPartStaffsNumberRequested(...args):void {
+    private function _onPartStaffsNumberRequested(...ignore):void {
         var selection:ProjectData = _getSelection();
         if (selection != null) {
             if (ModelUtils.isVoice(selection)) {
@@ -3193,7 +3341,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private function _onPickupWindowClosed(...args):void {
+    private function _onPickupWindowClosed(...ignore):void {
         if (_windowsManager.isWindowAvailable(_pickupWindowUid)) {
             _windowsManager.stopObservingWindowActivity(_pickupWindowUid, WindowActivity.BEFORE_DESTROY, _onPickupWindowClosing);
             GLOBAL_PIPE.unsubscribe(ViewKeys.PICKUP_WINDOW_CLOSE, _onPickupWindowClosed);
@@ -3204,7 +3352,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private static function _onPickupWindowClosing(...args):Boolean {
+    private static function _onPickupWindowClosing(...ignore):Boolean {
         GLOBAL_PIPE.send(ViewKeys.PICKUP_WINDOW_CLOSING);
         return false;
     }
@@ -3212,7 +3360,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private function _onPickupWindowForceCloseRequested(...args):void {
+    private function _onPickupWindowForceCloseRequested(...ignore):void {
         _onPickupWindowClosed();
         GLOBAL_PIPE.send(ViewKeys.PICKUP_WINDOW_CLOSE);
     }
@@ -3234,10 +3382,10 @@ public class Controller {
         // way to order it from anywhere else, except from "generator configuration".
         if (_windowsManager.isWindowAvailable(genCfgWindowUid)) {
             registerColorizableUi(windowContent);
-            _pickupWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP, true, genCfgWindowUid);
+            _pickupWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, genCfgWindowUid);
         } else {
             registerColorizableUi(windowContent);
-            _pickupWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP, true, _mainWindowUid);
+            _pickupWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
         }
         _windowsManager.updateWindowTitle(_pickupWindowUid, windowTitle);
         _windowsManager.updateWindowBounds(_pickupWindowUid, Sizes.MIN_PICKUP_WINDOW_BOUNDS, false);
@@ -3251,9 +3399,8 @@ public class Controller {
 
     /**
      * Responds to a global playback requests.
-     * @param args
      */
-    private function _onPlaybackRequested(...args):void {
+    private function _onPlaybackRequested(...ignore):void {
         _streamingRoutine = _doOnlineStreaming;
 
         // If score has changed, or was never played back, re-generate audio and play it back.
@@ -3546,7 +3693,7 @@ public class Controller {
     /**
      * Triggered when an item in the pop-up event gets triggered
      */
-    private function _onPopUpMenuClick(event:MenuEvent):void {
+    private function _onPopUpMenuClick(event:Object):void {
         var item:Object = event.item as Object;
         if (item) {
             var commandName:String = Strings.trim(item.commandName);
@@ -3559,7 +3706,7 @@ public class Controller {
     /**
      * Triggered when the score is scrolled in the view by either mouse or keyboard.
      */
-    private function _onScoreScrolled(...args):void {
+    private function _onScoreScrolled(...ignore):void {
 
         // Hide the pop-up menu (if any). We could as well readjust its position, but it's not customary to do so.
         if (_popUpMenu) {
@@ -3570,7 +3717,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private function _onScoreRendererAvailable(...args):void {
+    private function _onScoreRendererAvailable(...ignore):void {
         _scoreRendererReady = true;
         if (_bufferedABC != null) {
             _sendScoreABC(_bufferedABC);
@@ -3630,7 +3777,7 @@ public class Controller {
     /**
      * Executed when the "Stop" button in the main toolbar is clicked by the user, or when score playback reaches end.
      */
-    private function _onStopRequested(...args):void {
+    private function _onStopRequested(...ignore):void {
         if (_audioStreamer) {
             _synthProxy.stopStreamedPlayback(true);
             _audioStreamer.cancelStreaming();
@@ -3691,7 +3838,7 @@ public class Controller {
             _stopMidi();
 
             // Actually nudge the item
-            var replacement:ProjectData = queryEngine.nudgeElementDown(ProjectData(movable));
+            var replacement:ProjectData = queryEngine.nudgeElementDown(ProjectData(movable), _nudgeLock);
             lastSelection = null;
             updateAllViews();
             setSelection(replacement);
@@ -3717,7 +3864,7 @@ public class Controller {
             _stopMidi();
 
             // Actually nudge the item
-            var replacement:ProjectData = queryEngine.nudgeElementUp(ProjectData(movable));
+            var replacement:ProjectData = queryEngine.nudgeElementUp(ProjectData(movable), _nudgeLock);
             lastSelection = null;
             updateAllViews();
             setSelection(replacement);
@@ -3800,7 +3947,7 @@ public class Controller {
     /**
      * TODO: document
      */
-    private function _onStructureTreeReady(...args):void {
+    private function _onStructureTreeReady(...ignore):void {
         _structureTreeReady = true;
         if (_bufferedTreeData != null) {
             _sendTreeData(_bufferedTreeData);
@@ -3893,7 +4040,7 @@ public class Controller {
                                 .dataParent as ProjectData;
 
                         // Starting with v.1.5 we don't allow same-voice unison anymore
-                        if (!queryEngine.causesPitchColision(committedData, parentCluster)) {
+                        if (!queryEngine.causesPitchCollision(committedData, parentCluster)) {
                             var notePitch:int = MusicUtils.noteToMidiNumber(committedData);
                             queryEngine.lastEnteredPitch = notePitch;
                             queryEngine.usingNotesRatherThanRests = true;

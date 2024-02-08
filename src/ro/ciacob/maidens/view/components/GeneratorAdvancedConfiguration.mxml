@@ -65,7 +65,6 @@
                 }
                 _animatedParameters = _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETERS];
                 _animatedParameterUids = _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETER_UIDS];
-                delete _uiBlueprint [GeneratorKeys.PARAMETERS];
                 delete _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETERS];
                 delete _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETER_UIDS];
                 _uiBlueprintChanged = true;
