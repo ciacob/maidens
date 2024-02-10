@@ -16,6 +16,7 @@
 
     <fx:Script>
         <![CDATA[
+        import com.adobe.errors.IllegalStateError;
         import com.greensock.TweenMax;
 
         import eu.claudius.iacob.EmbeddedFontsHelper;
@@ -89,7 +90,7 @@
 
             // Look up for the splash screen finishing drawing. We will start loading the rest of the application once
             // it does.
-            addEventListener(FlexEvent.UPDATE_COMPLETE, _onSplashScreenDone);
+            addEventListener(FlexEvent.UPDATE_COMPLETE, _onSplashScreenDrawn);
 
             // Create the content for the main window
             _rootContent = new MainUi;
@@ -118,7 +119,7 @@
          * if there is one.
          * @param event
          */
-        private function _onMainWindowBlocked (event : WindowsManagerEvent) : void {
+        private function _onMainWindowBlocked(event:WindowsManagerEvent):void {
             if (_globalMenu) {
                 _globalMenu.block();
             }
@@ -129,7 +130,7 @@
          * "blocked" it. Re-enables the global menu, if there is one.
          * @param event
          */
-        private function _onMainWindowUnblocked (event : WindowsManagerEvent) : void {
+        private function _onMainWindowUnblocked(event:WindowsManagerEvent):void {
             if (_globalMenu) {
                 _globalMenu.unblock();
             }
@@ -147,27 +148,23 @@
         /**
          * Executed after the splash screen has been successfully drawn.
          */
-        private function _onSplashScreenDone(event:FlexEvent):void {
-            removeEventListener(FlexEvent.UPDATE_COMPLETE, _onSplashScreenDone);
-            _screenBounds = ScreenUtils.getAvailableScreenBoundsFor(this, true);
+        private function _onSplashScreenDrawn(event:FlexEvent):void {
+            removeEventListener(FlexEvent.UPDATE_COMPLETE, _onSplashScreenDrawn);
+            var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
+            if (mainScreenInfo) {
 
-            // Center the splash screen window
-            var winX:Number = _screenBounds.x + (_screenBounds.width - nativeWindow.width) * 0.5;
-            var winY:Number = _screenBounds.y + (_screenBounds.height - nativeWindow.height) * 0.5;
-            nativeWindow.x = winX;
-            nativeWindow.y = winY;
+                // Center the splash screen window
+                _splashNativeWindow.x = mainScreenInfo.x + (mainScreenInfo.width - _splashNativeWindow.width) * 0.5;
+                _splashNativeWindow.y = mainScreenInfo.y + (mainScreenInfo.height - _splashNativeWindow.height) * 0.5;
 
-            // Fit and center main window to the main screen. The window itself is still hidden at this stage.
-            Time.delay(2, function ():void {
+                // Fit main window to the main screen
                 var appBounds:Rectangle = Sizes.FULL_HD_THRESHOLD_BOUNDS.clone();
-                if (appBounds.width > _screenBounds.width) {
-                    appBounds.width = _screenBounds.width;
+                if (appBounds.width > mainScreenInfo.width) {
+                    appBounds.width = mainScreenInfo.width;
                 }
-                if (appBounds.height > _screenBounds.height) {
-                    appBounds.height = _screenBounds.height;
+                if (appBounds.height > mainScreenInfo.height) {
+                    appBounds.height = mainScreenInfo.height;
                 }
-                appBounds.x = (_screenBounds.x + (_screenBounds.width - appBounds.width) * 0.5);
-                appBounds.y = (_screenBounds.y + (_screenBounds.height - appBounds.height) * 0.5);
                 _wManager.updateWindowBounds(_mainWinUid, appBounds);
                 _setMainWindowTitle();
 
@@ -175,12 +172,16 @@
                 new Controller(DisplayObjectContainer(_rootContent), _wManager, _mainWinUid);
 
                 // Show the main window; its content will be revealed with a "fade-in" animation.
-                _rootContent.alpha = 0;
-                _wManager.showWindow(_mainWinUid);
                 Time.delay(2, function ():void {
-                    TweenMax.to(_rootContent, 0.3, {alpha: 1});
+                    _wManager.showWindow(_mainWinUid);
+
+                    // Center the main window to the main screen (only relevant if the main screen resolution is larger than
+                    // 1920 x 1080, aka "full HD" resolution.
+                    _wManager.alignWindowToScreen(_mainWinUid, mainScreenInfo.uid, 0.5, 0.5);
                 });
-            });
+            } else {
+                throw (new IllegalStateError("Error: `mainScreenInfo` was empty. We cannot continue."));
+            }
         }
 
         /**
