@@ -17,7 +17,6 @@
     <fx:Script>
         <![CDATA[
         import com.adobe.errors.IllegalStateError;
-        import com.greensock.TweenMax;
 
         import eu.claudius.iacob.EmbeddedFontsHelper;
         import eu.claudius.iacob.maidens.Colors;
@@ -54,7 +53,6 @@
         private var _mainWinUid:String;
         private var _rootContent:Object
         private var _wManager:WindowsManager;
-        private var _screenBounds:Rectangle;
         private var _globalMenu:GlobalMenu;
         private var _splashNativeWindow:NativeWindow;
 
@@ -207,7 +205,7 @@
          * via either mouse or keyboard.
          * @param event
          */
-        private function _onGlobalItemSelected(event:GlobalMenuEvent):void {
+        private static function _onGlobalItemSelected(event:GlobalMenuEvent):void {
             var cmdTokens:Array = event.cmdName.split(CommonStrings.BROKEN_VERTICAL_BAR);
             var commandName:String = cmdTokens[0];
             var commandArgs:Array = cmdTokens[1] ? cmdTokens[1].split(CommonStrings.COMMA) : [];
