@@ -576,9 +576,13 @@
                 // Hide or show the editor, based on whether there are envelopes to be edited or not
                 var isEditorNeeded:Boolean = !Objects.isEmpty(_animatedParameters);
                 if (isEditorNeeded) {
-                    _showEnvelopeEditor();
+                    if (!_envelopeEditorVisible) {
+                        _showEnvelopeEditor();
+                    }
                 } else {
-                    _hideEnvelopeEditor(true);
+                    if (_envelopeEditorVisible) {
+                        _hideEnvelopeEditor(true);
+                    }
                 }
             }
         }
@@ -590,30 +594,33 @@
             var windowUid:String = _windowBehavior.windowUid;
             var winManager:IWindowsManager = _windowBehavior.manager;
             if (winManager.isWindowAvailable(windowUid)) {
-                var currWinBounds:Rectangle = winManager.retrieveWindowBounds(windowUid);
-                if (currWinBounds.width < EXPANDED_PREFERRED_WIDTH) {
-                    var screenBounds:Rectangle = ScreenUtils.getAvailableScreenBoundsFor(this, true, currWinBounds);
-                    if (screenBounds) {
-                        var newX:Number = (screenBounds.x + (screenBounds.width - EXPANDED_PREFERRED_WIDTH) * 0.5);
-                        var newWinBounds:Rectangle = new Rectangle(newX, currWinBounds.y, EXPANDED_PREFERRED_WIDTH,
-                                currWinBounds.height);
-                        winManager.updateWindowBounds(windowUid, newWinBounds);
-                        winManager.updateWindowMinSize(windowUid, EXPANDED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
-                    }
+                var allScreensInfo:Array = ScreenUtils.getScreensInfo();
 
-                    // Remove the resize limit (in fact, set it to the largest width and height we can find among all screens)
-                    var largestScreenW:Number = 0;
-                    var largestScreenH:Number = 0;
-                    Screen.screens.forEach(function (screen:Screen, i:int, a:Array):void {
-                        var testBounds:Rectangle = screen.bounds;
-                        if (testBounds.width > largestScreenH) {
-                            largestScreenW = testBounds.width;
-                        }
-                        if (testBounds.height > largestScreenH) {
-                            largestScreenH = testBounds.height;
-                        }
-                    });
-                    winManager.updateWindowMaxSize(windowUid, largestScreenW, largestScreenH);
+                // Remove the resize limit (in fact, set it to the largest width and height we can find among all screens)
+                var largestScreenW:Number = 0;
+                var largestScreenH:Number = 0;
+                allScreensInfo.forEach(function (screenInfo:Object, ...ignore):void {
+                    if (screenInfo.width > largestScreenW) {
+                        largestScreenW = screenInfo.width;
+                    }
+                    if (screenInfo.height > largestScreenH) {
+                        largestScreenH = screenInfo.height;
+                    }
+                });
+                winManager.updateWindowMaxSize(windowUid, largestScreenW, largestScreenH);
+
+                // Impose new minimum size constraints
+                winManager.updateWindowMinSize(windowUid, EXPANDED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
+
+                // Update the window size and realign
+                var mainScreenInfo:Object = allScreensInfo[0];
+                if (mainScreenInfo) {
+                    var cfgWinBounds:Rectangle = winManager.retrieveWindowBounds(windowUid);
+                    if (cfgWinBounds.width < EXPANDED_PREFERRED_WIDTH) {
+                        cfgWinBounds.width = EXPANDED_PREFERRED_WIDTH;
+                    }
+                    winManager.updateWindowBounds(windowUid, cfgWinBounds, true);
+                    winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
                 }
             }
             _envelopeEditorVisible = true;
@@ -628,14 +635,14 @@
             if (winManager.isWindowAvailable(windowUid)) {
                 winManager.updateWindowMinSize(windowUid, COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
                 if (shrinkWindow) {
-                    var currentWindowBounds:Rectangle = winManager.retrieveWindowBounds(windowUid);
-                    var screenBounds:Rectangle = ScreenUtils.getAvailableScreenBoundsFor(this, true, currentWindowBounds);
-                    if (screenBounds) {
-                        var newX:Number = (screenBounds.x + (screenBounds.width - COLLAPSED_PREFERRED_WIDTH) * 0.5);
-                        var newWindowBounds:Rectangle = new Rectangle(newX, currentWindowBounds.y,
-                                COLLAPSED_PREFERRED_WIDTH, currentWindowBounds.height);
-                        winManager.updateWindowBounds(windowUid, newWindowBounds);
-                        winManager.updateWindowMaxSize(windowUid, COLLAPSED_PREFERRED_WIDTH, screenBounds.height);
+                    var cfgWinBounds:Rectangle = winManager.retrieveWindowBounds(windowUid);
+                    cfgWinBounds.width = COLLAPSED_PREFERRED_WIDTH;
+                    cfgWinBounds.height = PREFERRED_HEIGHT;
+                    winManager.updateWindowBounds(windowUid, cfgWinBounds);
+                    var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
+                    if (mainScreenInfo) {
+                        winManager.updateWindowMaxSize(windowUid, COLLAPSED_PREFERRED_WIDTH, mainScreenInfo.height);
+                        winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
                     }
                 }
             }
@@ -753,18 +760,14 @@
             var winManager:IWindowsManager = _windowBehavior.manager;
             var windowUid:String = _windowBehavior.windowUid;
             if (winManager.isWindowAvailable(windowUid)) {
-                var currentWindowBounds:Rectangle = winManager.retrieveWindowBounds(windowUid);
-                var newWindowBounds:Rectangle = new Rectangle(currentWindowBounds.x, currentWindowBounds.y,
-                        COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
-                var screenBounds:Rectangle = ScreenUtils.getAvailableScreenBoundsFor(this, true, newWindowBounds);
-                if (screenBounds) {
-                    newWindowBounds.x = (screenBounds.x + (screenBounds.width - newWindowBounds.width) * 0.5);
-                    winManager.updateWindowBounds(windowUid, newWindowBounds);
-                    winManager.updateWindowMinSize(windowUid, COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
-
-                    // Unless the envelope editor is open, we don't want the user being able to resize the WIDTH of the window,
-                    // as it's just empty, unoccupied UI space, and that would look unprofessional.
-                    winManager.updateWindowMaxSize(windowUid, COLLAPSED_PREFERRED_WIDTH, screenBounds.height);
+                winManager.updateWindowBounds(windowUid, new Rectangle(0, 0, COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT));
+                winManager.updateWindowMinSize(windowUid, COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
+                var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
+                if (mainScreenInfo) {
+                    // Unless the envelope editor is open, we don't want the user being able to resize
+                    // the WIDTH of the window.
+                    winManager.updateWindowMaxSize(windowUid, COLLAPSED_PREFERRED_WIDTH, mainScreenInfo.height);
+                    winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
                 }
             }
         }
@@ -1009,14 +1012,14 @@
             <ui:PresetManagerUi id="presetManager"
                                 width="100%"
                                 minHeight="110"
-                                visible="{_formReady}" />
+                                visible="{_formReady}"/>
 
 
             <!-- Parameters list label -->
             <mx:Label id="parametersListLabel"
                       text="Parameters"
                       fontWeight="bold"
-                      visible="{_formReady}" />
+                      visible="{_formReady}"/>
 
             <!-- Negative spacer to "consume" the vertical space
                  between the label and the list -->
