@@ -591,38 +591,6 @@
          * Displays the Envelope Editor, also enlarging the window to accommodate the new UI.
          */
         private function _showEnvelopeEditor():void {
-            var windowUid:String = _windowBehavior.windowUid;
-            var winManager:IWindowsManager = _windowBehavior.manager;
-            if (winManager.isWindowAvailable(windowUid)) {
-                var allScreensInfo:Array = ScreenUtils.getScreensInfo();
-
-                // Remove the resize limit (in fact, set it to the largest width and height we can find among all screens)
-                var largestScreenW:Number = 0;
-                var largestScreenH:Number = 0;
-                allScreensInfo.forEach(function (screenInfo:Object, ...ignore):void {
-                    if (screenInfo.width > largestScreenW) {
-                        largestScreenW = screenInfo.width;
-                    }
-                    if (screenInfo.height > largestScreenH) {
-                        largestScreenH = screenInfo.height;
-                    }
-                });
-                winManager.updateWindowMaxSize(windowUid, largestScreenW, largestScreenH);
-
-                // Impose new minimum size constraints
-                winManager.updateWindowMinSize(windowUid, EXPANDED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
-
-                // Update the window size and realign
-                var mainScreenInfo:Object = allScreensInfo[0];
-                if (mainScreenInfo) {
-                    var cfgWinBounds:Rectangle = winManager.retrieveWindowBounds(windowUid);
-                    if (cfgWinBounds.width < EXPANDED_PREFERRED_WIDTH) {
-                        cfgWinBounds.width = EXPANDED_PREFERRED_WIDTH;
-                    }
-                    winManager.updateWindowBounds(windowUid, cfgWinBounds, true);
-                    winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
-                }
-            }
             _envelopeEditorVisible = true;
         }
 
@@ -630,22 +598,6 @@
          * Hides the Envelope Editor, optionally shrinking the window to reclaim screen real estate.
          */
         private function _hideEnvelopeEditor(shrinkWindow:Boolean = false):void {
-            var winManager:IWindowsManager = _windowBehavior.manager;
-            var windowUid:String = _windowBehavior.windowUid;
-            if (winManager.isWindowAvailable(windowUid)) {
-                winManager.updateWindowMinSize(windowUid, COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
-                if (shrinkWindow) {
-                    var cfgWinBounds:Rectangle = winManager.retrieveWindowBounds(windowUid);
-                    cfgWinBounds.width = COLLAPSED_PREFERRED_WIDTH;
-                    cfgWinBounds.height = PREFERRED_HEIGHT;
-                    winManager.updateWindowBounds(windowUid, cfgWinBounds);
-                    var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
-                    if (mainScreenInfo) {
-                        winManager.updateWindowMaxSize(windowUid, COLLAPSED_PREFERRED_WIDTH, mainScreenInfo.height);
-                        winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
-                    }
-                }
-            }
             _envelopeEditorVisible = false;
         }
 
@@ -760,13 +712,9 @@
             var winManager:IWindowsManager = _windowBehavior.manager;
             var windowUid:String = _windowBehavior.windowUid;
             if (winManager.isWindowAvailable(windowUid)) {
-                winManager.updateWindowBounds(windowUid, new Rectangle(0, 0, COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT));
-                winManager.updateWindowMinSize(windowUid, COLLAPSED_PREFERRED_WIDTH, PREFERRED_HEIGHT);
+                winManager.updateWindowBounds(windowUid, new Rectangle(0, 0, EXPANDED_PREFERRED_WIDTH, PREFERRED_HEIGHT));
                 var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
                 if (mainScreenInfo) {
-                    // Unless the envelope editor is open, we don't want the user being able to resize
-                    // the WIDTH of the window.
-                    winManager.updateWindowMaxSize(windowUid, COLLAPSED_PREFERRED_WIDTH, mainScreenInfo.height);
                     winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
                 }
             }
