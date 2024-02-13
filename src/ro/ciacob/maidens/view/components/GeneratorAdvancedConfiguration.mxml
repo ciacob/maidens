@@ -18,6 +18,8 @@
 
     <fx:Script>
 		<![CDATA[
+        import com.greensock.TweenMax;
+
         import eu.claudius.iacob.desktop.presetmanager.lib.PresetEvent;
         import eu.claudius.iacob.maidens.Colors;
         import eu.claudius.iacob.maidens.Sizes;
@@ -590,6 +592,7 @@
          */
         private function _showEnvelopeEditor():void {
             _envelopeEditorVisible = true;
+            TweenMax.fromTo (parametersEditor, 1, {alpha : 0}, {alpha : 1});
         }
 
         /**
@@ -915,7 +918,7 @@
 
 
     <!-- BODY -->
-    <s:Group
+    <s:Group id="bodyContainer"
             x="0"
             y="0"
             width="{width}"
@@ -931,7 +934,7 @@
 
         <!-- Left Pane. Presets manager and list of parameters -->
         <s:Group height="100%"
-                width="100%">
+                width="{ _envelopeEditorVisible? (bodyContainer.width - SPACE * 4) * 0.5 : bodyContainer.width - SPACE * 2 }">
             <s:layout>
                 <s:VerticalLayout gap="{2 * SPACE}"
                                   horizontalAlign="left"
@@ -939,10 +942,9 @@
                                   paddingRight="{SPACE}"/>
             </s:layout>
 
-            <!-- Preset Component -->
+            <!-- Preset manager -->
             <ui:PresetManagerUi id="presetManager"
-                                width="100%"
-                                maxHeight="{COLUMN_WIDTH}"
+                                width="{(bodyContainer.width - SPACE * 4) * 0.5}"
                                 minHeight="110"
                                 visible="{_formReady}" />
 
@@ -960,13 +962,14 @@
                      height="{rule.y - rule.height - presetManager.height - parametersListLabel.height - SPACE * 5}"
                      visible="{_formReady}">
 
-                <s:Scroller width="100%" height="100%" horizontalScrollPolicy="off" measuredSizeIncludesScrollBars="true">
+                <s:Scroller width="100%" height="100%" horizontalScrollPolicy="off"
+                            measuredSizeIncludesScrollBars="true">
                     <s:Group id="configurationForm">
                         <s:layout>
                             <s:TileLayout
-                                    paddingBottom="{SPACE}"
                                     paddingTop="{SPACE}"
                                     paddingRight="{SPACE}"
+                                    paddingBottom="{SPACE}"
                                     horizontalGap="{_envelopeEditorVisible? SPACE * 2.5 : SPACE * 5}"
                                     verticalGap="{SPACE * 5}"
                                     columnWidth="{COLUMN_WIDTH * 0.6}"
@@ -975,16 +978,14 @@
                         </s:layout>
                     </s:Group>
                 </s:Scroller>
-            </s:Group>
-
+            </s:Group> <!-- End of parameters list -->
         </s:Group> <!-- End of left pane -->
 
         <!-- Right Pane. Parameters graphical editor -->
         <components:ParametersGraphicalEditor
                 id="parametersEditor"
-                width="100%"
+                width="{ (bodyContainer.width - SPACE * 4) * 0.5 }"
                 height="100%"
-                minWidth="{COLUMN_WIDTH}"
                 visible="{_envelopeEditorVisible}"
                 includeInLayout="{_envelopeEditorVisible}"
                 parameterChange="_onParameterChange(event)"
