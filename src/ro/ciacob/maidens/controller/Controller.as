@@ -275,7 +275,7 @@ public class Controller {
     private var _audioFileUtils:FileUtils;
 
     /**
-     * Bidimensional Array containing Arrays of low-level synth instructions that, when carried out, will result in
+     * Bi-dimensional Array containing Arrays of low-level synth instructions that, when carried out, will result in
      * an audio rendering ready to be played back;
      */
     private var _tracksInfo:Array;
@@ -772,6 +772,9 @@ public class Controller {
      *
      * @param    targetRoute
      *           The route of a "real" measure in the stack to update.
+     *
+     * @param    updateViews
+     *           Optional, whether also to update views as part of the commit. Default `true`.
      */
     private function _commitMeasureData(measureData:ProjectData, targetRoute:String, updateViews:Boolean = true):void {
 
@@ -1953,7 +1956,7 @@ public class Controller {
      * TODO: document
      * @return
      */
-    private static function _openPatreonUrl():void {
+    private static function _openSponsorsPage():void {
         navigateToURL(new URLRequest(URLs.SPONSORS_HOME_PAGE));
     }
 
@@ -2656,7 +2659,7 @@ public class Controller {
     /**
      * Used to remove any highlights that might be left in the score by prematurely ending playback.
      */
-    private function _cleanupHighlights():void {
+    private static function _cleanupHighlights():void {
         GLOBAL_PIPE.send(ViewKeys.EXTERNALLY_REMOVED_HIGHLIGHTS);
     }
 
@@ -2894,7 +2897,7 @@ public class Controller {
                 _openNewsUrl();
                 break;
             case MenuCommandNames.BECOME_SPONSOR_URL:
-                _openPatreonUrl();
+                _openSponsorsPage();
                 break;
         }
     }
@@ -4044,8 +4047,8 @@ public class Controller {
                             var notePitch:int = MusicUtils.noteToMidiNumber(committedData);
                             queryEngine.lastEnteredPitch = notePitch;
                             queryEngine.usingNotesRatherThanRests = true;
-                            var commitedContent:Object = committedData.getContentMap();
-                            if (queryEngine.updateContentOf(targetRoute, commitedContent)) {
+                            var committedContent:Object = committedData.getContentMap();
+                            if (queryEngine.updateContentOf(targetRoute, committedContent)) {
                                 var newSelection:ProjectData = queryEngine.orderChildNotesByPitch(parentCluster, lastSelection);
                                 updateAllViews();
                                 if (newSelection) {

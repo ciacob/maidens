@@ -6,7 +6,7 @@ public final class ViewKeys {
     public static const APP_EXIT_BUTTON_CLICK:String = 'appExitButtonClick';
     public static const APP_FIT_BUTTON_CLICK:String = 'appFitButtonClick';
     public static const APP_MENU_TRIGGERED:String = 'appMenuTriggered';
-    public static const POPUP_SHOWN:String = 'appMenuShown';
+    public static const POPUP_SHOWN:String = 'popupShown';
     public static const POPUP_HIDDEN:String = 'appMenuHidden';
     public static const APP_MINIMIZE_BUTTON_CLICK:String = 'appMinimizeButtonClick';
     public static const ARE_DUPLICATES_PERMITTED:String = 'areDuplicatesPermitted';

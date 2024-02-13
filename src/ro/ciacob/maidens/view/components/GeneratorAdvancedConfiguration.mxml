@@ -238,7 +238,7 @@
         private static const SPACE:Number = 10;
         private static const PRESET_FILE_EXTENSION:String = 'harmonyPreset';
         private static const PRESETS_HOME_DIR:String = 'multiline-generator-preset';
-        private static const COLUMN_WIDTH:Number = (Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width - SPACE * 6);
+        private static const COLUMN_WIDTH:Number = (Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width - SPACE * 2);
         private static const PREFERRED_WIDTH:Number = 1080;
         private static const PREFERRED_HEIGHT:Number = Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.height;
 
@@ -712,8 +712,9 @@
             // Setup initial window bounds. The Envelope Editor is hidden by default
             var winManager:IWindowsManager = _windowBehavior.manager;
             var windowUid:String = _windowBehavior.windowUid;
-            if (winManager.isWindowAvailable(windowUid)) {
-                winManager.updateWindowBounds(windowUid, new Rectangle(0, 0, PREFERRED_WIDTH, PREFERRED_HEIGHT));
+            if (winManager.isWindowAvailable (windowUid)) {
+                winManager.updateWindowBounds (windowUid, new Rectangle(0, 0, PREFERRED_WIDTH, PREFERRED_HEIGHT));
+                winManager.updateWindowMinSize (windowUid, PREFERRED_WIDTH, PREFERRED_HEIGHT, true);
                 var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
                 if (mainScreenInfo) {
                     winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
@@ -934,7 +935,7 @@
 
         <!-- Left Pane. Presets manager and list of parameters -->
         <s:Group height="100%"
-                width="{ _envelopeEditorVisible? (bodyContainer.width - SPACE * 4) * 0.5 : bodyContainer.width - SPACE * 2 }">
+                width="{ _envelopeEditorVisible? (bodyContainer.width - SPACE * 4) * 0.4 : bodyContainer.width - SPACE * 2 }">
             <s:layout>
                 <s:VerticalLayout gap="{2 * SPACE}"
                                   horizontalAlign="left"
@@ -944,7 +945,7 @@
 
             <!-- Preset manager -->
             <ui:PresetManagerUi id="presetManager"
-                                width="{(bodyContainer.width - SPACE * 4) * 0.5}"
+                                width="{(bodyContainer.width - SPACE * 4) * 0.4}"
                                 minHeight="110"
                                 visible="{_formReady}" />
 
@@ -970,9 +971,9 @@
                                     paddingTop="{SPACE}"
                                     paddingRight="{SPACE}"
                                     paddingBottom="{SPACE}"
-                                    horizontalGap="{_envelopeEditorVisible? SPACE * 2.5 : SPACE * 5}"
+                                    horizontalGap="{_envelopeEditorVisible? SPACE * 1.5 : SPACE * 2}"
                                     verticalGap="{SPACE * 5}"
-                                    columnWidth="{COLUMN_WIDTH * 0.6}"
+                                    columnWidth="{COLUMN_WIDTH * 0.9 }"
                                     columnAlign="justifyUsingWidth"
                             />
                         </s:layout>
@@ -984,7 +985,7 @@
         <!-- Right Pane. Parameters graphical editor -->
         <components:ParametersGraphicalEditor
                 id="parametersEditor"
-                width="{ (bodyContainer.width - SPACE * 4) * 0.5 }"
+                width="{ (bodyContainer.width - SPACE * 4) * 0.6 }"
                 height="100%"
                 visible="{_envelopeEditorVisible}"
                 includeInLayout="{_envelopeEditorVisible}"
