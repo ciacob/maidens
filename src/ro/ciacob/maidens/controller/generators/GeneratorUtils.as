@@ -705,7 +705,8 @@ public class GeneratorUtils {
                     true,
                     _controller.mainWindowUid);
             var windowTitle:String = Strings.sprintf(StaticTokens.CONFIGURE_GENERATOR,
-                    _printGeneratorsList(new <String>[generator_instance.fqn]), generator_instance.link);
+                    _printGeneratorsList(new <String>[generator_instance.fqn]),
+                    'link: ' + generator_instance.link.substr(1));
             $winManager.updateWindowTitle(_controller.genCfgWindowUid, windowTitle);
             $winManager.updateWindowBounds(_controller.genCfgWindowUid, Sizes.MIN_GEN_CFG_WINDOW_BOUNDS, false);
             $winManager.updateWindowMinSize(_controller.genCfgWindowUid, Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width,

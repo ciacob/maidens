@@ -234,13 +234,11 @@
         private static const NODE_AMPLITUDE:String = Constants.NODE_AMPLITUDE;
 
         private static const SPACE:Number = 10;
-        private static const COLLAPSED_PREFERRED_WIDTH:Number = Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width;
-        private static const LEFT_PANE_WIDTH:Number = (COLLAPSED_PREFERRED_WIDTH - SPACE * 3);
-        private static const EXPANDED_PREFERRED_WIDTH:Number = 1080;
-        private static const PREFERRED_HEIGHT:Number = Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.height;
-
         private static const PRESET_FILE_EXTENSION:String = 'harmonyPreset';
         private static const PRESETS_HOME_DIR:String = 'multiline-generator-preset';
+        private static const COLUMN_WIDTH:Number = (Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width - SPACE * 6);
+        private static const PREFERRED_WIDTH:Number = 1080;
+        private static const PREFERRED_HEIGHT:Number = Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.height;
 
 
         // -----------------
@@ -581,7 +579,7 @@
                     }
                 } else {
                     if (_envelopeEditorVisible) {
-                        _hideEnvelopeEditor(true);
+                        _hideEnvelopeEditor();
                     }
                 }
             }
@@ -597,7 +595,7 @@
         /**
          * Hides the Envelope Editor, optionally shrinking the window to reclaim screen real estate.
          */
-        private function _hideEnvelopeEditor(shrinkWindow:Boolean = false):void {
+        private function _hideEnvelopeEditor():void {
             _envelopeEditorVisible = false;
         }
 
@@ -712,7 +710,7 @@
             var winManager:IWindowsManager = _windowBehavior.manager;
             var windowUid:String = _windowBehavior.windowUid;
             if (winManager.isWindowAvailable(windowUid)) {
-                winManager.updateWindowBounds(windowUid, new Rectangle(0, 0, EXPANDED_PREFERRED_WIDTH, PREFERRED_HEIGHT));
+                winManager.updateWindowBounds(windowUid, new Rectangle(0, 0, PREFERRED_WIDTH, PREFERRED_HEIGHT));
                 var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
                 if (mainScreenInfo) {
                     winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
@@ -723,7 +721,7 @@
         /**
          * Executed when the window hosting this UIComponent is about to be closed.
          */
-        private function _onWindowClosing(...args):void {
+        private function _onWindowClosing(...ignore):void {
             if (!_haveUnsavedChanges()) {
                 _closeWindow();
             } else {
@@ -802,25 +800,6 @@
                 }
             }
         }
-
-        /**
-         * Executed when the value of a parameter changes inside of a parameter renderer (not inside of
-         * the envelope editor).
-         */
-        //        private function _onRendererValueChanged(event:Event):void {
-        //            if (_parameters) {
-        //                var target:ParameterUI = (event.target as ParameterUI);
-        //                if (target) {
-        //                    var value:Object = target.value;
-        //                    var paramId:String = target.name;
-        //                    var parameter:IParameter = _parameters.getByUid(paramId);
-        //                    if (parameter) {
-        //                        var name:String = parameter.name;
-        //                        _respondToSettingUpdate(name, value);
-        //                    }
-        //                }
-        //            }
-        //        }
 
         /**
          * Executed when the user alters a parameter's envelope (e.g., by
@@ -936,32 +915,36 @@
 
 
     <!-- BODY -->
-    <mx:HBox x="0"
-             y="0"
-             width="{width}"
-             height="{rule.y - SPACE}"
-             horizontalGap="{SPACE * 2}"
-             verticalAlign="top"
-             paddingLeft="{SPACE}"
-             paddingTop="{SPACE}"
-             paddingRight="{SPACE}"
-             verticalScrollPolicy="off"
-             horizontalScrollPolicy="off">
+    <s:Group
+            x="0"
+            y="0"
+            width="{width}"
+            height="{rule.y - SPACE}">
+        <s:layout>
+            <s:HorizontalLayout
+                    gap="{SPACE * 2}"
+                    verticalAlign="top"
+                    paddingLeft="{SPACE}"
+                    paddingTop="{SPACE}"
+                    paddingRight="{SPACE}"/>
+        </s:layout>
 
         <!-- Left Pane. Presets manager and list of parameters -->
-        <mx:VBox verticalGap="{2 * SPACE}"
-                 paddingLeft="{SPACE}"
-                 horizontalAlign="left"
-                 height="100%"
-                 width="{LEFT_PANE_WIDTH}">
+        <s:Group height="100%"
+                width="100%">
+            <s:layout>
+                <s:VerticalLayout gap="{2 * SPACE}"
+                                  horizontalAlign="left"
+                                  paddingLeft="{SPACE}"
+                                  paddingRight="{SPACE}"/>
+            </s:layout>
 
-
-            <!-- Preset Component. -->
+            <!-- Preset Component -->
             <ui:PresetManagerUi id="presetManager"
                                 width="100%"
+                                maxHeight="{COLUMN_WIDTH}"
                                 minHeight="110"
-                                visible="{_formReady}"/>
-
+                                visible="{_formReady}" />
 
             <!-- Parameters list label -->
             <mx:Label id="parametersListLabel"
@@ -969,37 +952,46 @@
                       fontWeight="bold"
                       visible="{_formReady}"/>
 
-            <!-- Negative spacer to "consume" the vertical space
-                 between the label and the list -->
+            <!-- Negative spacer to "consume" the vertical space between the label and the list -->
             <s:Group height="{SPACE * -3}"/>
 
             <!-- Parameters list -->
-            <mx:VBox id="configurationForm"
-                     width="100%"
+            <s:Group width="100%"
                      height="{rule.y - rule.height - presetManager.height - parametersListLabel.height - SPACE * 5}"
-                     visible="{_formReady}"
-                     horizontalAlign="left"
-                     paddingBottom="{SPACE}"
-                     paddingTop="{SPACE}"
-                     paddingRight="{SPACE}"
-                     verticalGap="{SPACE * 2.5}"
-                     horizontalScrollPolicy="off"
-                     backgroundColor="#000000"
-                     backgroundAlpha="0.001"/>
-        </mx:VBox>
+                     visible="{_formReady}">
+
+                <s:Scroller width="100%" height="100%" horizontalScrollPolicy="off" measuredSizeIncludesScrollBars="true">
+                    <s:Group id="configurationForm">
+                        <s:layout>
+                            <s:TileLayout
+                                    paddingBottom="{SPACE}"
+                                    paddingTop="{SPACE}"
+                                    paddingRight="{SPACE}"
+                                    horizontalGap="{_envelopeEditorVisible? SPACE * 2.5 : SPACE * 5}"
+                                    verticalGap="{SPACE * 5}"
+                                    columnWidth="{COLUMN_WIDTH * 0.6}"
+                                    columnAlign="justifyUsingWidth"
+                            />
+                        </s:layout>
+                    </s:Group>
+                </s:Scroller>
+            </s:Group>
+
+        </s:Group> <!-- End of left pane -->
 
         <!-- Right Pane. Parameters graphical editor -->
         <components:ParametersGraphicalEditor
                 id="parametersEditor"
                 width="100%"
                 height="100%"
+                minWidth="{COLUMN_WIDTH}"
                 visible="{_envelopeEditorVisible}"
                 includeInLayout="{_envelopeEditorVisible}"
                 parameterChange="_onParameterChange(event)"
                 colorChange="_onParameterColorChange(event)"
                 nodesChange="_onNodesChange(event)"/>
+    </s:Group>
 
-    </mx:HBox>
 
     <!-- FOOTER -->
     <!-- Commit / Discard buttons -->
