@@ -291,7 +291,7 @@
         // Ordered list with all the UIDs in the `_animatedParameters` map
         private var _animatedParameterUids:Array = [];
 
-        // Flag we raise to indicate that the Envelope Editor should be includded in the UI
+        // Flag we raise to indicate that the Envelope Editor should be included in the UI
         [Bindable]
         private var _envelopeEditorVisible:Boolean = false;
 
@@ -334,7 +334,7 @@
         }
 
         /**
-         * Causes the UI portion related to commiting changes to reflect the current status,
+         * Causes the UI portion related to committing changes to reflect the current status,
          * especially whether the user altered the initial dataset in any way. The purpose is
          * to help the user only commit the changes he is fond on.
          */
@@ -380,7 +380,7 @@
         }
 
         /**
-         * Causes user changes to be lost, effectivelly replacing the "current dataset" with the
+         * Causes user changes to be lost, effectively replacing the "current dataset" with the
          * "reference dataset". Optionally closes the parent window.
          */
         private function _discardChanges():void {
