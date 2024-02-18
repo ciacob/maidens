@@ -2,3 +2,4 @@
 bin
 bin-release
 src/assets/sounds/653-descriptor.xml
+src/.DS_Store
