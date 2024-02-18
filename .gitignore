@@ -1,3 +1,4 @@
 .build-scripts
 bin
 bin-release
+src/assets/sounds/653-descriptor.xml
