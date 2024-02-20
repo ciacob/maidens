@@ -1,8 +1,12 @@
 package ro.ciacob.maidens.model.constants {
+import flash.events.Event;
+
+import ro.ciacob.maidens.controller.GhostScriptChecker;
 import ro.ciacob.maidens.model.tools.MenuSearcher;
 import ro.ciacob.maidens.view.constants.MenuCommandNames;
 import ro.ciacob.maidens.view.constants.MenuIds;
 import ro.ciacob.maidens.view.constants.UiColorizationThemes;
+import ro.ciacob.utils.OSFamily;
 import ro.ciacob.utils.constants.CommonStrings;
 
 public class GlobalMenuData {
@@ -104,6 +108,7 @@ public class GlobalMenuData {
                             {
                                 "label": StaticTokens.TO_PDF_FILE + '...',
                                 "cmdName": MenuCommandNames.EXPORT_PROJECT_TO_PDF,
+                                "enabled": false,
                                 "kbShortcuts":{
                                     "win":[ "ctrl", "alt", "p" ],
                                     "mac":[ "cmd", "alt", "p" ]
