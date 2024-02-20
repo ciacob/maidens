@@ -6,11 +6,12 @@ die () {
 }
 
 # Check for proper number of args
-[ "$#" -eq 4 ] || die "Usage: ./make-dmg.sh source-folder background-picture title size-in-kb"
+[ "$#" -eq 5 ] || die "Usage: ./make-dmg.sh source-folder background-picture title size-in-kb icon"
 
-# Check if both source folder and background-image exist
+# Check if both source folder, background-image and icon exist
 ls "$1" >/dev/null 2>&1 && echo "FOUND source folder $1" || die "Source folder $1 NOT found"
 ls "$2" >/dev/null 2>&1 && echo "FOUND background picture $2" || die "Background picture $2 NOT found"
+ls "$5" >/dev/null 2>&1 && echo "FOUND icon $5" || die "Icon $5 NOT found"
 
 # Store arguments under better names
 source=$1
@@ -18,6 +19,8 @@ bgpic=$2
 bgpicname=$(basename ${bgpic})
 title=$3
 size=$4
+icon=$5
+iconname=$(basename "${icon}")
 
 # Create a disk image and attach (mount) it
 hdiutil create -srcfolder "${source}" -volname "${title}" -fs HFS+ \
@@ -28,9 +31,13 @@ sleep 5
 
 echo "Created and attached device: ${device}"
 
-# Copy the background image on the attached image
+# Copy the background picture to the attached disk image
 mkdir /Volumes/"${title}"/.background/
 cp ${bgpic} /Volumes/"${title}"/.background/${bgpicname}
+
+# Copy the custom icon into the root of the DMG and rename it to .VolumeIcon.icns
+cp "${icon}" /Volumes/"${title}"/.VolumeIcon.icns
+
 
 # Generate some applescript to setup the visuals of the disk image 
 echo '
@@ -63,5 +70,8 @@ sync
 hdiutil detach ${device}
 hdiutil convert "pack.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "${title} Image"
 rm -f pack.temp.dmg 
+
+# Set the custom icon for the DMG file
+SetFile -a C "${title} Image.dmg"
 
 #EOF
