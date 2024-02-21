@@ -1,4 +1,0 @@
-background size: 700 x 394
-icons size: 256
-program icon position: x=148, y=204 (from icon center) OR x=20, y=76 (from icon's top left corner)
-program icon position: x=521, y=204 (from icon center) OR x=393, y=76 (from icon's top left corner)
