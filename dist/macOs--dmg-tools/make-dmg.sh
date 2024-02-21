@@ -35,10 +35,6 @@ echo "Created and attached device: ${device}"
 mkdir /Volumes/"${title}"/.background/
 cp ${bgpic} /Volumes/"${title}"/.background/${bgpicname}
 
-# Copy the custom icon into the root of the DMG and rename it to .VolumeIcon.icns
-cp "${icon}" /Volumes/"${title}"/.VolumeIcon.icns
-
-
 # Generate some applescript to setup the visuals of the disk image 
 echo '
    tell application "Finder"
@@ -47,7 +43,7 @@ echo '
            set current view of container window to icon view
            set toolbar visible of container window to false
            set statusbar visible of container window to false
-           set the bounds of container window to {100, 100, 800, 494}
+           set the bounds of container window to {100, 100, 800, 600}
            set theViewOptions to the icon view options of container window
            set arrangement of theViewOptions to not arranged
            set icon size of theViewOptions to 256
@@ -68,10 +64,11 @@ chmod -Rf go-w /Volumes/"${title}"
 sync
 sync
 hdiutil detach ${device}
-hdiutil convert "pack.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "${title} Image"
+hdiutil convert "pack.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "${title}-disk-image"
 rm -f pack.temp.dmg 
 
-# Set the custom icon for the DMG file
-SetFile -a C "${title} Image.dmg"
+# Copy resulting *.dmg file to ./OUT (create folder if not already existing)
+mkdir -p -m 777 ./OUT || die "Could not create OUT directory"
+mv -f ./"${title}-disk-image.dmg" ./OUT/"${title}-disk-image.dmg"
 
 #EOF

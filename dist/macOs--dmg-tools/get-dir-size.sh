@@ -14,7 +14,5 @@ if [ ! -d "$dir" ]; then
     exit 1
 fi
 
-# Calculate the size of the directory in kilobytes
-size_kb=$(du -sk "$dir" | cut -f1)
-
-echo "Size of '$dir': ${size_kb} KB"
+# Calculate the size of the directory in kilobytes and print only the size
+du -sk "$dir" | cut -f1
