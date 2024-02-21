@@ -67,19 +67,19 @@
          * it upon successfully detecting ghostscript. On Windows, we pack the third-party executable
          * with MAIDENS, so the menu item is always enabled.
          */
-        private function _checkForPdfSupport () : void {
-                var checker : GhostScriptChecker = new GhostScriptChecker();
-                checker.addEventListener(GhostScriptChecker.GHOSTSCRIPT_CHECK_EVENT, _onGhostScriptCheckEvent);
-                checker.checkGhostscriptInstallation();
+        private function _checkForPdfSupport():void {
+            var checker:GhostScriptChecker = new GhostScriptChecker();
+            checker.addEventListener(GhostScriptChecker.GHOSTSCRIPT_CHECK_EVENT, _onGhostScriptCheckEvent);
+            checker.checkGhostscriptInstallation();
         }
 
         /**
          * Executed when detection of ghostscript has concluded.
          * @param event
          */
-        private function _onGhostScriptCheckEvent (event : Event) :void {
-            var checker : GhostScriptChecker = (event.target as GhostScriptChecker);
-            var havePdfSupport : Boolean = (checker.ghostscriptPath != null);
+        private function _onGhostScriptCheckEvent(event:Event):void {
+            var checker:GhostScriptChecker = (event.target as GhostScriptChecker);
+            var havePdfSupport:Boolean = (checker.ghostscriptPath != null);
             _globalMenu.setItemEnablement(MenuCommandNames.EXPORT_PROJECT_TO_PDF, havePdfSupport);
         }
 
@@ -101,7 +101,7 @@
             // Initialize our handler for the "global menu". This is the menu that attaches to the main
             // window on Windows, or becomes the application menu on macOS. On mac OS, we can already attach the menu;
             // on Windows, we must wait for the main window to become available.
-            _globalMenu = new GlobalMenu(GlobalMenuData.STRUCURE, NativeApplication.nativeApplication,
+            _globalMenu = new GlobalMenu(GlobalMenuData.STRUCTURE, NativeApplication.nativeApplication,
                     Descriptor.getAppSignature());
             _globalMenu.addEventListener(GlobalMenuEvent.ITEM_SELECT, _onGlobalItemSelected);
             if (OSFamily.isMac) {

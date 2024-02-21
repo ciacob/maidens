@@ -4,3 +4,4 @@ bin-release
 src/assets/sounds/653-descriptor.xml
 src/.DS_Store
 .DS_Store
+dist/macOs--dmg-tools/OUT/*
