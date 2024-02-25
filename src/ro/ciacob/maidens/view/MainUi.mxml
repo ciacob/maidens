@@ -77,7 +77,7 @@
          * available; the last body/payload of such a notification gets cached and can
          * be retrieved by late subscribers by using dedicated API).
          */
-        private function retroactivelySubscribe(keyName:String, callback:Function):void {
+        private static function retroactivelySubscribe(keyName:String, callback:Function):void {
             GLOBAL_PIPE.subscribe(keyName, callback);
             if (GLOBAL_PIPE.hasBackupFor(keyName)) {
                 callback(GLOBAL_PIPE.recoverBackupFor(keyName));
@@ -89,7 +89,7 @@
          * Fired when a toolbar item was clicked
          * Merely forward to controller, which will handle this.
          */
-        private function _onAppToolbarItemClick(event:Event, commandName:String):void {
+        private static function _onAppToolbarItemClick(event:Event, commandName:String):void {
             if (event) {
                 var button:UIComponent = (event.target as UIComponent);
                 button.enabled = false;
@@ -243,7 +243,7 @@
         /**
          * Triggered when the "zoom" slider is dragged by the user.
          */
-        private function _onZoomChange(factor:Number):void {
+        private static function _onZoomChange(factor:Number):void {
             GLOBAL_PIPE.send(ViewKeys.ZOOM_EXTERNAL_CHANGE, factor);
         }
 
@@ -258,7 +258,7 @@
         /**
          * Formatting function used to display the scaling factor as a percent number.
          */
-        private function _scaleValueFormatter(rawValue:Number):String {
+        private static function _scaleValueFormatter(rawValue:Number):String {
             return (Math.round(rawValue * 100) + CommonStrings.PERCENT);
         }
 
@@ -295,14 +295,14 @@
         /**
          * Triggered when the "fit to width" button is clicked.
          */
-        private function _onFitToWidthClick(event:MouseEvent):void {
+        private static function _onFitToWidthClick(event:MouseEvent):void {
             GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_TO_WIDTH_REQUEST);
         }
 
         /**
          * Triggered when the "fit selection" button is clicked.
          */
-        private function _onFitSelectionClick(event:MouseEvent):void {
+        private static function _onFitSelectionClick(event:MouseEvent):void {
             GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_SELECTION_REQUEST);
         }
 

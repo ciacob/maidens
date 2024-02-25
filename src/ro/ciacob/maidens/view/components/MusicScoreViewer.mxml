@@ -347,11 +347,17 @@
 								(viewPort.width - resizedElementBounds.width) * 0.5)) | 0);
 						var scrollYOffset:Number = (Math.max(0, (resizedElementBounds.y -
 								(viewPort.height - resizedElementBounds.height) * 0.5)) | 0);
+						if (scoreContainer.horizontalScrollBar) {
+							scrollXOffset = Math.min (scrollXOffset, scoreContainer.horizontalScrollBar.maximum);
+						}
+						if (scoreContainer.verticalScrollBar) {
+							scrollYOffset = Math.min (scrollYOffset, scoreContainer.verticalScrollBar.maximum);
+						}
 						if (scrollable.horizontalScrollPosition != scrollXOffset) {
 							scrollable.horizontalScrollPosition = scrollXOffset;
 						}
 						if (scrollable.verticalScrollPosition != scrollYOffset) {
-							scrollable.verticalScrollPosition = scrollYOffset;
+								scrollable.verticalScrollPosition = scrollYOffset;
 						}
 					}
 				})();

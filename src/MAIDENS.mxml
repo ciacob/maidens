@@ -17,6 +17,7 @@
     <fx:Script>
         <![CDATA[
         import com.adobe.errors.IllegalStateError;
+        import com.demonsters.debugger.MonsterDebugger;
 
         import eu.claudius.iacob.EmbeddedFontsHelper;
         import eu.claudius.iacob.maidens.Colors;
@@ -88,6 +89,8 @@
          * @param event
          */
         private function _onPreinitialize(event:FlexEvent):void {
+            MonsterDebugger.initialize(this);
+            MonsterDebugger.trace (this, "Initializing MAIDENS...");
 
             // Monitor changes to current theme to update the global menu accordingly
             GLOBAL_PIPE.subscribe(ViewKeys.COLORIZATION_UPDATED, _onColorizationChanged);

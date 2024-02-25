@@ -187,7 +187,7 @@ package ro.ciacob.maidens.model.constants {
 		public static const NUDGE_ELEMENT_AFTER : String = 'Nudge element after';
 		public static const NUDGE_LOCK : String = 'Nudge mode';
 		public static const PREPARING_MIDI : String = 'Preparing MIDI...';
-		public static const LOADING_SOUNDS : String = 'Loading sounds%s';
+		public static const LOADING_SOUNDS : String = 'Loading sounds: %s';
 		public static const PREPARING_AUDIO : String = 'Generating audio data...';
 		public static const RENDER_WINDOW_TITLE:String = 'Recording in Progress';
 		public static const RECORDING_COMPLETE:String = 'Recording Complete';

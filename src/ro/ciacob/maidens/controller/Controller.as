@@ -3431,7 +3431,7 @@ public class Controller {
     private function _prepareScoreForAudio():void {
 
         // Put the current project in a format our synthesizer understands; timeouts are only needed so that our
-        // Prompt UI component can fully unfold (it has animations) before heavy work starts on the sam thread.
+        // Prompt UI component can fully unfold (it has animations) before heavy work starts on the same thread.
         showStatus(StaticTokens.PREPARING_MIDI, PromptColors.INFORMATION, false);
         Time.delay(0.6, function ():void {
             var project:ProjectData = _model.currentProject;
