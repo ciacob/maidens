@@ -1140,7 +1140,7 @@ public class Controller {
 
     private function _readFromPersistence():void {
         // Apply last used theme
-        var lastThemeName : String = _persistenceEngine.persistence(PersistenceKeys.THEME);
+        var lastThemeName:String = _persistenceEngine.persistence(PersistenceKeys.THEME);
         currColorMatrix = UiColorizationThemes[lastThemeName];
         GLOBAL_PIPE.send(ViewKeys.COLORIZATION_UPDATED, lastThemeName);
         applyCurrentColorization();
@@ -1241,6 +1241,10 @@ public class Controller {
                 break;
             case ProgressReport.STATE_CANNOT_STREAM:
                 switch (report.subState) {
+                    case ProgressReport.SUBSTATE_ERROR:
+                        var error:String = _formatAudioError(report.item);
+                        showStatus(Strings.sprintf(StaticTokens.AUDIO_ERROR_NOTICE, error), PromptColors.ERROR, false);
+                        break;
                     case ProgressReport.SUBSTATE_DROPOUT:
                         showStatus(StaticTokens.AUDIO_DROPOUT_NOTICE, PromptColors.WARNING, false);
                         _cleanupHighlights();
@@ -1268,7 +1272,6 @@ public class Controller {
                     hideStatus();
                 });
                 break;
-                // Add more states here as needed.
         }
     }
 
@@ -1322,8 +1325,45 @@ public class Controller {
     }
 
     /**
-     * Constructs an instance of the `FileUtils` class and stores it globally as `_audioFileUtils`. Assumes the global
-     * `_audioStreamer` class member to point to a valid `StreamingUtils` instance.
+     * Prettifies the errors returned by audio services.
+     * @param rawError
+     * @return
+     */
+    private static function _formatAudioError(rawError:String):String {
+        if (!rawError) {
+            return rawError;
+        }
+        var errorTokens:Array = rawError.split(CommonStrings.BROKEN_VERTICAL_BAR);
+        errorTokens.sort();
+        var lines:Array = [];
+        for (var i:int = 0; i < errorTokens.length; i++) {
+            var token:String = Strings.trim(errorTokens[i] as String);
+            if (!token) {
+                continue;
+            }
+            var subTokens:Array = token.split(CommonStrings.COLON_SPACE);
+            var key:String = subTokens.shift();
+            var body:String = '';
+            if (Strings.beginsWith(key, CommonStrings.DOLLAR_SIGN)) {
+                key = Strings.remove(key, CommonStrings.DOLLAR_SIGN, false, true);
+                key = Strings.deCamelize(key);
+                key = Strings.capitalize(key);
+            }
+            if (subTokens.length > 0) {
+                body = subTokens.join(CommonStrings.COLON_SPACE);
+                if (Strings.beginsWith(body, CommonStrings.DOLLAR_SIGN)) {
+                    body = Strings.remove(body, CommonStrings.DOLLAR_SIGN, false, true);
+                    body = Strings.deCamelize(body);
+                    body = Strings.capitalize(body);
+                }
+            }
+            lines.push([key, body].join(CommonStrings.COLON_SPACE));
+        }
+        return lines.join(CommonStrings.NEW_LINE);
+    }
+
+    /**
+     * Constructs an instance of the `FileUtils` class and stores it globally as `_audioFileUtils`.
      */
     private function _ensureFileUtils():void {
         if (!_audioFileUtils) {
@@ -1805,16 +1845,22 @@ public class Controller {
     }
 
     /**
-     * TODO: document
-     * @return
+     * Determines if the first value is greater than the second value.
+     * @param a The first value.
+     * @param b The second value.
+     * @param orEqual If true, considers the first value greater than or equal to the second value.
+     * @return A Boolean value indicating whether the first value is greater than the second value.
      */
     private static function _greaterThan(a:Object, b:Object, orEqual:Boolean = false):Boolean {
         return orEqual ? (a >= b) : (a > b);
     }
 
     /**
-     * TODO: document
-     * @return
+     * Determines if the first value is less than the second value.
+     * @param a The first value.
+     * @param b The second value.
+     * @param orEqual If true, considers the first value less than or equal to the second value.
+     * @return A Boolean value indicating whether the first value is less than the second value.
      */
     private static function _lessThan(a:Object, b:Object, orEqual:Boolean = false):Boolean {
         return orEqual ? (a <= b) : (a < b);
@@ -2310,7 +2356,7 @@ public class Controller {
      *  }
      */
     private function _getElementContext(element:ProjectData):Object {
-        var context : Object = {
+        var context:Object = {
             'isEmpty': false,
             'isFirstChild': false,
             'isFirstChildOfFirstParent': false,
@@ -3245,7 +3291,7 @@ public class Controller {
     }
 
     /**
-     * TODO: document
+     * Responds to a request for available part names.
      */
     private static function _onPartNamesRequested(...ignore):void {
         var partNames:Array = PartNames.getAllPartNames();
@@ -3253,7 +3299,7 @@ public class Controller {
     }
 
     /**
-     * TODO: document
+     * Responds to a request of counting the staves available for a given Voice.
      */
     private function _onPartStaffsNumberRequested(...ignore):void {
         var selection:ProjectData = _getSelection();
@@ -3353,7 +3399,7 @@ public class Controller {
     }
 
     /**
-     * TODO: document
+     * Redispatches a notification about a pickup window window being closed naturally.
      */
     private static function _onPickupWindowClosing(...ignore):Boolean {
         GLOBAL_PIPE.send(ViewKeys.PICKUP_WINDOW_CLOSING);
@@ -3361,7 +3407,7 @@ public class Controller {
     }
 
     /**
-     * TODO: document
+     * Redispatches a notification about a pickup window window being closed forcefully.
      */
     private function _onPickupWindowForceCloseRequested(...ignore):void {
         _onPickupWindowClosed();
@@ -3883,7 +3929,7 @@ public class Controller {
     }
 
     /**
-     * TODO: document
+     * Executed when the user executes the "Delete" command aginst the current selection.
      */
     private function _onStructureItemRemove(uid:String):void {
         if (_model && _model.currentProject) {
@@ -4145,7 +4191,7 @@ public class Controller {
     }
 
     /**
-     * TODO: document
+     * Responds to the user executing the "Transpose..." Macro.
      */
     private function _onTranspositionRequested(config:Object):void {
 

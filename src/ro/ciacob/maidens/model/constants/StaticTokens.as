@@ -1,7 +1,8 @@
 package ro.ciacob.maidens.model.constants {
 
 	public final class StaticTokens {
-		public static const AUDIO_DROPOUT_NOTICE : String = 'Audio dropout occurred. Attempting to resume playback...'
+		public static const AUDIO_ERROR_NOTICE : String = 'Error while rendering audio. Process may stop. Details:\n%s';
+		public static const AUDIO_DROPOUT_NOTICE : String = 'Audio dropout occurred. Attempting to resume playback...';
 		public static const ALL_CLEFS:String = 'All clefs';
 		public static const ALL_PROJECT_GENERATORS_INITIALIZED:String = 'All generators used by this project were successfully initialized.';
 		public static const API_WRONG_ARGUMENTS_NUMBER:String = 'Wrong number of arguments given. The API %s accepts exactly %d arguments — %d given.';
