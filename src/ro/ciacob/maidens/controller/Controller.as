@@ -1475,6 +1475,14 @@ public class Controller {
             audioBytes: _audioStreamer.renderedAudioStorage
         };
         switch (reportState) {
+            case ProgressReport.STATE_CANNOT_STREAM:
+                switch (report.subState) {
+                    case ProgressReport.SUBSTATE_ERROR:
+                        var error:String = _formatAudioError(report.item);
+                        showStatus(Strings.sprintf(StaticTokens.AUDIO_ERROR_NOTICE, error), PromptColors.ERROR, false);
+                        break;
+                }
+                break;
             case ProgressReport.STATE_STREAMING_START:
                 info.percentComplete = 0;
                 RENDER_PIPE.send(AudioKeys.RENDER_STATUS_CHANGED, info);
@@ -3827,6 +3835,7 @@ public class Controller {
      * Executed when the "Stop" button in the main toolbar is clicked by the user, or when score playback reaches end.
      */
     private function _onStopRequested(...ignore):void {
+        hideStatus();
         if (_audioStreamer) {
             _synthProxy.stopStreamedPlayback(true);
             _audioStreamer.cancelStreaming();
@@ -3929,7 +3938,7 @@ public class Controller {
     }
 
     /**
-     * Executed when the user executes the "Delete" command aginst the current selection.
+     * Executed when the user executes the "Delete" command against the current selection.
      */
     private function _onStructureItemRemove(uid:String):void {
         if (_model && _model.currentProject) {
