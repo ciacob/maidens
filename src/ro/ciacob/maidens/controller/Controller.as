@@ -1217,7 +1217,7 @@ public class Controller {
                     GLOBAL_PIPE.send(ViewKeys.EXTERNALLY_UNHIGHLIGHTED_SCORE_ITEM, clusterId);
                     break;
                 case OperationTypes.TYPE_CLOSE_SCORE:
-                    Time.delay(1, _onStopRequested);
+                    Time.delay(1, _stopMidi);
                     break;
             }
         }
@@ -3505,8 +3505,7 @@ public class Controller {
             var presetDescriptors:Vector.<PresetDescriptor> = tracksProducer.presetDescriptors;
             presetDescriptors.unshift(new PresetDescriptor(FileAssets.AUDIO_WORKER_FILE_KEY,
                     FileAssets.AUDIO_WORKER_FILE_LABEL));
-            _soundLoader.preloadSounds(presetDescriptors, FileAssets.AUDIO_ASSETS_HOME,
-                    FileAssets.AUDIO_ASSET_FILE_TYPE);
+            _soundLoader.preloadSounds(presetDescriptors, FileAssets.AUDIO_ASSETS_HOME, FileAssets.AUDIO_ASSET_FILE_TYPE);
         });
     }
 
@@ -3835,16 +3834,20 @@ public class Controller {
      * Executed when the "Stop" button in the main toolbar is clicked by the user, or when score playback reaches end.
      */
     private function _onStopRequested(...ignore):void {
-        hideStatus();
         if (_audioStreamer) {
             _synthProxy.stopStreamedPlayback(true);
             _audioStreamer.cancelStreaming();
+            _audioStreamer.removeEventListener(SystemStatusEvent.REPORT_EVENT, _onStreamingEvent);
+            _audioStreamer.decommission();
+            _soundLoader.destroyCache();
+            _audioStreamer = null;
         }
         _synthProxy.stopPrerenderedPlayback(true);
         GLOBAL_PIPE.send(ModelKeys.MIDI_PLAYBACK_STOPPED);
         _isMidiPlaying = false;
         _cleanupHighlights();
-        _restoreSelection()
+        _restoreSelection();
+        hideStatus();
     }
 
     /**
