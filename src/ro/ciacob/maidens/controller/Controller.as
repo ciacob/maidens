@@ -1990,8 +1990,9 @@ public class Controller {
             registerColorizableUi(windowContent);
             _fileBrowserWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
             _windowsManager.updateWindowTitle(_fileBrowserWindowUid, windowTitle);
-            _windowsManager.updateWindowBounds(_fileBrowserWindowUid, Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS, false);
-            _windowsManager.updateWindowMinSize(_fileBrowserWindowUid, Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS.width, Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS.height, true);
+            var bounds : Rectangle = Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS;
+            _windowsManager.updateWindowBounds(_fileBrowserWindowUid, bounds, false);
+            _windowsManager.updateWindowMinSize(_fileBrowserWindowUid, bounds.width, bounds.height, true);
             _windowsManager.observeWindowActivity(_fileBrowserWindowUid, WindowActivity.BEFORE_DESTROY, _onFileBrowserXClose);
             _windowsManager.showWindow(_fileBrowserWindowUid);
             _windowsManager.alignWindows(_fileBrowserWindowUid, _windowsManager.mainWindow, 0.5, 0.5);
@@ -3445,8 +3446,9 @@ public class Controller {
             _pickupWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
         }
         _windowsManager.updateWindowTitle(_pickupWindowUid, windowTitle);
-        _windowsManager.updateWindowBounds(_pickupWindowUid, Sizes.MIN_PICKUP_WINDOW_BOUNDS, false);
-        _windowsManager.updateWindowMinSize(_pickupWindowUid, Sizes.MIN_PICKUP_WINDOW_BOUNDS.width, Sizes.MIN_PICKUP_WINDOW_BOUNDS.height, true);
+        var bounds : Rectangle = Sizes.MIN_PICKUP_WINDOW_BOUNDS;
+        _windowsManager.updateWindowBounds(_pickupWindowUid, bounds, false);
+        _windowsManager.updateWindowMinSize(_pickupWindowUid, bounds.width, bounds.height, true);
         _windowsManager.observeWindowActivity(_pickupWindowUid, WindowActivity.BEFORE_DESTROY, _onPickupWindowClosing, this);
         _windowsManager.showWindow(_pickupWindowUid);
         _windowsManager.alignWindows(_pickupWindowUid, _windowsManager.mainWindow, 0.5, 0.5);

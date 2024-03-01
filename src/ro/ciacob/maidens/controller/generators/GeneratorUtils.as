@@ -1,6 +1,8 @@
 package ro.ciacob.maidens.controller.generators {
 import eu.claudius.iacob.maidens.Sizes;
 
+import flash.geom.Rectangle;
+
 import flash.utils.getDefinitionByName;
 import flash.utils.getQualifiedClassName;
 
@@ -708,9 +710,9 @@ public class GeneratorUtils {
                     _printGeneratorsList(new <String>[generator_instance.fqn]),
                     'link: ' + generator_instance.link.substr(1));
             $winManager.updateWindowTitle(_controller.genCfgWindowUid, windowTitle);
-            $winManager.updateWindowBounds(_controller.genCfgWindowUid, Sizes.MIN_GEN_CFG_WINDOW_BOUNDS, false);
-            $winManager.updateWindowMinSize(_controller.genCfgWindowUid, Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width,
-                    Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.height, true);
+            var bounds : Rectangle = Sizes.MIN_GEN_CFG_WINDOW_BOUNDS;
+            $winManager.updateWindowBounds(_controller.genCfgWindowUid, bounds, false);
+            $winManager.updateWindowMinSize(_controller.genCfgWindowUid, bounds.width, bounds.height, true);
             $winManager.observeWindowActivity(_controller.genCfgWindowUid, WindowActivity.BEFORE_DESTROY,
                     _onGenCfgWindowClosing, this);
             $winManager.showWindow(_controller.genCfgWindowUid);

@@ -40,9 +40,6 @@ package ro.ciacob.maidens.model.exporters {
 			// Clean-up
 			project.setContent (DataFields.PROJECT_NAME, project.getMetadata(DataFields.PROJECT_NAME));
 			project.setContent (DataFields.COMPOSER_NAME, project.getMetadata(DataFields.COMPOSER_NAME));
-
-			// trace ('ABC for Screen is:\n---------------------\n', ret);
-
 			return ret;
 		}
 

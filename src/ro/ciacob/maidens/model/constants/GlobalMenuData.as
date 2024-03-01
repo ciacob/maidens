@@ -185,8 +185,8 @@ public class GlobalMenuData {
                         "id": MenuIds.PASTE_ITEM,
                         "disabled": true,
                         "kbShortcuts":{
-                            "win":[ "ctrl", "p" ],
-                            "mac":[ "cmd", "p" ]
+                            "win":[ "ctrl", "v" ],
+                            "mac":[ "cmd", "v" ]
                         }
                     }
                 ]
