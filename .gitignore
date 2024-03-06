@@ -5,3 +5,5 @@ src/assets/sounds/653-descriptor.xml
 src/.DS_Store
 .DS_Store
 dist/macOs--dmg-tools/OUT/*
+/dist/Windows--installer-tools/_output_
+/dist/Windows--installer-tools/bin-release-src/MAIDENS
