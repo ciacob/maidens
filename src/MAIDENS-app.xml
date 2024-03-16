@@ -28,7 +28,7 @@
     Values can also be 1-part or 2-part. It is not necessary to have a 3-part value.
     An updated version of application must have a versionNumber value higher than the previous version. Required for namespace >= 2.5 .
     For iOS Apps, this represents build number. -->
-    <versionNumber>1.5.6</versionNumber>
+    <versionNumber>1.5.7</versionNumber>
 
     <!-- A string value (such as "v1", "2.5", or "Alpha 1") that represents the version of the application, as it should be shown to users.
     For iOS Apps, this represents application version number and format should be (<0-999>.<0-999>.<0-999>).
@@ -130,10 +130,10 @@
     <!-- <supportedLanguages>cs da de el en es fi fr in it iw ja ko ms nb nl pl pt ru sv th tr vi zh</supportedLanguages> -->
     <supportedLanguages>en</supportedLanguages>
 
-    <!-- The subpath of the standard default installation location to use. Optional. -->
+    <!-- The sub-path of the standard default installation location to use. Optional. -->
     <!-- <installFolder></installFolder> -->
 
-    <!-- The subpath of the Programs menu to use. (Ignored on operating systems without a Programs menu.) Optional. -->
+    <!-- The sub-path of the Programs menu to use. (Ignored on operating systems without a Programs menu.) Optional. -->
     <!-- <programMenuFolder></programMenuFolder> -->
 
     <!-- The icon the system uses for the application. For at least one resolution,

@@ -9,6 +9,14 @@ cd /d %installerBinariesFolder%
 for /F "delims=" %%i in ('dir /b') do (rmdir "%%i" /s/q || del "%%i" /s/q) >nul 2>&1
 cd "%currDir%"
 
+echo.
+REM Empty the output folder
+echo Emptying the output folder...
+set outputFolder="%~dp0..\_output_"
+cd /d %outputFolder%
+for /F "delims=" %%i in ('dir /b') do (rmdir "%%i" /s/q || del "%%i" /s/q) >nul 2>&1
+cd "%currDir%"
+
 REM Copy binaries over from project
 echo.
 echo Copying bundled application...

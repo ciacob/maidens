@@ -17,7 +17,6 @@
     <fx:Script>
         <![CDATA[
         import com.adobe.errors.IllegalStateError;
-        import com.demonsters.debugger.MonsterDebugger;
 
         import eu.claudius.iacob.EmbeddedFontsHelper;
         import eu.claudius.iacob.maidens.Colors;
@@ -284,7 +283,14 @@
             var haveSelection:Boolean = (selectionType != null);
             var haveEmptySelection:Boolean = haveSelection && (status[ViewKeys.ELEMENT_EMPTY] as Boolean);
 
-            // Update items in the Copy/Cut/Paste menu
+            // Update items in the Edit menu
+
+            // Create/Delete/Nudge
+            _globalMenu.setItemEnablement(MenuCommandNames.ADD_ITEM, status[ViewKeys.ADD_ELEMENT_AVAILABLE] as Boolean);
+            _globalMenu.setItemEnablement(MenuCommandNames.DELETE_ITEM,
+                    status[ViewKeys.REMOVE_ELEMENT_AVAILABLE] as Boolean);
+
+            // Copy/Cut/Paste
             var pasteSrcType:String = status[ViewKeys.PASTE_SOURCE_TYPE] as String;
             var canCopy:Boolean = status[ViewKeys.COPY_ELEMENT_AVAILABLE] as Boolean;
             var canCut:Boolean = status[ViewKeys.CUT_ELEMENT_AVAILABLE] as Boolean;

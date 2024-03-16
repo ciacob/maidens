@@ -72,20 +72,6 @@
         private var ptt:PTT;
 
         /**
-         * Syntactic sugar. Subscribes given callback to given PTT key, also considering
-         * "cached notifications" (notifications that occurred before any subscribers were
-         * available; the last body/payload of such a notification gets cached and can
-         * be retrieved by late subscribers by using dedicated API).
-         */
-        private static function retroactivelySubscribe(keyName:String, callback:Function):void {
-            GLOBAL_PIPE.subscribe(keyName, callback);
-            if (GLOBAL_PIPE.hasBackupFor(keyName)) {
-                callback(GLOBAL_PIPE.recoverBackupFor(keyName));
-                GLOBAL_PIPE.deleteBackupFor(keyName);
-            }
-        }
-
-        /**
          * Fired when a toolbar item was clicked
          * Merely forward to controller, which will handle this.
          */
@@ -119,13 +105,13 @@
             GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT_DISCARDED, _onPromptDecommissioned);
 
             // Initialize toolbar related functionality
-            retroactivelySubscribe(ViewKeys.STRUCTURE_OPERATIONS_STATUS, _onOperationsStatusUpdate);
+            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.STRUCTURE_OPERATIONS_STATUS, _onOperationsStatusUpdate);
             GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STARTED, _onMidiPlaybackStarted);
             GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STOPPED, _onMidiPlaybackStopped);
-            retroactivelySubscribe(ViewKeys.NAVIGATION_STATE_CHANGE, _onNavigationStateChange);
-            retroactivelySubscribe(ViewKeys.SCORE_WAS_RESIZED, _onScoreResized);
-            retroactivelySubscribe(ViewKeys.ZOOM_INTERNAL_CHANGE, _onZoomInternalChange);
-            retroactivelySubscribe(ViewKeys.SCORE_SELECTION_CHANGE, _onScoreSelectionChange);
+            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.NAVIGATION_STATE_CHANGE, _onNavigationStateChange);
+            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.SCORE_WAS_RESIZED, _onScoreResized);
+            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.ZOOM_INTERNAL_CHANGE, _onZoomInternalChange);
+            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.SCORE_SELECTION_CHANGE, _onScoreSelectionChange);
 
             // Initialize the "call to action" carousel
             _ctaMessages = [

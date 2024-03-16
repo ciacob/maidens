@@ -160,6 +160,25 @@ public class GlobalMenuData {
                         "isSeparator": true
                     },
                     {
+                      "label": StaticTokens.CREATE_ELEMENT,
+                        "cmdName": MenuCommandNames.ADD_ITEM,
+                        "id": MenuIds.ADD_MENU_ITEM,
+                        "disabled": true,
+                        "kbShortcuts": ["alt", "i" ]
+
+                    },
+                    {
+                        "label": StaticTokens.DELETE_ELEMENT,
+                        "cmdName": MenuCommandNames.DELETE_ITEM,
+                        "id": MenuIds.REMOVE_MENU_ITEM,
+                        "disabled": true,
+                        "kbShortcuts": ["alt", "r" ]
+
+                    },
+                    {
+                        "isSeparator": true
+                    },
+                    {
                         "label": StaticTokens.COPY_PLACEHOLDER,
                         "cmdName": MenuCommandNames.COPY,
                         "id": MenuIds.COPY_ITEM,
