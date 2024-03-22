@@ -35,7 +35,7 @@ And then you click **Generate**, and in less than one minute you have a piece of
 
 ![maidens-test-four-violas](identity/imagery/maidens-test-strings-quartet.png)
 
-<p align="center"><i><b>Note</b>: a MAIDENS audio rendition of the above score can be listened to on <a href="https://audio.com/claudius-tiberiu-iacob/audio/maidens-strings-quartet-test" target="_blank" rel="noopener noreferrer">Audio.com</a>.</i></p>
+<p class="columns-breaker" align="center"><i><b>Note</b>: a MAIDENS audio rendition of the above score can be listened to on <a href="https://audio.com/claudius-tiberiu-iacob/audio/maidens-strings-quartet-test" target="_blank" rel="noopener noreferrer">Audio.com</a>.</i></p>
 
 ### Now it only costs you hours, not days, to craft a blueprint for your entire piece.
 Was it a bad idea to proceed from lower register to higher register? Redraw the parameters and **generate** again. Does music seem too weak because of using consonance in the harmony section? Redraw the _consonance_ control curve and **generate** again. Once you find a suitable course of action for your music you can start to actually compose it, secured in the belief that you chose the best of all available alternatives.
