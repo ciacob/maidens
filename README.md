@@ -48,7 +48,7 @@ As an added bonus, you now have a rather detailed work plan to follow along, and
 ## Getting the Software
 MAIDENS is an open source software program that you can use free of charge. To install, you have two options:
 - download the latest pre-built distribution package for your operating system from the [Releases](https://github.com/ciacob/maidens/releases) section;
-- build MAIDENS yourself from source, provided that you are familiar with building Adobe/Harman AIR applications.
+- build MAIDENS yourself from source, provided that you are familiar with [building Adobe/Harman AIR](https://airsdk.dev/docs) applications.
 
 <br/>
 <br/>
