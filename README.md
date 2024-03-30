@@ -25,15 +25,17 @@ The issue with all this "musical probing" is that it consumes an enormous amount
 ## MAIDENS Solution
 ### MAIDENS software steps in by letting you validate musical ideas in a matter of seconds not hours.
 The only condition is that you *clearly understand what you are trying to achieve*. If asked, would you be able to describe your musical idea as a simple process? Such as: 
-> over the next eight measures, I want four violas that start polyphonically in the lower register and then slowly climb to the higher register while also moving from dissonance to consonance and from polyphony to harmony.
+> over the next eight measures, I want a strings quartet that starts rather polyphonically and slightly lower, and then slowly climbs while also moving into consonance and homophony.
 
-In MAIDENS this is as easy as setting up an eight measures four violas score and drawing control curves for _pitch_, _consonance_ and _note attack_ related parameters.
+In MAIDENS this is as easy as setting up an eight measures strings quartet score and drawing control curves for _pitch_, _consonance_ and _note attack_ related parameters.
 
-![maidens-test-four-violas](identity/imagery/maidens-test-four-violas.png)
+![maidens-test-four-violas](identity/imagery/maidens-config-strings-quartet.png)
 
-And then you click **Generate**, and in less than one minute you have a piece of music that at least _conforms_ to your requirements. The music that you'll get is highly unlikely to be usable as is, but this was never the idea. _The idea was for you to quickly get a **musical prototype**_, a reasonable utterance of a music composition _process_. You are not expected to validate the prototype, but the process it relies upon.
+And then you click **Generate**, and in less than one minute you have a piece of music that at least _conforms_ to your requirements. The "music" that you'll get is unlikely to be usable _as is_, but this was never the idea. _The idea was for you to quickly get a **musical prototype**_, a reasonable utterance of a music composition _process_. You are not expected to validate the prototype, but the process it relies upon.
 
-![maidens-test-four-violas](identity/imagery/maidens-test-four-violas-result-1.png)
+![maidens-test-four-violas](identity/imagery/maidens-test-strings-quartet.png)
+
+<p class="columns-breaker" align="center"><i><b>Note</b>: a MAIDENS audio rendition of the above score can be listened to on <a href="https://audio.com/claudius-tiberiu-iacob/audio/maidens-strings-quartet-test" target="_blank" rel="noopener noreferrer">Audio.com</a>.</i></p>
 
 ### Now it only costs you hours, not days, to craft a blueprint for your entire piece.
 Was it a bad idea to proceed from lower register to higher register? Redraw the parameters and **generate** again. Does music seem too weak because of using consonance in the harmony section? Redraw the _consonance_ control curve and **generate** again. Once you find a suitable course of action for your music you can start to actually compose it, secured in the belief that you chose the best of all available alternatives.
@@ -48,7 +50,7 @@ As an added bonus, you now have a rather detailed work plan to follow along, and
 ## Getting the Software
 MAIDENS is an open source software program that you can use free of charge. To install, you have two options:
 - download the latest pre-built distribution package for your operating system from the [Releases](https://github.com/ciacob/maidens/releases) section;
-- build MAIDENS yourself from source, provided that you are familiar with building Adobe/Harman AIR applications.
+- build MAIDENS yourself from source, provided that you are familiar with [building Adobe/Harman AIR](https://airsdk.dev/docs) applications.
 
 <br/>
 <br/>
