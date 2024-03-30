@@ -19,7 +19,7 @@ package ro.ciacob.maidens.controller.constants {
 
 		/**
 		 * @private
-		 * The table of known scripts, along with handling informations.
+		 * The table of known scripts, along with handling information.
 		 */
 		private static var _knownScripts:Object;
 

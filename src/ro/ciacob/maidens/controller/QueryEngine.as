@@ -1,8 +1,11 @@
 package ro.ciacob.maidens.controller {
+import eu.claudius.iacob.maidens.constants.StaticTokens;
+
 import ro.ciacob.ciacob;
-import ro.ciacob.maidens.controller.constants.GeneratorKeys;
+
 import ro.ciacob.maidens.controller.editor.nudge.NudgingTools;
 import ro.ciacob.maidens.generators.MusicEntry;
+import ro.ciacob.maidens.generators.constants.GeneratorKeys;
 import ro.ciacob.maidens.generators.constants.duration.DotTypes;
 import ro.ciacob.maidens.generators.constants.duration.DurationFractions;
 import ro.ciacob.maidens.generators.constants.parts.PartAbbreviatedNames;
@@ -14,14 +17,15 @@ import ro.ciacob.maidens.generators.constants.parts.PartRanges;
 import ro.ciacob.maidens.generators.constants.parts.PartTranspositions;
 import ro.ciacob.maidens.generators.constants.pitch.IntervalsSize;
 import ro.ciacob.maidens.generators.constants.pitch.PitchAlterationTypes;
+import ro.ciacob.maidens.legacy.ModelUtils;
+import ro.ciacob.maidens.legacy.MusicUtils;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.legacy.constants.DataFields;
+import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
+import ro.ciacob.maidens.legacy.constants.Voices;
+import ro.ciacob.maidens.legacy.exporters.TupletMarker;
 import ro.ciacob.maidens.model.GeneratorInstance;
-import ro.ciacob.maidens.model.ModelUtils;
-import ro.ciacob.maidens.model.ProjectData;
-import ro.ciacob.maidens.model.constants.DataFields;
-import ro.ciacob.maidens.model.constants.StaticFieldValues;
-import ro.ciacob.maidens.model.constants.StaticTokens;
-import ro.ciacob.maidens.model.constants.Voices;
-import ro.ciacob.maidens.model.exporters.TupletMarker;
+
 import ro.ciacob.math.Fraction;
 import ro.ciacob.utils.Arrays;
 import ro.ciacob.utils.ConstantUtils;
@@ -1199,7 +1203,7 @@ public class QueryEngine {
         return null;
     }
 
-    private function _backwardWalkSiblingsOf(element:ProjectData, callback:Function):Object {
+    private static function _backwardWalkSiblingsOf(element:ProjectData, callback:Function):Object {
         if (element != null) {
             var parent:ProjectData = ProjectData(element.dataParent);
             if (parent != null) {
@@ -1257,7 +1261,7 @@ public class QueryEngine {
      * Creates a Measure node inside the given Part node. The created Measure contains two
      * Voice nodes per each staff used.
      */
-    private function _createMeasureOf(part:ProjectData):ProjectData {
+    private static function _createMeasureOf(part:ProjectData):ProjectData {
         if (!part) {
             return null;
         }
@@ -1290,7 +1294,7 @@ public class QueryEngine {
      *
      * NOTE: Both voice order and staff indices are 1-based (first index is `1`, not `0`).
      */
-    private function _addVoicesToMeasure(measure:ProjectData):Array {
+    private static function _addVoicesToMeasure(measure:ProjectData):Array {
         var parentPart:ProjectData = ProjectData(measure.dataParent);
         var numPartStaves:int = ModelUtils.getPartNumStaves(parentPart);
         var j:int;
@@ -1421,7 +1425,7 @@ public class QueryEngine {
     /**
      * Used as an argument to Array.sort() to order notes in a cluster by their pitch.
      */
-    private function _compareNoteChildren(noteA:ProjectData, noteB:ProjectData):int {
+    private static function _compareNoteChildren(noteA:ProjectData, noteB:ProjectData):int {
         return MusicUtils.noteToMidiNumber(noteB) - MusicUtils.noteToMidiNumber(noteA);
     }
 
@@ -1484,7 +1488,7 @@ public class QueryEngine {
      * If there isn't (because the part we are creating IS the first part of the
      * section) then only one measure will automatically be created.
      */
-    private function _createPartChildOfSectionNode(sectionNode:ProjectData, uuid:String):ProjectData {
+    private static function _createPartChildOfSectionNode(sectionNode:ProjectData, uuid:String):ProjectData {
         if (!uuid) {
             throw (new Error('`_createPartChildOfSectionNode()` requires a non-nul part UUID'));
         }
@@ -1558,7 +1562,7 @@ public class QueryEngine {
         _createMeasureOf(partClone);
     }
 
-    private function _createVoiceOf(measure:ProjectData):ProjectData {
+    private static function _createVoiceOf(measure:ProjectData):ProjectData {
         var voice:ProjectData = new ProjectData;
         var details:Object = {};
         details[DataFields.DATA_TYPE] = DataFields.VOICE;
@@ -1573,7 +1577,7 @@ public class QueryEngine {
         return voice;
     }
 
-    private function _deleteMeasureElement(measureToDelete:ProjectData):ProjectData {
+    private static function _deleteMeasureElement(measureToDelete:ProjectData):ProjectData {
         var currentPart:ProjectData = ProjectData(measureToDelete.dataParent);
         var currentSection:ProjectData = ProjectData(currentPart.dataParent);
         var allPartsInCurrentSection:Array = ModelUtils.getChildrenOfType(currentSection, DataFields.PART);
@@ -1595,7 +1599,7 @@ public class QueryEngine {
         return ProjectData(currentReplacement);
     }
 
-    private function _deleteOrdinaryElement(element:ProjectData):ProjectData {
+    private static function _deleteOrdinaryElement(element:ProjectData):ProjectData {
         var parent:ProjectData = ProjectData(element.dataParent);
         var elType:String = element.getContent(DataFields.DATA_TYPE);
         var relevantChildren:Array = ModelUtils.getChildrenOfType(parent, elType);
@@ -1632,7 +1636,7 @@ public class QueryEngine {
         return null;
     }
 
-    private function _getUniqueIndexedName(namesPool:Array, prefix:String = null, suffix:String = null):String {
+    private static function _getUniqueIndexedName(namesPool:Array, prefix:String = null, suffix:String = null):String {
         var testName:String;
         var count:int = 1;
         while (namesPool.indexOf(testName = ((prefix || '') as String).concat(count).concat(suffix || '')) >= 0) {
@@ -1670,7 +1674,7 @@ public class QueryEngine {
      *            is the given (composite) duration, and the second is a fraction
      *            equivalent to 0.
      */
-    private function _splitCompositeDuration(compositeDuration:Fraction):Array {
+    private static function _splitCompositeDuration(compositeDuration:Fraction):Array {
         var knownDotValues:Array = [DotTypes.SINGLE, DotTypes.DOUBLE];
         var knownSimpleDurations:Array = ConstantUtils.getAllValues(DurationFractions);
         for (var i:int = 0; i < knownDotValues.length; i++) {

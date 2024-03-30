@@ -1,6 +1,7 @@
 package ro.ciacob.maidens.controller.editor.nudge {
 import ro.ciacob.desktop.data.DataElement;
-import ro.ciacob.maidens.model.constants.DataFields;
+import ro.ciacob.maidens.legacy.constants.DataFields;
+
 
 /**
  * Contains utility static functions dedicated to "nudging" (i.e., sliding by one slot or position) the Clusters of a

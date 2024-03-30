@@ -302,7 +302,7 @@
                        label="Ł"
                        styleName="utils"
                        textDecoration="none"
-					   color="{Colors.PROMPT_UI_FRONT_COLOR}"
+                       color="{Colors.PROMPT_UI_FRONT_COLOR}"
                        visible="{!_haveButtons &amp;&amp; _autoClose}"
                        x="{displayPanel.width - MARGIN - forceCloseButton.width}"
                        y="0"/>
@@ -313,7 +313,7 @@
                        label="ł"
                        styleName="utils"
                        textDecoration="none"
-					   color="{Colors.PROMPT_UI_FRONT_COLOR}"
+                       color="{Colors.PROMPT_UI_FRONT_COLOR}"
                        visible="{_autoCloseTimer &amp;&amp; !_haveButtons}"
                        x="{displayPanel.width - MARGIN * 0.5 - forceCloseButton.width - pinButton.width}"
                        y="0"/>
@@ -342,7 +342,7 @@
                  toolTip="Click to copy to clipboard"
                  width="{displayPanel.width - (_haveButtons? buttonsContainer.width : 0) - MARGIN * 3}"
                  x="{((displayPanel.width - buttonsContainer.width - MARGIN * 3) - message.width) * 0.5}"
-                 y="{Math.max(MARGIN, (displayPanel.height - message.height) * 0.5)}" />
+                 y="{Math.max(MARGIN, (displayPanel.height - message.height) * 0.5)}"/>
 
         <mx:HBox click="_onButtonClick(event)"
                  id="buttonsContainer"

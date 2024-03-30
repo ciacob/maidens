@@ -1,5 +1,7 @@
-package ro.ciacob.maidens.controller.generators {
+package ro.ciacob.maidens.controller.delegates.generators {
 import eu.claudius.iacob.maidens.Sizes;
+import eu.claudius.iacob.maidens.constants.StaticTokens;
+import eu.claudius.iacob.maidens.constants.ViewKeys;
 
 import flash.geom.Rectangle;
 
@@ -18,27 +20,29 @@ import ro.ciacob.desktop.windows.WindowStyle;
 import ro.ciacob.desktop.windows.WindowsManager;
 import ro.ciacob.desktop.windows.prompts.constants.PromptDefaults;
 import ro.ciacob.maidens.controller.Controller;
-import ro.ciacob.maidens.controller.MusicUtils;
+
 import ro.ciacob.maidens.controller.QueryEngine;
-import ro.ciacob.maidens.controller.constants.GeneratorKeys;
+
 import ro.ciacob.maidens.controller.constants.GeneratorPipes;
 import ro.ciacob.maidens.generators.GeneratorBase;
 import ro.ciacob.maidens.generators.constants.GeneratorBaseKeys;
+import ro.ciacob.maidens.generators.constants.GeneratorKeys;
 import ro.ciacob.maidens.generators.constants.GeneratorSupportedTypes;
 import ro.ciacob.maidens.generators.core.ParametersList;
 import ro.ciacob.maidens.generators.core.abstracts.AbstractGeneratorModule;
 import ro.ciacob.maidens.generators.core.constants.CoreOperationKeys;
 import ro.ciacob.maidens.generators.core.interfaces.IParameter;
+import ro.ciacob.maidens.legacy.MusicUtils;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.legacy.constants.DataFields;
+import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
 import ro.ciacob.maidens.model.GeneratorInstance;
 import ro.ciacob.maidens.model.GeneratorsWiringMap;
-import ro.ciacob.maidens.model.ProjectData;
-import ro.ciacob.maidens.model.constants.DataFields;
-import ro.ciacob.maidens.model.constants.StaticFieldValues;
-import ro.ciacob.maidens.model.constants.StaticTokens;
+
 import ro.ciacob.maidens.view.components.GeneratorProgressUI;
 import ro.ciacob.maidens.view.constants.PromptColors;
 import ro.ciacob.maidens.view.constants.PromptKeys;
-import ro.ciacob.maidens.view.constants.ViewKeys;
+
 import ro.ciacob.utils.ConstantUtils;
 import ro.ciacob.utils.Strings;
 import ro.ciacob.utils.Templates;
@@ -280,10 +284,6 @@ public class GeneratorUtils {
         }
     }
 
-    private function _writeValueToGenerator(slotValue:Object, generator:ProjectData, slotType:String):void {
-        // TODO: implement when generators will accept inputs
-    }
-
 
     /**
      * Produces a list with the friendly names of the generators referred to by the
@@ -462,15 +462,6 @@ public class GeneratorUtils {
                 var partStreams:Array = (slotValue[GeneratorBaseKeys.NOTE_STREAMS] as Array);
                 if (partStreams != null) {
                     var partsList:Array = qEngine.getSectionPartsList(section);
-                    // TODO: allow generators to control:
-                    // - which voices to fill;
-                    // - how many measures to output;
-                    // - at which measure in the section to start overwriting the
-                    // existing
-                    //   content;
-                    // - and what kind of time signatures to use within these
-                    // measures (and
-                    //   where).
                 }
                 for (var i:int = 0; i < partStreams.length; i++) {
                     var voiceStreams:Array = (partStreams[i] as Array);
@@ -710,7 +701,7 @@ public class GeneratorUtils {
                     _printGeneratorsList(new <String>[generator_instance.fqn]),
                     'link: ' + generator_instance.link.substr(1));
             $winManager.updateWindowTitle(_controller.genCfgWindowUid, windowTitle);
-            var bounds : Rectangle = Sizes.MIN_GEN_CFG_WINDOW_BOUNDS;
+            var bounds:Rectangle = Sizes.MIN_GEN_CFG_WINDOW_BOUNDS;
             $winManager.updateWindowBounds(_controller.genCfgWindowUid, bounds, false);
             $winManager.updateWindowMinSize(_controller.genCfgWindowUid, bounds.width, bounds.height, true);
             $winManager.observeWindowActivity(_controller.genCfgWindowUid, WindowActivity.BEFORE_DESTROY,
@@ -849,7 +840,7 @@ public class GeneratorUtils {
                             var section:ProjectData = _controller.queryEngine.getSectionByConnectionUid(connectionId);
                             _writeValueToSection(slotValue, section, slotType, generator);
                         } else if (connIdType == DataFields.GENERATOR) {
-                            _writeValueToGenerator(slotValue, generator, slotType);
+                            // _writeValueToGenerator(slotValue, generator, slotType);
                         }
                     }
                 }

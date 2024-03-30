@@ -1,13 +1,15 @@
 package ro.ciacob.maidens.model {
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
-	
-	import ro.ciacob.utils.Geometry;
+
+import ro.ciacob.maidens.legacy.ProjectData;
+
+import ro.ciacob.utils.Geometry;
 
 	/**
 	 * Holds information that represents a connection (binding) between one entry in the
-	 * datamodel and the corresponding element, as it was drawn in the on-screen score.
-	 * The datamodel entry is represented by its unique id, and the score brawing is
+	 * data model and the corresponding element, as it was drawn in the on-screen score.
+	 * The data model entry is represented by its unique id, and the in-score drawing is
 	 * represented by its bounding box.
 	 */
 	public final class HotspotBindingModel {
@@ -21,12 +23,12 @@ package ro.ciacob.maidens.model {
 		public var haveStemInfo : Boolean;
 		
 		/**
-		 * Used for refining Cluster hotspots based on stem atitude (i.e., whether it is "up" or "down").
+		 * Used for refining Cluster hotspots based on stem attitude (i.e., whether it is "up" or "down").
 		 */
 		public var stemDirection : String;
 		
 		/**
-		 * Used to help slighlty translate toward left all Cluster hotspots that lay out notes in two roes
+		 * Used to help slightly translate toward left all Cluster hotspots that lay out notes in two roes
 		 * (e.g., because they contain a "prime" or "second" musical interval) while also having a "down"
 		 * stem.
 		 */
@@ -34,12 +36,12 @@ package ro.ciacob.maidens.model {
 
 		/**
 		 * Holds information that represents a connection (binding) between one entry in the
-		 * datamodel and the corresponding element, as it was drawn in the on-screen score.
-		 * The datamodel entry is represented by its unique id, and the score brawing is
+		 * data model and the corresponding element, as it was drawn in the on-screen score.
+		 * The data model entry is represented by its unique id, and the in-score drawing is
 		 * represented by its bounding box.
 		 *
 		 * @param	elementUID
-		 * 			The unique ID of an entry in the datamodel (i.e., an ProjectData
+		 * 			The unique ID of an entry in the data model (i.e., an ProjectData
 		 * 			implementor) to create a binding to.
 		 */
 		public function HotspotBindingModel(elementUID:String) {
@@ -98,8 +100,8 @@ package ro.ciacob.maidens.model {
 		}
 
 		/**
-		 * Returns the calculated rectangle defined by all the most north-westic and
-		 * south-estic of all the added points.
+		 * Returns the calculated rectangle defined by all the most northwestern and
+		 * southeastern of all the added points.
 		 */
 		public function get boundingBox():Rectangle {
 			return _boundingBox;
@@ -117,7 +119,7 @@ package ro.ciacob.maidens.model {
 		}
 
 		/**
-		 * The unique ID of the element in the datamodel we bound to.
+		 * The unique ID of the element in the data model we bound to.
 		 */
 		public function get elementUID():String {
 			return _elementUID;

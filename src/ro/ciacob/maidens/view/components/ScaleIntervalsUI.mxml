@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <windows:BasicWindowRootContainer
-	creationComplete="_onCreationComplete(event)"
-	xmlns:fx="http://ns.adobe.com/mxml/2009" 
-	xmlns:s="library://ns.adobe.com/flex/spark" 
-	xmlns:mx="library://ns.adobe.com/flex/mx"
-	xmlns:windows="ro.ciacob.desktop.windows.*"
-	styleName="tintorettoBackground"
-	width="100%"
-	height="100%">
-	
-	<fx:Style>
-		@namespace s "library://ns.adobe.com/flex/spark";
-		@namespace mx "library://ns.adobe.com/flex/mx";
-		@namespace windows "ro.ciacob.desktop.windows.*";
-		
-		.alignRight {
-			textAlign: right;
-		}
-	</fx:Style>
-	
-	<fx:Script>
+        creationComplete="_onCreationComplete(event)"
+        xmlns:fx="http://ns.adobe.com/mxml/2009"
+        xmlns:mx="library://ns.adobe.com/flex/mx"
+        xmlns:windows="ro.ciacob.desktop.windows.*"
+        styleName="tintorettoBackground"
+        width="100%"
+        height="100%">
+
+    <fx:Style>
+        @namespace s "library://ns.adobe.com/flex/spark";
+        @namespace mx "library://ns.adobe.com/flex/mx";
+        @namespace windows "ro.ciacob.desktop.windows.*";
+
+        .alignRight {
+            textAlign: right;
+        }
+    </fx:Style>
+
+    <fx:Script>
 		<![CDATA[
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+
         import mx.events.FlexEvent;
 
         import ro.ciacob.desktop.signals.PTT;
         import ro.ciacob.desktop.windows.IWindowsManager;
         import ro.ciacob.desktop.windows.WindowActivity;
         import ro.ciacob.maidens.generators.constants.pitch.Direction;
-        import ro.ciacob.maidens.model.constants.StaticFieldValues;
-        import ro.ciacob.maidens.model.constants.StaticTokens;
 
         import eu.claudius.iacob.maidens.Colors;
         import eu.claudius.iacob.maidens.Sizes;
 
-        import ro.ciacob.maidens.view.constants.ViewKeys;
-
         import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
         import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
+
+        import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
 
         import ro.ciacob.utils.constants.CommonStrings;
 
@@ -45,7 +45,7 @@
         private static const SCALE_STRATEGIES_LIST:Array = [
             {label: StaticTokens.NONE, value: 0},
             {label: StaticTokens.SCALE_BY_CONSTANT_FACTOR, value: StaticFieldValues.CONSTANT},
-            {label: StaticTokens.SCALE_PROGRESSIVELY, value: StaticFieldValues.PROGRESSIVELLY},
+            {label: StaticTokens.SCALE_PROGRESSIVELY, value: StaticFieldValues.PROGRESSIVELY},
             {label: StaticTokens.SCALE_WITH_THRESHOLD, value: StaticFieldValues.THRESHOLD}
         ];
         private static const CONSTANT_FACTOR_MIN:Number = 0.01;
@@ -145,7 +145,7 @@
          * Fires when window is closed by using the "x" button or similar means. Allows
          * halting the operation midway.
          */
-        private function _onWindowBeforeDestroy(...args):Boolean {
+        private function _onWindowBeforeDestroy(...ignore):Boolean {
             if (_haveChanges()) {
                 _setWarningStatus(true);
                 return false;
@@ -192,7 +192,7 @@
             }
         }
 
-        private function _findItemIndex(inArray:Array, searchFieldName:String, searchFieldValue:Object):int {
+        private static function _findItemIndex(inArray:Array, searchFieldName:String, searchFieldValue:Object):int {
             for (var i:int = 0; i < inArray.length; i++) {
                 var testItem:Object = inArray[i] as Object;
                 if (searchFieldName in testItem) {
@@ -222,7 +222,7 @@
         }
 
         /**
-         * Determines whether user has made changes in the current session. Usefull for preventing
+         * Determines whether user has made changes in the current session. Useful for preventing
          * accidental closing of the window.
          */
         private function _haveChanges():Boolean {
@@ -258,22 +258,6 @@
             } else {
                 bottomBox.clearStyle('backgroundColor');
             }
-        }
-
-        /**
-         * Return the index of the item in given Array that has a "value" property which points, or is
-         * equal to given `value`.
-         */
-        private function _valueToIndex(arr:Array, value:Object):int {
-            if (arr && arr.length && value !== null) {
-                for (var i:int = 0; i < arr.length; i++) {
-                    var item:Object = arr[i];
-                    if (item.value === value) {
-                        return i;
-                    }
-                }
-            }
-            return -1;
         }
 
         /**
@@ -343,252 +327,267 @@
         }
         ]]>
 	</fx:Script>
-	
-	<!-- Content -->
-	<mx:VBox height="{rule.y - 10}"
-			 horizontalScrollPolicy="off"
-			 id="content"
-			 paddingBottom="10"
-			 paddingLeft="10"
-			 paddingRight="10"
-			 paddingTop="10"
-			 verticalGap="5"
-			 width="{width}"
-			 x="0"
-			 y="0">
-		
-		<!-- Description -->
-		<mx:Text width="100%" htmlText="{StaticTokens.MELODIC_INTERVALS_SCALING_INFO}" selectable="false" />
-		<mx:Spacer height="0" />
-		
-		<!-- Strategy -->
-		<mx:HBox width="100%">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.SCALE_STRATEGY}{CommonStrings.COLON_SPACE}"
-					  toolTip="Choose a type of transformation to apply to melodic intervals in the selected material."/>
-			<mx:ComboBox id="scaleStrategy"
-						 selectedIndex="0"
-						 width="{SECOND_COL_WIDTH}"
-						 dataProvider="{SCALE_STRATEGIES_LIST}" 
-						 labelField="label" 
-						 change="_onControlChanged()" 
-						 prompt="{StaticTokens.NONE}"/>
-		</mx:HBox>
-		
-		<!-- Threshold operating realm. Only visible when "threshold" is selected in "Strategy" -->
-		<mx:HBox width="100%" id="thresholdOperationRealmGroup" 
-				 visible="{scaleStrategy.selectedIndex == 3}"
-				 includeInLayout="{scaleStrategy.selectedIndex == 3}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.OPERATE}{CommonStrings.COLON_SPACE}"
-					  toolTip="Decide whether to affect smaller or larger intervals with respect to the threshold."/>
-			<mx:RadioButtonGroup id="thresholdOperationRealm" selectedValue="{Direction.ABOVE}" labelPlacement="right" change="_onControlChanged()"/>
-			<mx:VBox>
-				<mx:RadioButton label="{StaticTokens.ABOVE_THRESHOLD}" value="{Direction.ABOVE}" group="{thresholdOperationRealm}" />
-				<mx:RadioButton label="{StaticTokens.BELOW_THRESHOLD}" value="{Direction.BELOW}" group="{thresholdOperationRealm}" />
-			</mx:VBox>
-		</mx:HBox>
-		
-		<!-- Threshold. Only visible if "threshold" is selected in "Strategy" -->
-		<mx:HBox width="100%" verticalAlign="bottom" id="thresholdGroup" paddingTop="5"
-				 visible="{scaleStrategy.selectedIndex == 3}"
-				 includeInLayout="{scaleStrategy.selectedIndex == 3}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.THRESHOLD}{CommonStrings.COLON_SPACE}"
-					  toolTip="The musical interval that acts as a threshold for the transformation. The value represents semitones." />
-			<mx:Canvas width="100%"
-					   styleName="sliderEnforcer"
-					   verticalScrollPolicy="off" 
-					   horizontalScrollPolicy="off" 
-					   height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
-				<mx:HSlider id="thresholdSemitones"
-							y="{Sizes.SLIDER_ENFORCED_Y}"
-							width="100%"
-							liveDragging="false"
-							labels="{THRESHOLD_LABELS}"
-							tickValues="{THRESHOLD_TICKS}"
-							minimum="{THRESHOLD_MIN}"
-							maximum="{THRESHOLD_MAX}"
-							snapInterval="{THRESHOLD_SNAP}"
-							dataTipPrecision="0"
-							tickOffset="-6"
-							labelOffset="6"
-							thumbOffset="-2"
-							change="_onControlChanged()"
-							value="{THRESHOLD_DEFAULT}" />
-			</mx:Canvas>
-		</mx:HBox>
-		
-		
-		<!-- Constant factor. Only visible if "constant factor" or "threshold" is selected in "Strategy" -->
-		<mx:HBox width="100%" verticalAlign="bottom" id="constantFactorGroup" paddingTop="5"
-				 visible="{scaleStrategy.selectedIndex == 1 || scaleStrategy.selectedIndex == 3}"
-				 includeInLayout="{scaleStrategy.selectedIndex == 1 || scaleStrategy.selectedIndex == 3}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.FACTOR}{CommonStrings.COLON_SPACE}"
-					  toolTip="The constant transformation to be applied to melodic intervals within the selection. Value represents a percent of the interval's current size." />
-			<mx:Canvas width="100%"
-					   styleName="sliderEnforcer"
-					   verticalScrollPolicy="off" 
-					   horizontalScrollPolicy="off" 
-					   height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
-				<mx:HSlider id="constantFactor"
-							y="{Sizes.SLIDER_ENFORCED_Y}"
-							width="100%"
-							liveDragging="false"
-							labels="{FACTOR_LABELS}"
-							tickValues="{FACTOR_TICKS}"
-							minimum="{CONSTANT_FACTOR_MIN}"
-							maximum="{CONSTANT_FACTOR_MAX}"
-							snapInterval="{FACTOR_SNAP}"
-							tickOffset="-6"
-							labelOffset="6"
-							thumbOffset="-2"
-							change="_onControlChanged()" 
-							value="{CONSTANT_FACTOR_DEFAULT}" />
-			</mx:Canvas>
-		</mx:HBox>
 
-		<!-- Start factor. Only visible if "progressivelly" is selected in "Strategy" -->
-		<mx:HBox width="100%" verticalAlign="bottom" id="startFactorGroup" paddingTop="5"
-				 visible="{scaleStrategy.selectedIndex == 2}"
-				 includeInLayout="{scaleStrategy.selectedIndex == 2}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.START_FACTOR}{CommonStrings.COLON_SPACE}"
-					  toolTip="The transformation factor to use as the starting point, at the beginning of the selection. Value represents a percent of the interval's current size." />
-			<mx:Canvas width="100%"
-					   styleName="sliderEnforcer"
-					   verticalScrollPolicy="off" 
-					   horizontalScrollPolicy="off" 
-					   height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
-				<mx:HSlider id="startFactor"
-							y="{Sizes.SLIDER_ENFORCED_Y}"
-							width="100%"
-							liveDragging="false"
-							labels="{FACTOR_LABELS}"
-							tickValues="{FACTOR_TICKS}"
-							minimum="{CONSTANT_FACTOR_MIN}"
-							maximum="{CONSTANT_FACTOR_MAX}"
-							snapInterval="{FACTOR_SNAP}"
-							tickOffset="-6"
-							labelOffset="6"
-							thumbOffset="-2"
-							change="_onControlChanged()"
-							value="{CONSTANT_FACTOR_DEFAULT}" />
-			</mx:Canvas>
-		</mx:HBox>
-		
-		<!-- End factor. Only visible if "progressivelly" is selected in "Strategy" -->
-		<mx:HBox width="100%" verticalAlign="bottom" id="endFactorGroup" paddingTop="5"
-				 visible="{scaleStrategy.selectedIndex == 2}"
-				 includeInLayout="{scaleStrategy.selectedIndex == 2}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.END_FACTOR}{CommonStrings.COLON_SPACE}"
-					  toolTip="The final transformation factor, to use at the end of the selection. Value represents a percent of the interval's current size."/>
-			<mx:Canvas width="100%"
-					   styleName="sliderEnforcer"
-					   verticalScrollPolicy="off" 
-					   horizontalScrollPolicy="off" 
-					   height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
-				<mx:HSlider id="endFactor"
-							y="{Sizes.SLIDER_ENFORCED_Y}"
-							width="100%"
-							liveDragging="false"
-							labels="{FACTOR_LABELS}"
-							tickValues="{FACTOR_TICKS}"
-							minimum="{CONSTANT_FACTOR_MIN}"
-							maximum="{CONSTANT_FACTOR_MAX}"
-							snapInterval="{FACTOR_SNAP}"
-							tickOffset="-6"
-							labelOffset="6"
-							thumbOffset="-2"
-							change="_onControlChanged()"
-							value="{CONSTANT_FACTOR_DEFAULT}" />
-			</mx:Canvas>
-		</mx:HBox>
-		
-		<!-- Vertical alignment. Visible only whne "Strategy" is not set to "none". -->
-		<mx:HBox width="100%" id="verticalAlignGroup"
-				 visible="{scaleStrategy.selectedIndex > 0}"
-				 includeInLayout="{scaleStrategy.selectedIndex > 0}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.ALIGN_RESULT}{CommonStrings.COLON_SPACE}"
-					  toolTip="How to place the resulting melodic line with respect to original melodic range." />
-			<mx:ComboBox id="verticalAlign"
-						 selectedIndex="0"
-						 width="{SECOND_COL_WIDTH}"
-						 dataProvider="{VERTICAL_ALIGNMENT_LIST}" 
-						 labelField="label" 
-						 change="_onControlChanged()" />
-		</mx:HBox>
-		
-		<!-- Consolidate resulting primes. Visible only whne "Strategy" is not set to "none". -->
-		<mx:HBox width="100%" id="resultingPrimesGroup"
-				 visible="{scaleStrategy.selectedIndex > 0}"
-				 includeInLayout="{scaleStrategy.selectedIndex > 0}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.RESULTING_PRIMES}{CommonStrings.COLON_SPACE}"
-					  toolTip="How to treat resulting prime intervals (repeated notes of same pitch)."/>
-			<mx:RadioButtonGroup id="resultingPrimes" selectedValue="{StaticFieldValues.CONSOLIDATE_PRIMES}" labelPlacement="right"
-								 change="_onControlChanged()" />
-			<mx:VBox>
-				<mx:RadioButton label="{StaticTokens.CONSOLIDATE}" value="{StaticFieldValues.CONSOLIDATE_PRIMES}" group="{resultingPrimes}" />
-				<mx:RadioButton label="{StaticTokens.PRESERVE}" value="{StaticFieldValues.PRESERVE_PRIMES}" group="{resultingPrimes}" />
-			</mx:VBox>
-		</mx:HBox>
-		
-		<!-- Invert intervals. Visible only when "Strategy" is not set to "none". -->
-		<mx:HBox width="100%" id="invertIntervalsGroup"
-				 visible="{scaleStrategy.selectedIndex > 0}"
-				 includeInLayout="{scaleStrategy.selectedIndex > 0}">
-			<mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}" text="{StaticTokens.INVERT_INTERVALS}{CommonStrings.COLON_SPACE}"
-					  toolTip="Decide whether to reverse the direction of all melodic intervals in the selection." />
-			<mx:CheckBox id="invertIntervals" change="_onControlChanged()" />
-		</mx:HBox>
+    <!-- Content -->
+    <mx:VBox height="{rule.y - 10}"
+             horizontalScrollPolicy="off"
+             id="content"
+             paddingBottom="10"
+             paddingLeft="10"
+             paddingRight="10"
+             paddingTop="10"
+             verticalGap="5"
+             width="{width}"
+             x="0"
+             y="0">
 
-	</mx:VBox>
-	
-	<!-- Commit / Discard buttons -->
-	<mx:HRule id="rule"
-			  width="{width - 20}"
-			  x="10"
-			  y="{bottomBox.y - rule.height - 10}"/>
-	
-	<mx:VBox horizontalScrollPolicy="off"
-			 id="bottomBox"
-			 paddingBottom="15"
-			 paddingLeft="15"
-			 paddingRight="15"
-			 paddingTop="5"
-			 verticalScrollPolicy="off"
-			 width="{width}"
-			 x="0"
-			 y="{height - bottomBox.height}">
-		
-		<!-- Apply/Discard notice -->
-		<mx:Text enabled="{canEnableSection}"
-				 id="warningText"
-				 selectable="false"
-				 styleName="editorNote"
-				 text="You must APPLY or RESET the current changes before closing this window."
-				 textAlign="left"
-				 width="100%"/>
-		
-		<mx:HBox horizontalScrollPolicy="off"
-				 verticalScrollPolicy="off">
-			
-			<!-- Apply / Discard buttons -->
-			<mx:Button skin="{ApplyChangesSkin}"
-					   click="_onApplyButtonClick(event)"
-					   enabled="{canApply}"
-					   id="applyButton"
-					   toolTip="Apply changes"/>
-			
-			<mx:Button skin="{ResetChangesSkin}"
-					   click="_onResetButtonClick(event)"
-					   enabled="{canDiscard}"
-					   id="resetButton"
-					   toolTip="Reset changes"/>
-			
-			<!-- Auto-close button -->
-			<mx:CheckBox enabled="{canEnableSection}"
-						 id="autoCloseCheckBox"
-						 label="auto close"
-						 selected="true"/>
+        <!-- Description -->
+        <mx:Text width="100%" htmlText="{StaticTokens.MELODIC_INTERVALS_SCALING_INFO}" selectable="false"/>
+        <mx:Spacer height="0"/>
 
-		</mx:HBox>
-	</mx:VBox>
-	
+        <!-- Strategy -->
+        <mx:HBox width="100%">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.SCALE_STRATEGY}{CommonStrings.COLON_SPACE}"
+                      toolTip="Choose a type of transformation to apply to melodic intervals in the selected material."/>
+            <mx:ComboBox id="scaleStrategy"
+                         selectedIndex="0"
+                         width="{SECOND_COL_WIDTH}"
+                         dataProvider="{SCALE_STRATEGIES_LIST}"
+                         labelField="label"
+                         change="_onControlChanged()"
+                         prompt="{StaticTokens.NONE}"/>
+        </mx:HBox>
+
+        <!-- Threshold operating realm. Only visible when "threshold" is selected in "Strategy" -->
+        <mx:HBox width="100%" id="thresholdOperationRealmGroup"
+                 visible="{scaleStrategy.selectedIndex == 3}"
+                 includeInLayout="{scaleStrategy.selectedIndex == 3}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.OPERATE}{CommonStrings.COLON_SPACE}"
+                      toolTip="Decide whether to affect smaller or larger intervals with respect to the threshold."/>
+            <mx:RadioButtonGroup id="thresholdOperationRealm" selectedValue="{Direction.ABOVE}" labelPlacement="right"
+                                 change="_onControlChanged()"/>
+            <mx:VBox>
+                <mx:RadioButton label="{StaticTokens.ABOVE_THRESHOLD}" value="{Direction.ABOVE}"
+                                group="{thresholdOperationRealm}"/>
+                <mx:RadioButton label="{StaticTokens.BELOW_THRESHOLD}" value="{Direction.BELOW}"
+                                group="{thresholdOperationRealm}"/>
+            </mx:VBox>
+        </mx:HBox>
+
+        <!-- Threshold. Only visible if "threshold" is selected in "Strategy" -->
+        <mx:HBox width="100%" verticalAlign="bottom" id="thresholdGroup" paddingTop="5"
+                 visible="{scaleStrategy.selectedIndex == 3}"
+                 includeInLayout="{scaleStrategy.selectedIndex == 3}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.THRESHOLD}{CommonStrings.COLON_SPACE}"
+                      toolTip="The musical interval that acts as a threshold for the transformation. The value represents semitones."/>
+            <mx:Canvas width="100%"
+                       styleName="sliderEnforcer"
+                       verticalScrollPolicy="off"
+                       horizontalScrollPolicy="off"
+                       height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
+                <mx:HSlider id="thresholdSemitones"
+                            y="{Sizes.SLIDER_ENFORCED_Y}"
+                            width="100%"
+                            liveDragging="false"
+                            labels="{THRESHOLD_LABELS}"
+                            tickValues="{THRESHOLD_TICKS}"
+                            minimum="{THRESHOLD_MIN}"
+                            maximum="{THRESHOLD_MAX}"
+                            snapInterval="{THRESHOLD_SNAP}"
+                            dataTipPrecision="0"
+                            tickOffset="-6"
+                            labelOffset="6"
+                            thumbOffset="-2"
+                            change="_onControlChanged()"
+                            value="{THRESHOLD_DEFAULT}"/>
+            </mx:Canvas>
+        </mx:HBox>
+
+
+        <!-- Constant factor. Only visible if "constant factor" or "threshold" is selected in "Strategy" -->
+        <mx:HBox width="100%" verticalAlign="bottom" id="constantFactorGroup" paddingTop="5"
+                 visible="{scaleStrategy.selectedIndex == 1 || scaleStrategy.selectedIndex == 3}"
+                 includeInLayout="{scaleStrategy.selectedIndex == 1 || scaleStrategy.selectedIndex == 3}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.FACTOR}{CommonStrings.COLON_SPACE}"
+                      toolTip="The constant transformation to be applied to melodic intervals within the selection. Value represents a percent of the interval's current size."/>
+            <mx:Canvas width="100%"
+                       styleName="sliderEnforcer"
+                       verticalScrollPolicy="off"
+                       horizontalScrollPolicy="off"
+                       height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
+                <mx:HSlider id="constantFactor"
+                            y="{Sizes.SLIDER_ENFORCED_Y}"
+                            width="100%"
+                            liveDragging="false"
+                            labels="{FACTOR_LABELS}"
+                            tickValues="{FACTOR_TICKS}"
+                            minimum="{CONSTANT_FACTOR_MIN}"
+                            maximum="{CONSTANT_FACTOR_MAX}"
+                            snapInterval="{FACTOR_SNAP}"
+                            tickOffset="-6"
+                            labelOffset="6"
+                            thumbOffset="-2"
+                            change="_onControlChanged()"
+                            value="{CONSTANT_FACTOR_DEFAULT}"/>
+            </mx:Canvas>
+        </mx:HBox>
+
+        <!-- Start factor. Only visible if "progressively" is selected in "Strategy" -->
+        <mx:HBox width="100%" verticalAlign="bottom" id="startFactorGroup" paddingTop="5"
+                 visible="{scaleStrategy.selectedIndex == 2}"
+                 includeInLayout="{scaleStrategy.selectedIndex == 2}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.START_FACTOR}{CommonStrings.COLON_SPACE}"
+                      toolTip="The transformation factor to use as the starting point, at the beginning of the selection. Value represents a percent of the interval's current size."/>
+            <mx:Canvas width="100%"
+                       styleName="sliderEnforcer"
+                       verticalScrollPolicy="off"
+                       horizontalScrollPolicy="off"
+                       height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
+                <mx:HSlider id="startFactor"
+                            y="{Sizes.SLIDER_ENFORCED_Y}"
+                            width="100%"
+                            liveDragging="false"
+                            labels="{FACTOR_LABELS}"
+                            tickValues="{FACTOR_TICKS}"
+                            minimum="{CONSTANT_FACTOR_MIN}"
+                            maximum="{CONSTANT_FACTOR_MAX}"
+                            snapInterval="{FACTOR_SNAP}"
+                            tickOffset="-6"
+                            labelOffset="6"
+                            thumbOffset="-2"
+                            change="_onControlChanged()"
+                            value="{CONSTANT_FACTOR_DEFAULT}"/>
+            </mx:Canvas>
+        </mx:HBox>
+
+        <!-- End factor. Only visible if "progressively" is selected in "Strategy" -->
+        <mx:HBox width="100%" verticalAlign="bottom" id="endFactorGroup" paddingTop="5"
+                 visible="{scaleStrategy.selectedIndex == 2}"
+                 includeInLayout="{scaleStrategy.selectedIndex == 2}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.END_FACTOR}{CommonStrings.COLON_SPACE}"
+                      toolTip="The final transformation factor, to use at the end of the selection. Value represents a percent of the interval's current size."/>
+            <mx:Canvas width="100%"
+                       styleName="sliderEnforcer"
+                       verticalScrollPolicy="off"
+                       horizontalScrollPolicy="off"
+                       height="{Sizes.SLIDER_ENFORCED_HEIGHT}">
+                <mx:HSlider id="endFactor"
+                            y="{Sizes.SLIDER_ENFORCED_Y}"
+                            width="100%"
+                            liveDragging="false"
+                            labels="{FACTOR_LABELS}"
+                            tickValues="{FACTOR_TICKS}"
+                            minimum="{CONSTANT_FACTOR_MIN}"
+                            maximum="{CONSTANT_FACTOR_MAX}"
+                            snapInterval="{FACTOR_SNAP}"
+                            tickOffset="-6"
+                            labelOffset="6"
+                            thumbOffset="-2"
+                            change="_onControlChanged()"
+                            value="{CONSTANT_FACTOR_DEFAULT}"/>
+            </mx:Canvas>
+        </mx:HBox>
+
+        <!-- Vertical alignment. Visible only when "Strategy" is not set to "none". -->
+        <mx:HBox width="100%" id="verticalAlignGroup"
+                 visible="{scaleStrategy.selectedIndex > 0}"
+                 includeInLayout="{scaleStrategy.selectedIndex > 0}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.ALIGN_RESULT}{CommonStrings.COLON_SPACE}"
+                      toolTip="How to place the resulting melodic line with respect to original melodic range."/>
+            <mx:ComboBox id="verticalAlign"
+                         selectedIndex="0"
+                         width="{SECOND_COL_WIDTH}"
+                         dataProvider="{VERTICAL_ALIGNMENT_LIST}"
+                         labelField="label"
+                         change="_onControlChanged()"/>
+        </mx:HBox>
+
+        <!-- Consolidate resulting primes. Visible only when "Strategy" is not set to "none". -->
+        <mx:HBox width="100%" id="resultingPrimesGroup"
+                 visible="{scaleStrategy.selectedIndex > 0}"
+                 includeInLayout="{scaleStrategy.selectedIndex > 0}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.RESULTING_PRIMES}{CommonStrings.COLON_SPACE}"
+                      toolTip="How to treat resulting prime intervals (repeated notes of same pitch)."/>
+            <mx:RadioButtonGroup id="resultingPrimes" selectedValue="{StaticFieldValues.CONSOLIDATE_PRIMES}"
+                                 labelPlacement="right"
+                                 change="_onControlChanged()"/>
+            <mx:VBox>
+                <mx:RadioButton label="{StaticTokens.CONSOLIDATE}" value="{StaticFieldValues.CONSOLIDATE_PRIMES}"
+                                group="{resultingPrimes}"/>
+                <mx:RadioButton label="{StaticTokens.PRESERVE}" value="{StaticFieldValues.PRESERVE_PRIMES}"
+                                group="{resultingPrimes}"/>
+            </mx:VBox>
+        </mx:HBox>
+
+        <!-- Invert intervals. Visible only when "Strategy" is not set to "none". -->
+        <mx:HBox width="100%" id="invertIntervalsGroup"
+                 visible="{scaleStrategy.selectedIndex > 0}"
+                 includeInLayout="{scaleStrategy.selectedIndex > 0}">
+            <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
+                      text="{StaticTokens.INVERT_INTERVALS}{CommonStrings.COLON_SPACE}"
+                      toolTip="Decide whether to reverse the direction of all melodic intervals in the selection."/>
+            <mx:CheckBox id="invertIntervals" change="_onControlChanged()"/>
+        </mx:HBox>
+
+    </mx:VBox>
+
+    <!-- Commit / Discard buttons -->
+    <mx:HRule id="rule"
+              width="{width - 20}"
+              x="10"
+              y="{bottomBox.y - rule.height - 10}"/>
+
+    <mx:VBox horizontalScrollPolicy="off"
+             id="bottomBox"
+             paddingBottom="15"
+             paddingLeft="15"
+             paddingRight="15"
+             paddingTop="5"
+             verticalScrollPolicy="off"
+             width="{width}"
+             x="0"
+             y="{height - bottomBox.height}">
+
+        <!-- Apply/Discard notice -->
+        <mx:Text enabled="{canEnableSection}"
+                 id="warningText"
+                 selectable="false"
+                 styleName="editorNote"
+                 text="You must APPLY or RESET the current changes before closing this window."
+                 textAlign="left"
+                 width="100%"/>
+
+        <mx:HBox horizontalScrollPolicy="off"
+                 verticalScrollPolicy="off">
+
+            <!-- Apply / Discard buttons -->
+            <mx:Button skin="{ApplyChangesSkin}"
+                       click="_onApplyButtonClick(event)"
+                       enabled="{canApply}"
+                       id="applyButton"
+                       toolTip="Apply changes"/>
+
+            <mx:Button skin="{ResetChangesSkin}"
+                       click="_onResetButtonClick(event)"
+                       enabled="{canDiscard}"
+                       id="resetButton"
+                       toolTip="Reset changes"/>
+
+            <!-- Auto-close button -->
+            <mx:CheckBox enabled="{canEnableSection}"
+                         id="autoCloseCheckBox"
+                         label="auto close"
+                         selected="true"/>
+
+        </mx:HBox>
+    </mx:VBox>
+
 </windows:BasicWindowRootContainer>

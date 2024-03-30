@@ -13,6 +13,8 @@
 		<![CDATA[
         import com.greensock.TweenMax;
 
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+
         import mx.core.IContainer;
         import mx.events.FlexEvent;
 
@@ -22,7 +24,7 @@
 
         import ro.ciacob.maidens.model.constants.PersistenceKeys;
 
-        import ro.ciacob.maidens.view.constants.ViewKeys;
+
         import ro.ciacob.utils.constants.CommonStrings;
 
         private var _editorExpandedWidth:Number;
@@ -97,7 +99,7 @@
         /**
          * Triggered when the user clicks the header icon of the "Project" section
          */
-        private function _onTreeHeaderClick(...args):void {
+        private function _onTreeHeaderClick(...ignore):void {
             toggleSection('projectTree', Sizes.TREE_MINIMUM_WIDTH, Sizes.TREE_INITIAL_WIDTH,
                     "_treeExpandedWidth", "_treeCurrentAlpha");
         }
@@ -105,7 +107,7 @@
         /**
          * Triggered when the user clicks the header icon of the "Editor" section
          */
-        private function _onEditorHeaderClick(...args):void {
+        private function _onEditorHeaderClick(...ignore):void {
             toggleSection('projectEditor', Sizes.EDITOR_MINIMUM_WIDTH, Sizes.EDITOR_INITIAL_WIDTH,
                     "_editorExpandedWidth", "_editorCurrentAlpha");
         }

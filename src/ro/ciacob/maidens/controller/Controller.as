@@ -3,6 +3,9 @@ import com.greensock.plugins.AutoAlphaPlugin;
 import com.greensock.plugins.TweenPlugin;
 
 import eu.claudius.iacob.maidens.Sizes;
+import eu.claudius.iacob.maidens.constants.StaticTokens;
+import eu.claudius.iacob.maidens.constants.ViewKeys;
+import eu.claudius.iacob.maidens.constants.ViewPipes;
 import eu.claudius.iacob.maidens.skins.RasterImages;
 import eu.claudius.iacob.synth.constants.OperationTypes;
 import eu.claudius.iacob.synth.events.PlaybackAnnotationEvent;
@@ -66,15 +69,15 @@ import ro.ciacob.desktop.windows.prompts.PromptsManager;
 import ro.ciacob.desktop.windows.prompts.constants.PromptDefaults;
 import ro.ciacob.maidens.controller.constants.AudioKeys;
 import ro.ciacob.maidens.controller.constants.CopiableProperties;
-import ro.ciacob.maidens.controller.constants.GeneratorKeys;
 import ro.ciacob.maidens.controller.constants.GeneratorPipes;
-import ro.ciacob.maidens.controller.constants.MeasureSelectionKeys;
 import ro.ciacob.maidens.controller.delegates.ContextualMenusManager;
-import ro.ciacob.maidens.controller.generators.GeneratorUtils;
-import ro.ciacob.maidens.controller.generators.GeneratorsManager;
+import ro.ciacob.maidens.controller.delegates.generators.GeneratorUtils;
+import ro.ciacob.maidens.controller.delegates.generators.GeneratorsManager;
+import ro.ciacob.maidens.editor.selection.ScoreSelectionManager;
 import ro.ciacob.maidens.generators.constants.BarTypes;
 import ro.ciacob.maidens.generators.constants.BracketTypes;
 import ro.ciacob.maidens.generators.constants.ClefTypes;
+import ro.ciacob.maidens.generators.constants.GeneratorKeys;
 import ro.ciacob.maidens.generators.constants.MIDI;
 import ro.ciacob.maidens.generators.constants.duration.CompoundTimeSignatures;
 import ro.ciacob.maidens.generators.constants.duration.DivisionTypes;
@@ -91,19 +94,19 @@ import ro.ciacob.maidens.generators.constants.parts.PartNames;
 import ro.ciacob.maidens.generators.constants.parts.PartRanges;
 import ro.ciacob.maidens.generators.constants.parts.PartTranspositions;
 import ro.ciacob.maidens.generators.constants.pitch.Direction;
+import ro.ciacob.maidens.legacy.ModelUtils;
+import ro.ciacob.maidens.legacy.MusicUtils;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.legacy.constants.DataFields;
+import ro.ciacob.maidens.legacy.constants.DataFormats;
+import ro.ciacob.maidens.legacy.constants.FileAssets;
+import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
+import ro.ciacob.maidens.legacy.constants.Voices;
 import ro.ciacob.maidens.model.Model;
-import ro.ciacob.maidens.model.ModelUtils;
-import ro.ciacob.maidens.model.ProjectData;
 import ro.ciacob.maidens.model.constants.Common;
-import ro.ciacob.maidens.model.constants.DataFields;
-import ro.ciacob.maidens.model.constants.DataFormats;
-import ro.ciacob.maidens.model.constants.FileAssets;
 import ro.ciacob.maidens.model.constants.ModelKeys;
 import ro.ciacob.maidens.model.constants.PersistenceKeys;
-import ro.ciacob.maidens.model.constants.StaticFieldValues;
-import ro.ciacob.maidens.model.constants.StaticTokens;
 import ro.ciacob.maidens.model.constants.URLs;
-import ro.ciacob.maidens.model.constants.Voices;
 import ro.ciacob.maidens.model.exporters.SynthTracksProducer;
 import ro.ciacob.maidens.view.components.PickupComponentWindow;
 import ro.ciacob.maidens.view.components.RenderProgressUI;
@@ -114,8 +117,6 @@ import ro.ciacob.maidens.view.constants.MenuCommandNames;
 import ro.ciacob.maidens.view.constants.PromptColors;
 import ro.ciacob.maidens.view.constants.PromptKeys;
 import ro.ciacob.maidens.view.constants.UiColorizationThemes;
-import ro.ciacob.maidens.view.constants.ViewKeys;
-import ro.ciacob.maidens.view.constants.ViewPipes;
 import ro.ciacob.math.Fraction;
 import ro.ciacob.utils.ConstantUtils;
 import ro.ciacob.utils.Descriptor;
@@ -145,6 +146,9 @@ public class Controller {
      *            The unique ID of the window that is to be considered "main".
      */
     public function Controller(mainView:DisplayObjectContainer, windowsManager:IWindowsManager, mainWindowUid:String) {
+
+        // Initialize selection manager
+        _selectionManager = new ScoreSelectionManager;
 
         // Initialize audio support
         _audioStorage = AudioUtils.makeSamplesStorage();
@@ -219,9 +223,18 @@ public class Controller {
     public var genCfgWindowUid:String;
 
     /**
-     * Storage for the last known selected element.
+     * Proxy to $SelectionManager#get selectionAnchor
      */
-    public var lastSelection:ProjectData;
+    public function get lastSelection():ProjectData {
+        return (_selectionManager.selectionAnchor as ProjectData);
+    }
+
+    /**
+     * Proxy to $SelectionManager#set selectionAnchor
+     */
+    public function set lastSelection(value:ProjectData):void {
+        _selectionManager.selectionAnchor = value;
+    }
 
 
     // -----------------
@@ -238,6 +251,8 @@ public class Controller {
     // -----------------
     // Private variables
     // -----------------
+
+    private var _selectionManager:ScoreSelectionManager;
 
     /**
      * Stores a reference to the ByteArray where rendered audio is being stored.
@@ -449,16 +464,6 @@ public class Controller {
      * cross sessions.
      */
     private var _persistenceEngine:Persistence;
-
-    /**
-     * TODO: Document.
-     */
-    private var _measureSelectionStaffIndex:int = 0;
-
-    /**
-     * TODO: Document.
-     */
-    private var _measureSelectionType:String = MeasureSelectionKeys.DEFAULT_SELECTION_MODE;
 
     /**
      * TODO: Document.
@@ -885,39 +890,6 @@ public class Controller {
         __beingSearchedForPartUuid = null;
     }
 
-    /**
-     * Deletes a voice node. The following logic applies:
-     * (1) If the voice is not assigned to a staff, it is just deleted;
-     * (2) If the voice index is `2+`, it is just deleted;
-     * (3) If the voice is "voice 1", then the next subsequent voice (e.g., "voice 2") is
-     * promoted as "the new voice 1", then "the old voice 1" is deleted. Note: current
-     * settings prohibit deleting the last voice of a staff, so this should be a safe
-     * approach.
-     *
-     * TO BE CONSIDERED: display a confirmation message when musical material is to be lost
-     * by deleting a voice.
-     */
-    private function _deleteVoiceNode(voice:ProjectData):ProjectData {
-        var voiceStaffIndex:int = (voice.getContent(DataFields.STAFF_INDEX) as int);
-        if (voiceStaffIndex > 0) {
-            var parentMeasure:ProjectData = (voice.dataParent as ProjectData);
-            var allVoicesInMeasure:Array = ModelUtils.getChildrenOfType(parentMeasure, DataFields.VOICE);
-            var __matchesStaffIndex:Function = function (testVoice:*, ...etc):Boolean {
-                return (testVoice !== voice && (testVoice.getContent(DataFields.STAFF_INDEX) as int) == voiceStaffIndex);
-            }
-            var otherVoicesOnStaff:Array = allVoicesInMeasure.filter(__matchesStaffIndex);
-            otherVoicesOnStaff.sort(ModelUtils.sortVoicesByStaffAndIndex);
-            var replacementVoice:ProjectData = (otherVoicesOnStaff[0] as ProjectData);
-            var replacementVoiceIndex:int = (replacementVoice.getContent(DataFields.VOICE_INDEX) as int);
-            if (replacementVoiceIndex > 1) {
-                replacementVoice.setContent(DataFields.VOICE_INDEX, Voices.FIRST_VOICE);
-            }
-            queryEngine.deleteElement(voice);
-            return replacementVoice;
-        }
-        return queryEngine.deleteElement(voice);
-    }
-
     private function _exitApplication():void {
         _stopMidi();
         if (_model.haveUnsavedData() || (_snapshotsManager.canRedo || _snapshotsManager.canUndo)) {
@@ -1027,31 +999,31 @@ public class Controller {
      * its second voice presence and availability. This is valuable data for the "measure toolbar"
      * floating UI that the score editor shows for measures.
      */
-    private function _getMeasureSelectionInfo(measure:ProjectData):Object {
-        var ret:Object = {};
-
-        // Has this measure a "second voice"?
-        var voiceTwoMap:Array = [];
-        var part:ProjectData = ModelUtils.getParentPart(measure);
-        var partNumStaves:uint = ModelUtils.getPartNumStaves(part);
-        var i:int;
-        for (i = 1; i <= partNumStaves; i++) {
-            voiceTwoMap[i] = (ModelUtils.getVoiceByPlacement(measure, i, 2));
-        }
-        ret[MeasureSelectionKeys.SECOND_VOICE_AVAILABILITY] = voiceTwoMap;
-
-        // Does this part support voice two?
-        // TODO: implement part's ability to limit its own number of voices
-        // Until this is implemented, `true` will always be returned.
-        ret[MeasureSelectionKeys.SECOND_VOICE_PERMITTED] = true;
-
-        // What is the current measure selection mode?
-        ret[MeasureSelectionKeys.SELECTION_MODE] = _measureSelectionType;
-
-        // What is the current measure selection staff index?
-        ret[MeasureSelectionKeys.STAFF_INDEX_FILTER] = _measureSelectionStaffIndex;
-        return ret;
-    }
+//    private function _getMeasureSelectionInfo(measure:ProjectData):Object {
+//        var ret:Object = {};
+//
+//        // Has this measure a "second voice"?
+//        var voiceTwoMap:Array = [];
+//        var part:ProjectData = ModelUtils.getParentPart(measure);
+//        var partNumStaves:uint = ModelUtils.getPartNumStaves(part);
+//        var i:int;
+//        for (i = 1; i <= partNumStaves; i++) {
+//            voiceTwoMap[i] = (ModelUtils.getVoiceByPlacement(measure, i, 2));
+//        }
+//        ret[MeasureSelectionKeys.SECOND_VOICE_AVAILABILITY] = voiceTwoMap;
+//
+//        // Does this part support voice two?
+//        // TODO: implement part's ability to limit its own number of voices
+//        // Until this is implemented, `true` will always be returned.
+//        ret[MeasureSelectionKeys.SECOND_VOICE_PERMITTED] = true;
+//
+//        // What is the current measure selection mode?
+//        ret[MeasureSelectionKeys.SELECTION_MODE] = _measureSelectionType;
+//
+//        // What is the current measure selection staff index?
+//        ret[MeasureSelectionKeys.STAFF_INDEX_FILTER] = _measureSelectionStaffIndex;
+//        return ret;
+//    }
 
     private function _getSelection():ProjectData {
         return lastSelection;
@@ -1990,7 +1962,7 @@ public class Controller {
             registerColorizableUi(windowContent);
             _fileBrowserWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
             _windowsManager.updateWindowTitle(_fileBrowserWindowUid, windowTitle);
-            var bounds : Rectangle = Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS;
+            var bounds:Rectangle = Sizes.MIN_FILE_BROWSER_WINDOW_BOUNDS;
             _windowsManager.updateWindowBounds(_fileBrowserWindowUid, bounds, false);
             _windowsManager.updateWindowMinSize(_fileBrowserWindowUid, bounds.width, bounds.height, true);
             _windowsManager.observeWindowActivity(_fileBrowserWindowUid, WindowActivity.BEFORE_DESTROY, _onFileBrowserXClose);
@@ -3446,7 +3418,7 @@ public class Controller {
             _pickupWindowUid = _windowsManager.createWindow(windowContent, WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE, true, _mainWindowUid);
         }
         _windowsManager.updateWindowTitle(_pickupWindowUid, windowTitle);
-        var bounds : Rectangle = Sizes.MIN_PICKUP_WINDOW_BOUNDS;
+        var bounds:Rectangle = Sizes.MIN_PICKUP_WINDOW_BOUNDS;
         _windowsManager.updateWindowBounds(_pickupWindowUid, bounds, false);
         _windowsManager.updateWindowMinSize(_pickupWindowUid, bounds.width, bounds.height, true);
         _windowsManager.observeWindowActivity(_pickupWindowUid, WindowActivity.BEFORE_DESTROY, _onPickupWindowClosing, this);
@@ -3542,7 +3514,11 @@ public class Controller {
         }
 
         // Attempt to load the project
-        var proj:ProjectData = ProjectData(DataElement.fromSerialized(byteArray, ProjectData, getQualifiedClassName(ProjectData)));
+        var proj:ProjectData = ProjectData(DataElement.fromSerialized(
+                byteArray,
+                ProjectData,
+                getQualifiedClassName(ProjectData))
+        );
         if (proj) {
             proj.resetIntrinsicMeta();
             _model.currentProjectFile = file;
@@ -3974,13 +3950,13 @@ public class Controller {
             // Especially, we need to make sure that the parent measure is always left with a
             // valid "voice 1" to host musical content. Deleting a Voice always causes its previous
             // sibling node to be selected. This is handled inside the `_deleteVoiceNode()` method.
-            if (ModelUtils.isVoice(deletable)) {
-                replacementSelection = _deleteVoiceNode(deletable);
-                if (replacementSelection && replacementSelection.dataParent) {
-                    var info:Object = _getMeasureSelectionInfo(replacementSelection.dataParent as ProjectData);
-                    GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
-                }
-            }
+//            if (ModelUtils.isVoice(deletable)) {
+//                replacementSelection = _deleteVoiceNode(deletable);
+//                if (replacementSelection && replacementSelection.dataParent) {
+//                    var info:Object = _getMeasureSelectionInfo(replacementSelection.dataParent as ProjectData);
+//                    GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
+//                }
+//            }
 
             // Deleting a Cluster requires special care, as it could be a member of a tuplet.
             // If this is the case, we must decommission the tuplet.
@@ -4032,22 +4008,20 @@ public class Controller {
             // When the selected node is a Measure or Voice, supplemental processing is needed,
             // due to the fact that these two type of nodes share the same interactive area
             // (aka "hotspot") in the score editor.
-            var isMeasure:Boolean = ModelUtils.isMeasure(selection);
-            var isVoice:Boolean = ModelUtils.isVoice(selection);
-            if (isMeasure || isVoice) {
-                var info:Object;
-                if (isMeasure) {
-                    _measureSelectionType = MeasureSelectionKeys.SELECT_MEASURE_NODE;
-                    _measureSelectionStaffIndex = 1;
-                    info = _getMeasureSelectionInfo(selection as ProjectData);
-                } else if (isVoice) {
-                    var voiceIndex:int = selection.getContent(DataFields.VOICE_INDEX) as int;
-                    _measureSelectionType = (voiceIndex == 1) ? MeasureSelectionKeys.SELECT_VOICE_ONE_NODE : MeasureSelectionKeys.SELECT_VOICE_TWO_NODE;
-                    _measureSelectionStaffIndex = selection.getContent(DataFields.STAFF_INDEX) as int;
-                    info = _getMeasureSelectionInfo(selection.dataParent as ProjectData);
-                }
-                GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
-            }
+//            if (isMeasure || isVoice) {
+//                var info:Object;
+//                if (isMeasure) {
+//                    _measureSelectionType = MeasureSelectionKeys.SELECT_MEASURE_NODE;
+//                    _measureSelectionStaffIndex = 1;
+//                    info = _getMeasureSelectionInfo(selection as ProjectData);
+//                } else if (isVoice) {
+//                    var voiceIndex:int = selection.getContent(DataFields.VOICE_INDEX) as int;
+//                    _measureSelectionType = (voiceIndex == 1) ? MeasureSelectionKeys.SELECT_VOICE_ONE_NODE : MeasureSelectionKeys.SELECT_VOICE_TWO_NODE;
+//                    _measureSelectionStaffIndex = selection.getContent(DataFields.STAFF_INDEX) as int;
+//                    info = _getMeasureSelectionInfo(selection.dataParent as ProjectData);
+//                }
+//                GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
+//            }
 
             // There is functionality in need of knowing the last part that was touched
             _currentPart = ModelUtils.getClosestAscendantByType(selection, DataFields.PART) || _currentPart;
@@ -4088,10 +4062,10 @@ public class Controller {
                         break;
                     case DataFields.VOICE:
                         _commitData(committedData, targetRoute);
-                        if (committedData && committedData.dataParent) {
-                            var info:Object = _getMeasureSelectionInfo(committedData.dataParent as ProjectData);
-                            GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
-                        }
+//                        if (committedData && committedData.dataParent) {
+//                            var info:Object = _getMeasureSelectionInfo(committedData.dataParent as ProjectData);
+//                            GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
+//                        }
                         break;
                     case DataFields.CLUSTER:
                         var clusterDuration:String = (committedData.getContent(DataFields.CLUSTER_DURATION_FRACTION) as String);
@@ -4322,7 +4296,7 @@ public class Controller {
                     case StaticFieldValues.CONSTANT:
                         transpositionMap = _scaleIntervalsByConstantFactor(clusters, config);
                         break;
-                    case StaticFieldValues.PROGRESSIVELLY:
+                    case StaticFieldValues.PROGRESSIVELY:
                         transpositionMap = _scaleIntervalsProgressively(clusters, config);
                         break;
                     case StaticFieldValues.THRESHOLD:

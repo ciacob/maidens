@@ -1,687 +1,662 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <mx:Canvas height="100%"
-		   horizontalScrollPolicy="off"
-		   styleName="tintorettoBackground"
-		   verticalScrollPolicy="off"
-		   width="100%"
-		   xmlns:components="ro.ciacob.maidens.view.components.*"
-		   xmlns:fx="http://ns.adobe.com/mxml/2009"
-		   xmlns:mx="library://ns.adobe.com/flex/mx"
-		   xmlns:s="library://ns.adobe.com/flex/spark"
-		   implements="ro.ciacob.desktop.windows.IWindowContent"
-		   preinitialize="_onPreinitialize(event)">
-	<fx:Declarations/>
+           horizontalScrollPolicy="off"
+           styleName="tintorettoBackground"
+           verticalScrollPolicy="off"
+           width="100%"
+           xmlns:fx="http://ns.adobe.com/mxml/2009"
+           xmlns:mx="library://ns.adobe.com/flex/mx"
+           implements="ro.ciacob.desktop.windows.IWindowContent"
+           preinitialize="_onPreinitialize(event)">
+    <fx:Declarations/>
 
-	<fx:Script>
+    <fx:Script>
 		<![CDATA[
-		import mx.collections.ArrayCollection;
-		import mx.controls.CheckBox;
-		import mx.controls.ComboBox;
-		import mx.controls.Label;
-		import mx.controls.Spacer;
-		import mx.core.IContainer;
-		import mx.core.UIComponent;
-		import mx.events.FlexEvent;
-		import mx.utils.ObjectUtil;
-
-		import ro.ciacob.ciacob;
-		import ro.ciacob.desktop.data.exporters.PlainObjectExporter;
-		import ro.ciacob.desktop.data.importers.PlainObjectImporter;
-		import ro.ciacob.desktop.operation.Procrastinator;
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.desktop.windows.IWindowsManager;
-		import ro.ciacob.desktop.windows.WindowContentBehavior;
-		import ro.ciacob.maidens.controller.constants.GeneratorKeys;
-		import ro.ciacob.maidens.generators.constants.GeneratorBaseKeys;
-		import ro.ciacob.maidens.generators.constants.GeneratorSupportedTypes;
-		import ro.ciacob.maidens.model.ProjectData;
-		import ro.ciacob.maidens.model.constants.DataFields;
-		import ro.ciacob.maidens.model.constants.StaticTokens;
-
-		import eu.claudius.iacob.maidens.Colors;
-
-		import ro.ciacob.maidens.view.constants.ViewKeys;
-
-		import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
-		import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
-
-		import ro.ciacob.utils.Arrays;
-		import ro.ciacob.utils.Strings;
-		import ro.ciacob.utils.constants.CommonStrings;
-
-
-		use namespace ciacob;
-
-		private static const BOUND_EVENT:String = 'boundEvent';
-		private static const BOUND_FUNCTION:String = 'boundFunction';
-		private static const CHECK_DELAY_TIME:int = 250;
-
-		private var _currentDataset:ProjectData;
-		private var _referenceDataset:ProjectData;
-		private var _pttInstance:PTT;
-		private var _uiBindingsMap:Object;
-		private var _uiBlueprint:Array;
-		private var _uiBlueprintChanged:Boolean;
-		private var _uiMap:Object;
-		private var _currentDatasetChanged:Boolean;
-		private var _windowBehavior:WindowContentBehavior;
-		private var _receivedConfigData:Object;
-		private var _changesProcrastinator:Procrastinator = new Procrastinator(_updateUiBasedOnModificationsStatus, CHECK_DELAY_TIME);
-
-		// Component factories
-		private var _checkBoxFactory:ClassFactory = new ClassFactory(CheckBox);
-		private var _labelFactory:ClassFactory = new ClassFactory(Label);
-		private var _numericStepperFactory:ClassFactory = new ClassFactory(NonEditableNumericStepper);
-		private var _comboBoxFactory:ClassFactory = new ClassFactory(ComboBox);
-		private var _pickupFactory:ClassFactory = new ClassFactory(PickupComponent);
-		private var _spacerFactory:ClassFactory = new ClassFactory(Spacer);
-
-		public function set genCfgWindowData(data:Object):void {
-
-			// Detach event listeners from generated components, if there are any
-			if (_uiMap != null && _uiBindingsMap != null) {
-				for (var cName:String in _uiBindingsMap) {
-					var bindingData:Object = _uiBindingsMap[cName];
-					var eventName:String = (bindingData[BOUND_EVENT] as String);
-					var funct:Function = (bindingData[BOUND_FUNCTION] as Function);
-					(_uiMap[cName] as IEventDispatcher).removeEventListener(eventName, funct);
-				}
-			}
-
-			// Destroy existing components and reinitialize everything
-			if (content != null) {
-				content.removeAllChildren();
-			}
-			_uiMap = null;
-			_uiBindingsMap = null;
-			_receivedConfigData = null;
-			_referenceDataset = new ProjectData;
-			_currentDataset = new ProjectData;
-
-			// Grab new values
-			_uiBlueprint = (data[GeneratorKeys.GEN_CFG_UI_BLUEPRINT] as Array);
-			if (_uiBlueprint != null) {
-				_uiBlueprintChanged = true;
-				invalidateProperties();
-			}
-
-			_receivedConfigData = data[GeneratorKeys.GEN_CFG_DATASET];
-			if (_receivedConfigData != DataFields.VALUE_NOT_SET) {
-				_currentDatasetChanged = true;
-				invalidateProperties();
-			}
-		}
-
-		public function set pttPipeName(name:String):void {
-			_pttInstance = PTT.getPipe(name);
-			_pttInstance.subscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
-		}
-
-		override protected function commitProperties():void {
-
-			super.commitProperties();
-			if (_uiBlueprintChanged) {
-				_uiBlueprintChanged = false;
-				_buildUi();
-
-				// We need populate the UI after building it
-				_currentDatasetChanged = true;
-				if (!_receivedConfigData || _receivedConfigData == DataFields.VALUE_NOT_SET) {
-					_receivedConfigData = {content: _extractDefaultsFromUi(_uiBlueprint)};
-				}
-			}
-
-			if (_currentDatasetChanged) {
-				_currentDatasetChanged = false;
-				_currentDataset = new ProjectData;
-				if (_receivedConfigData) {
-					var importer:PlainObjectImporter = new PlainObjectImporter;
-					importer.importData(_receivedConfigData, _currentDataset);
-				}
-				_populateUi();
-				// The loaded dataset will become our new reference, overwriting the default
-				// dataset.
-				_referenceDataset = ProjectData(_currentDataset.clone());
-			}
-		}
-
-		private function _buildUi():void {
-			_uiBlueprint.sort(_compareElementsByIndex);
-			_uiMap = {};
-			_uiBindingsMap = {};
-			var elBlueprint:Object = null;
-			var key:String = null;
-			for (var i:int = 0; i < _uiBlueprint.length; i++) {
-				elBlueprint = _uiBlueprint[i];
-				key = elBlueprint[GeneratorBaseKeys.NAME];
-				_uiMap[key] = _buildUiElement(elBlueprint, content);
-			}
-		}
-
-		private function _extractDefaultsFromUi(uiDescriptor:Array):Object {
-			var ret:Object = {};
-			var i:int = 0;
-			var numRecords:int = uiDescriptor.length;
-			var elDescriptor:Object = null;
-			var key:String = null;
-			var defaultValue:Object = null
-			for (i; i < numRecords; i++) {
-				elDescriptor = (uiDescriptor[i] as Object);
-				key = elDescriptor[GeneratorBaseKeys.NAME];
-				defaultValue = elDescriptor[GeneratorBaseKeys.DEFAULT];
-				ret[key] = defaultValue;
-			}
-			return ret;
-		}
-
-		/**
-		 * TODO:
-		 * Extract this functionality into its own class for version 1.0 beta.
-		 */
-		private function _buildUiElement(blueprint:Object, container:IContainer):UIComponent {
-
-			var name:String = (blueprint[GeneratorBaseKeys.NAME] as String);
-			var type:String = (blueprint[GeneratorBaseKeys.TYPE] as String);
-			var label:String = (blueprint[GeneratorBaseKeys.LABEL] as String);
-			var description:String = Strings.trim(blueprint[GeneratorBaseKeys.DESCRIPTION] as String);
-
-			// Base property set
-			var baseProps:Object = {};
-			baseProps['percentWidth'] = 100;
-
-			// Create a separate label for the component, unless it is a CheckBox
-			if (type != GeneratorSupportedTypes.BOOLEAN) {
-
-				// Label base property set
-				var labelBaseProps:Object = ObjectUtil.clone(baseProps);
-				delete labelBaseProps['uid'];
-				labelBaseProps['truncateToFit'] = true;
-
-				// Current label property set
-				var labelProps:Object = ObjectUtil.clone(labelBaseProps);
-				delete labelProps['uid'];
-				labelProps['text'] = label.concat(CommonStrings.COLON_SPACE);
-				if (!Strings.isEmpty(description)) {
-					labelProps['toolTip'] = description;
-				}
-
-				// Create a label for the control
-				_labelFactory.properties = labelProps;
-				container.addChild(_labelFactory.newInstance() as UIComponent);
-			}
-
-			// Create the actual component
-			var component:UIComponent;
-			var bindData:Object;
-			var source:Array;
-			switch (type) {
-
-					// Draw a CheckBox for a Boolean accessor
-				case GeneratorSupportedTypes.BOOLEAN:
-					var cbProps:Object = ObjectUtil.clone(baseProps);
-					delete cbProps['uid'];
-					cbProps['name'] = name;
-					cbProps['label'] = label;
-					cbProps['toolTip'] = description;
-					_checkBoxFactory.properties = cbProps;
-					component = _checkBoxFactory.newInstance();
-					component.addEventListener(Event.CHANGE, _onCbChange);
-					bindData = {};
-					bindData[BOUND_EVENT] = Event.CHANGE;
-					bindData[BOUND_FUNCTION] = _onCbChange;
-					_uiBindingsMap[name] = bindData;
-					break;
-
-					// Draw a NumericStepper for a Number or int accessor
-				case GeneratorSupportedTypes.NUMBER:
-				case GeneratorSupportedTypes.INT:
-					var stepperProps:Object = ObjectUtil.clone(baseProps);
-					delete stepperProps['uid'];
-					stepperProps['name'] = name;
-					var minimum:Number = parseFloat(blueprint[GeneratorBaseKeys.MINIMUM]);
-					if (!isNaN(minimum)) {
-						stepperProps['minimum'] = minimum;
-					}
-					var maximum:Number = parseFloat(blueprint[GeneratorBaseKeys.MAXIMUM]);
-					if (!isNaN(maximum)) {
-						stepperProps['maximum'] = maximum;
-					}
-					if (type == GeneratorSupportedTypes.NUMBER) {
-						stepperProps['stepSize'] = 0.05;
-						var isPercentage:Boolean = (minimum >= 0 && maximum <= 1);
-						if (isPercentage) {
-							stepperProps['formattingFunction'] = Strings.toPercentageFormat;
-						}
-					} else {
-						stepperProps['stepSize'] = 1;
-					}
-					_numericStepperFactory.properties = stepperProps;
-					component = _numericStepperFactory.newInstance();
-					component.addEventListener(Event.CHANGE, _onNsChange);
-					bindData = {};
-					bindData[BOUND_EVENT] = Event.CHANGE;
-					bindData[BOUND_FUNCTION] = _onNsChange;
-					_uiBindingsMap[name] = bindData;
-					break;
-
-					// Draw a PickupComponent for an Array accessor; its source is read from a [sameName]Src getter of type Array
-				case GeneratorSupportedTypes.ARRAY:
-					var pickupProps:Object = ObjectUtil.clone(baseProps);
-					delete pickupProps['uid'];
-					pickupProps['name'] = name;
-					pickupProps['editorTitle'] = label.concat(CommonStrings.SPACE_DASH_SPACE, StaticTokens.SELECT_ELEMENTS);
-					source = (blueprint[GeneratorBaseKeys.SOURCE] as Array);
-					if (source != null) {
-						pickupProps['availableItems'] = source;
-						source = null;
-					}
-					_pickupFactory.properties = pickupProps;
-					component = _pickupFactory.newInstance();
-					component.addEventListener(Event.CHANGE, _onPickUpChange);
-					bindData = {};
-					bindData[BOUND_EVENT] = Event.CHANGE;
-					bindData[BOUND_FUNCTION] = _onPickUpChange;
-					_uiBindingsMap[name] = bindData;
-					break;
-
-					// An Object Accessor needs further refinement via metadata values
-				case GeneratorSupportedTypes.OBJECT:
-
-					// Draw a Combobox for an Object accessor that has a "UniqueSelection" metadata; its
-					// choices are read from a [sameName]Src getter of type Array
-					var hasUniqueSelection:Boolean = (GeneratorBaseKeys.UNIQUE_SELECTION in blueprint);
-					if (hasUniqueSelection) {
-
-						// Draw a ComboBox
-						var comboProps:Object = ObjectUtil.clone(baseProps);
-						delete comboProps['uid'];
-						comboProps['name'] = name;
-						comboProps['labelField'] = 'label';
-						source = (blueprint[GeneratorBaseKeys.SOURCE] as Array);
-						if (source != null) {
-							comboProps['dataProvider'] = source;
-							source = null;
-						}
-						_comboBoxFactory.properties = comboProps;
-						component = _comboBoxFactory.newInstance();
-						component.addEventListener(Event.CHANGE, _onComboChange);
-						bindData = {};
-						bindData[BOUND_EVENT] = Event.CHANGE;
-						bindData[BOUND_FUNCTION] = _onComboChange;
-						_uiBindingsMap[name] = bindData;
-					}
-
-					break;
-			}
-
-			// Add the generated component and return it
-			if (component != null) {
-				container.addChild(component);
-
-				// Add a spacer after the component
-				var spacerProps:Object = {'height': 15};
-				_spacerFactory.properties = spacerProps;
-				var spacer:UIComponent = _spacerFactory.newInstance();
-				container.addChild(spacer);
-			}
-			return component;
-		}
-
-		private function _updateUiBasedOnModificationsStatus():void {
-			var haveChanges:Boolean = _haveUnsavedChanges();
-			_updateCommonControls(haveChanges);
-			if (!haveChanges) {
-				_setNotificationAreaColor(false);
-			}
-		}
-
-		private function _closeWindow():void {
-			if (_pttInstance != null) {
-				_pttInstance.unsubscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
-				_pttInstance.send(ViewKeys.GEN_CFG_WINDOW_CLOSE);
-			}
-		}
-
-		private function _commitChanges():void {
-			if (_pttInstance != null) {
-
-				//extrag valorile (schimbate) din BD curenta
-				var configMap:Object = _currentDataset.getContentMap();
-
-
-				//import in BD de referinta ce s-a schimbat
-				ProjectData(_referenceDataset).importContent(configMap);
-
-
-				// in urma importului, unele valori interne din BD de referinta probabil se schimba.
-				// ma asigur ca BD curenta este identica cu felul cum arata acum BD de referinta
-				_currentDataset = ProjectData(_referenceDataset.clone());
-
-				// scot atentionarile din interfata grafica, cum ca exista modificari (in caz ca am asemenea
-				// atentionari)
-				_updateUiBasedOnModificationsStatus();
-
-				// exporta datele in formatul curent si le trimit prin PTT
-				var data:Object = [];
-				var exporter:PlainObjectExporter = new PlainObjectExporter;
-				var exportedCfgData:Object = exporter.export(_currentDataset);
-				data[GeneratorKeys.GEN_CFG_DATASET] = exportedCfgData;
-				_pttInstance.send(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, data);
-			}
-
-			// inchid fereastra daca inchiderea automata e activa
-			if (autoCloseCheckBox.selected) {
-				_closeWindow();
-			}
-		}
-
-		private function _compareElementsByIndex(elA:Object, elB:Object):int {
-			var indexA:int = (parseInt(elA[GeneratorBaseKeys.INDEX]) as int);
-			var indexB:int = (parseInt(elB[GeneratorBaseKeys.INDEX]) as int);
-			return indexA - indexB;
-		}
-
-		private function _discardChanges():void {
-			// ma asigur ca BD curenta este identica cu felul cum arata BD de referinta
-			// (pierzand astfel orice posibile modificari)
-			_currentDataset = ProjectData(_referenceDataset.clone());
-
-			// scot atentionarile din interfata grafica, cum ca exista modificari (in caz ca am asemenea
-			// atentionari)
-			_updateUiBasedOnModificationsStatus();
-
-			// inchid fereastra daca inchiderea automata e activa
-			if (autoCloseCheckBox.selected) {
-				_closeWindow();
-			}
-		}
-
-		private function _haveUnsavedChanges():Boolean {
-			var haveChanges:Boolean = (!_referenceDataset.isEqualTo(_currentDataset));
-			return haveChanges;
-		}
-
-		private function _onApplyButtonClick(event:Event):void {
-			_commitChanges();
-		}
-
-		private function _onCbChange(event:Event):void {
-			var cb:CheckBox = (event.target as CheckBox);
-			var key:String = cb.name;
-			var value:Boolean = cb.selected;
-			_registerUserChange(key, value);
-		}
-
-		private function _onNsChange(event:Event):void {
-			var ns:NonEditableNumericStepper = (event.target as NonEditableNumericStepper);
-			var key:String = ns.name;
-			var value:Number = ns.value;
-			_registerUserChange(key, value);
-		}
-
-		private function _onPickUpChange(event:Event):void {
-			var pickup:PickupComponent = (event.target as PickupComponent);
-			var key:String = pickup.name;
-			var value:Array = pickup.pickedUpItems.concat();
-			_registerUserChange(key, value);
-		}
-
-		private function _onComboChange(event:Event):void {
-			var combo:ComboBox = (event.target as ComboBox);
-			var key:String = combo.name;
-			var value:Object = combo.selectedItem;
-			_registerUserChange(key, value);
-		}
-
-		private function _registerUserChange(key:String, value:Object):void {
-
-			// Change a value in the current BD when the user changes something in the graphical interface
-			ProjectData(_currentDataset).setContent(key, value);
-
-			// Postpone the comparison of the two BDs until the user pauses making changes, so we do not trouble him
-			_changesProcrastinator.procrastinate();
-		}
-
-		private function _onResetButtonClick(event:Event):void {
-			_discardChanges();
-		}
-
-		private function _onWindowClosing(...args):void {
-			if (!_haveUnsavedChanges()) {
-				_closeWindow();
-			} else {
-				_updateCommonControls(true);
-				_setNotificationAreaColor(true);
-			}
-		}
-
-		private function _populateUi():void {
-
-			// Extract from the current BD a list of key-values in it
-			var currentContentMap:Object = ProjectData(_currentDataset).getContentMap();
-			for (var key:String in currentContentMap) {
-				var value:Object = currentContentMap[key];
-
-				// If there isn't a stored value for a particular key, the generator's default
-				// value for that key remains in service
-				if (value != DataFields.VALUE_NOT_SET) {
-
-					if (key in _uiMap) {
-						var component:UIComponent = (_uiMap[key] as UIComponent);
-						var type:Class = Object(component).constructor;
-						switch (type) {
-							case CheckBox:
-								(component as CheckBox).selected = (value === true);
-								break;
-							case NonEditableNumericStepper:
-								(component as NonEditableNumericStepper).value = (value as Number);
-								break;
-							case PickupComponent:
-								(component as PickupComponent).pickedUpItems = (value as Array);
-								break;
-							case ComboBox:
-								var selectedIndex:int = _findIndexOf(value, (component as ComboBox).dataProvider);
-								(component as ComboBox).selectedIndex = selectedIndex;
-								break;
-						}
-					}
-				}
-			}
-		}
-
-		private function _findIndexOf(element:Object, inArray:Object):int {
-
-			var all:Array = null;
-			var elVal:Object = (element['value'] as Object);
-			var testEl:Object = null;
-			var testElVal:Object = null;
-
-			if (inArray is Array) {
-				all = (inArray as Array);
-			} else if (inArray is ArrayCollection) {
-				all = (inArray as ArrayCollection).source;
-			}
-
-			var allLen:uint = all.length;
-			var i:int = 0;
-			for (i; i < allLen; i++) {
-				testEl = (all[i] as Object);
-				testElVal = (testEl['value'] as Object);
-				if (elVal is Array && testElVal is Array) {
-					if (Arrays.testForIdentity((elVal as Array), (testElVal as Array))) {
-						return i;
-					}
-					continue;
-				}
-				if (elVal is Object && testElVal is Object) {
-					if (ObjectUtil.compare(elVal, testElVal) == 0) {
-						return i;
-					}
-					continue;
-				}
-				if (elVal === testElVal) {
-					return i;
-				}
-			}
-			return -1;
-		}
-
-		private function _setNotificationAreaColor(mustWarn:Boolean):void {
-			if (mustWarn) {
-				bottomBox.setStyle('backgroundColor', Colors.WARNING);
-			} else {
-				bottomBox.clearStyle('backgroundColor');
-			}
-		}
-
-		private function _updateCommonControls(withChanges:Boolean):void {
-			warningText.enabled = withChanges;
-			applyButton.enabled = withChanges;
-			resetButton.enabled = withChanges;
-			autoCloseCheckBox.enabled = withChanges;
-		}
-
-		/**
-		 * Returns the UID of the window owning this content. The windows manager assigns unique IDs to all windows upon creation,
-		 * and manipulates them by mean of these IDS. Will return `null` if the owner window has been destroyed (or, in other words,
-		 * `windowUid` will be `null` for orphaned content).
-		 * @readonly
-		 */
-		public function get windowUid():String {
-			return _windowBehavior.windowUid;
-		}
-
-		/**
-		 * Returns the screen this content is, or was displayed onto. Returns null if this content was never displayed (e.g., if the
-		 * windows holding this content has been created, but never shown).
-		 * @readonly
-		 */
-		public function get homeScreen():Screen {
-			return _windowBehavior.homeScreen;
-		}
-
-		/**
-		 * Returns the horizontal position of this content across the joined space of all screens in use. For instance, it will return
-		 * `1920` for a content held by a window which is placed at (0, 0) on the second monitor on the right, on a two, side-by-side
-		 * Full HD monitors setup. The offset of the window chrome, if any, is also taken into account. Returns `NaN` for orphaned content
-		 * (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
-		 * @readonly
-		 */
-		public function get allScreensX():Number {
-			return _windowBehavior.allScreensX;
-		}
-
-		/**
-		 * @see `allScreensX`
-		 * @readonly
-		 */
-		public function get allScreensY():Number {
-			return _windowBehavior.allScreensY;
-		}
-
-		/**
-		 * Returns the horizontal position of this content within the screen its left boundary is laid on. For instance, it will return
-		 * `0` (rather than `1920`) for a content held by a window which is placed at (0, 0) on the second monitor on the right,
-		 * on a two, side-by-side Full HD monitors setup. The offset of the window chrome, if any, is also taken into account.
-		 *  Returns `NaN` for orphaned content (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
-		 * @readonly
-		 */
-		public function get currentScreensX():Number {
-			return _windowBehavior.currentScreensX;
-		}
-
-		/**
-		 * @see `currentScreensX`
-		 * @readonly
-		 */
-		public function get currentScreensY():Number {
-			return _windowBehavior.currentScreensY;
-		}
-
-		/**
-		 * Sends an instance of the windows manager owner into this implementor (required for performing various calculations).
-		 */
-		public function set manager(value:IWindowsManager):void {
-			_windowBehavior.manager = value;
-		}
-
-		public function get manager():IWindowsManager {
-			return _windowBehavior.manager;
-		}
-
-		protected function _onPreinitialize(event:FlexEvent):void {
-			_windowBehavior = new WindowContentBehavior(this);
-		}
-		]]>
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.CheckBox;
+        import mx.controls.ComboBox;
+        import mx.controls.Label;
+        import mx.controls.Spacer;
+        import mx.core.IContainer;
+        import mx.core.UIComponent;
+        import mx.events.FlexEvent;
+        import mx.utils.ObjectUtil;
+
+        import ro.ciacob.ciacob;
+        import ro.ciacob.desktop.data.exporters.PlainObjectExporter;
+        import ro.ciacob.desktop.data.importers.PlainObjectImporter;
+        import ro.ciacob.desktop.operation.Procrastinator;
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.desktop.windows.IWindowsManager;
+        import ro.ciacob.desktop.windows.WindowContentBehavior;
+
+        import ro.ciacob.maidens.generators.constants.GeneratorBaseKeys;
+        import ro.ciacob.maidens.generators.constants.GeneratorKeys;
+        import ro.ciacob.maidens.generators.constants.GeneratorSupportedTypes;
+
+
+        import eu.claudius.iacob.maidens.Colors;
+
+
+        import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
+        import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
+
+        import ro.ciacob.maidens.legacy.ProjectData;
+        import ro.ciacob.maidens.legacy.constants.DataFields;
+
+        import ro.ciacob.utils.Arrays;
+        import ro.ciacob.utils.Strings;
+        import ro.ciacob.utils.constants.CommonStrings;
+
+
+        use namespace ciacob;
+
+        private static const BOUND_EVENT:String = 'boundEvent';
+        private static const BOUND_FUNCTION:String = 'boundFunction';
+        private static const CHECK_DELAY_TIME:int = 250;
+
+        private var _currentDataset:ProjectData;
+        private var _referenceDataset:ProjectData;
+        private var _pttInstance:PTT;
+        private var _uiBindingsMap:Object;
+        private var _uiBlueprint:Array;
+        private var _uiBlueprintChanged:Boolean;
+        private var _uiMap:Object;
+        private var _currentDatasetChanged:Boolean;
+        private var _windowBehavior:WindowContentBehavior;
+        private var _receivedConfigData:Object;
+        private var _changesProcrastinator:Procrastinator = new Procrastinator(_updateUiBasedOnModificationsStatus, CHECK_DELAY_TIME);
+
+        // Component factories
+        private var _checkBoxFactory:ClassFactory = new ClassFactory(CheckBox);
+        private var _labelFactory:ClassFactory = new ClassFactory(Label);
+        private var _numericStepperFactory:ClassFactory = new ClassFactory(NonEditableNumericStepper);
+        private var _comboBoxFactory:ClassFactory = new ClassFactory(ComboBox);
+        private var _pickupFactory:ClassFactory = new ClassFactory(PickupComponent);
+        private var _spacerFactory:ClassFactory = new ClassFactory(Spacer);
+
+        public function set genCfgWindowData(data:Object):void {
+
+            // Detach event listeners from generated components, if there are any
+            if (_uiMap != null && _uiBindingsMap != null) {
+                for (var cName:String in _uiBindingsMap) {
+                    var bindingData:Object = _uiBindingsMap[cName];
+                    var eventName:String = (bindingData[BOUND_EVENT] as String);
+                    var fn:Function = (bindingData[BOUND_FUNCTION] as Function);
+                    (_uiMap[cName] as IEventDispatcher).removeEventListener(eventName, fn);
+                }
+            }
+
+            // Destroy existing components and reinitialize everything
+            if (content != null) {
+                content.removeAllChildren();
+            }
+            _uiMap = null;
+            _uiBindingsMap = null;
+            _receivedConfigData = null;
+            _referenceDataset = new ProjectData;
+            _currentDataset = new ProjectData;
+
+            // Grab new values
+            _uiBlueprint = (data[GeneratorKeys.GEN_CFG_UI_BLUEPRINT] as Array);
+            if (_uiBlueprint != null) {
+                _uiBlueprintChanged = true;
+                invalidateProperties();
+            }
+
+            _receivedConfigData = data[GeneratorKeys.GEN_CFG_DATASET];
+            if (_receivedConfigData != DataFields.VALUE_NOT_SET) {
+                _currentDatasetChanged = true;
+                invalidateProperties();
+            }
+        }
+
+        public function set pttPipeName(name:String):void {
+            _pttInstance = PTT.getPipe(name);
+            _pttInstance.subscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
+        }
+
+        override protected function commitProperties():void {
+
+            super.commitProperties();
+            if (_uiBlueprintChanged) {
+                _uiBlueprintChanged = false;
+                _buildUi();
+
+                // We need populate the UI after building it
+                _currentDatasetChanged = true;
+                if (!_receivedConfigData || _receivedConfigData == DataFields.VALUE_NOT_SET) {
+                    _receivedConfigData = {content: _extractDefaultsFromUi(_uiBlueprint)};
+                }
+            }
+
+            if (_currentDatasetChanged) {
+                _currentDatasetChanged = false;
+                _currentDataset = new ProjectData;
+                if (_receivedConfigData) {
+                    var importer:PlainObjectImporter = new PlainObjectImporter;
+                    importer.importData(_receivedConfigData, _currentDataset);
+                }
+                _populateUi();
+                // The loaded dataset will become our new reference, overwriting the default
+                // dataset.
+                _referenceDataset = ProjectData(_currentDataset.clone());
+            }
+        }
+
+        private function _buildUi():void {
+            _uiBlueprint.sort(_compareElementsByIndex);
+            _uiMap = {};
+            _uiBindingsMap = {};
+            var elBlueprint:Object = null;
+            var key:String = null;
+            for (var i:int = 0; i < _uiBlueprint.length; i++) {
+                elBlueprint = _uiBlueprint[i];
+                key = elBlueprint[GeneratorBaseKeys.NAME];
+                _uiMap[key] = _buildUiElement(elBlueprint, content);
+            }
+        }
+
+        private static function _extractDefaultsFromUi(uiDescriptor:Array):Object {
+            var ret:Object = {};
+            var i:int = 0;
+            var numRecords:int = uiDescriptor.length;
+            var elDescriptor:Object = null;
+            var key:String = null;
+            var defaultValue:Object = null
+            for (i; i < numRecords; i++) {
+                elDescriptor = (uiDescriptor[i] as Object);
+                key = elDescriptor[GeneratorBaseKeys.NAME];
+                defaultValue = elDescriptor[GeneratorBaseKeys.DEFAULT];
+                ret[key] = defaultValue;
+            }
+            return ret;
+        }
+
+        private function _buildUiElement(blueprint:Object, container:IContainer):UIComponent {
+
+            var name:String = (blueprint[GeneratorBaseKeys.NAME] as String);
+            var type:String = (blueprint[GeneratorBaseKeys.TYPE] as String);
+            var label:String = (blueprint[GeneratorBaseKeys.LABEL] as String);
+            var description:String = Strings.trim(blueprint[GeneratorBaseKeys.DESCRIPTION] as String);
+
+            // Base property set
+            var baseProps:Object = {};
+            baseProps['percentWidth'] = 100;
+
+            // Create a separate label for the component, unless it is a CheckBox
+            if (type != GeneratorSupportedTypes.BOOLEAN) {
+
+                // Label base property set
+                var labelBaseProps:Object = ObjectUtil.clone(baseProps);
+                delete labelBaseProps['uid'];
+                labelBaseProps['truncateToFit'] = true;
+
+                // Current label property set
+                var labelProps:Object = ObjectUtil.clone(labelBaseProps);
+                delete labelProps['uid'];
+                labelProps['text'] = label.concat(CommonStrings.COLON_SPACE);
+                if (!Strings.isEmpty(description)) {
+                    labelProps['toolTip'] = description;
+                }
+
+                // Create a label for the control
+                _labelFactory.properties = labelProps;
+                container.addChild(_labelFactory.newInstance() as UIComponent);
+            }
+
+            // Create the actual component
+            var component:UIComponent;
+            var bindData:Object;
+            var source:Array;
+            switch (type) {
+
+                    // Draw a CheckBox for a Boolean accessor
+                case GeneratorSupportedTypes.BOOLEAN:
+                    var cbProps:Object = ObjectUtil.clone(baseProps);
+                    delete cbProps['uid'];
+                    cbProps['name'] = name;
+                    cbProps['label'] = label;
+                    cbProps['toolTip'] = description;
+                    _checkBoxFactory.properties = cbProps;
+                    component = _checkBoxFactory.newInstance();
+                    component.addEventListener(Event.CHANGE, _onCbChange);
+                    bindData = {};
+                    bindData[BOUND_EVENT] = Event.CHANGE;
+                    bindData[BOUND_FUNCTION] = _onCbChange;
+                    _uiBindingsMap[name] = bindData;
+                    break;
+
+                    // Draw a NumericStepper for a Number or int accessor
+                case GeneratorSupportedTypes.NUMBER:
+                case GeneratorSupportedTypes.INT:
+                    var stepperProps:Object = ObjectUtil.clone(baseProps);
+                    delete stepperProps['uid'];
+                    stepperProps['name'] = name;
+                    var minimum:Number = parseFloat(blueprint[GeneratorBaseKeys.MINIMUM]);
+                    if (!isNaN(minimum)) {
+                        stepperProps['minimum'] = minimum;
+                    }
+                    var maximum:Number = parseFloat(blueprint[GeneratorBaseKeys.MAXIMUM]);
+                    if (!isNaN(maximum)) {
+                        stepperProps['maximum'] = maximum;
+                    }
+                    if (type == GeneratorSupportedTypes.NUMBER) {
+                        stepperProps['stepSize'] = 0.05;
+                        var isPercentage:Boolean = (minimum >= 0 && maximum <= 1);
+                        if (isPercentage) {
+                            stepperProps['formattingFunction'] = Strings.toPercentageFormat;
+                        }
+                    } else {
+                        stepperProps['stepSize'] = 1;
+                    }
+                    _numericStepperFactory.properties = stepperProps;
+                    component = _numericStepperFactory.newInstance();
+                    component.addEventListener(Event.CHANGE, _onNsChange);
+                    bindData = {};
+                    bindData[BOUND_EVENT] = Event.CHANGE;
+                    bindData[BOUND_FUNCTION] = _onNsChange;
+                    _uiBindingsMap[name] = bindData;
+                    break;
+
+                    // Draw a PickupComponent for an Array accessor; its source is read from a [sameName]Src getter of type Array
+                case GeneratorSupportedTypes.ARRAY:
+                    var pickupProps:Object = ObjectUtil.clone(baseProps);
+                    delete pickupProps['uid'];
+                    pickupProps['name'] = name;
+                    pickupProps['editorTitle'] = label.concat(CommonStrings.SPACE_DASH_SPACE, StaticTokens.SELECT_ELEMENTS);
+                    source = (blueprint[GeneratorBaseKeys.SOURCE] as Array);
+                    if (source != null) {
+                        pickupProps['availableItems'] = source;
+                        source = null;
+                    }
+                    _pickupFactory.properties = pickupProps;
+                    component = _pickupFactory.newInstance();
+                    component.addEventListener(Event.CHANGE, _onPickUpChange);
+                    bindData = {};
+                    bindData[BOUND_EVENT] = Event.CHANGE;
+                    bindData[BOUND_FUNCTION] = _onPickUpChange;
+                    _uiBindingsMap[name] = bindData;
+                    break;
+
+                    // An Object Accessor needs further refinement via metadata values
+                case GeneratorSupportedTypes.OBJECT:
+
+                    // Draw a Combobox for an Object accessor that has a "UniqueSelection" metadata; its
+                    // choices are read from a [sameName]Src getter of type Array
+                    var hasUniqueSelection:Boolean = (GeneratorBaseKeys.UNIQUE_SELECTION in blueprint);
+                    if (hasUniqueSelection) {
+
+                        // Draw a ComboBox
+                        var comboProps:Object = ObjectUtil.clone(baseProps);
+                        delete comboProps['uid'];
+                        comboProps['name'] = name;
+                        comboProps['labelField'] = 'label';
+                        source = (blueprint[GeneratorBaseKeys.SOURCE] as Array);
+                        if (source != null) {
+                            comboProps['dataProvider'] = source;
+                            source = null;
+                        }
+                        _comboBoxFactory.properties = comboProps;
+                        component = _comboBoxFactory.newInstance();
+                        component.addEventListener(Event.CHANGE, _onComboChange);
+                        bindData = {};
+                        bindData[BOUND_EVENT] = Event.CHANGE;
+                        bindData[BOUND_FUNCTION] = _onComboChange;
+                        _uiBindingsMap[name] = bindData;
+                    }
+
+                    break;
+            }
+
+            // Add the generated component and return it
+            if (component != null) {
+                container.addChild(component);
+
+                // Add a spacer after the component
+                var spacerProps:Object = {'height': 15};
+                _spacerFactory.properties = spacerProps;
+                var spacer:UIComponent = _spacerFactory.newInstance();
+                container.addChild(spacer);
+            }
+            return component;
+        }
+
+        private function _updateUiBasedOnModificationsStatus():void {
+            var haveChanges:Boolean = _haveUnsavedChanges();
+            _updateCommonControls(haveChanges);
+            if (!haveChanges) {
+                _setNotificationAreaColor(false);
+            }
+        }
+
+        private function _closeWindow():void {
+            if (_pttInstance != null) {
+                _pttInstance.unsubscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
+                _pttInstance.send(ViewKeys.GEN_CFG_WINDOW_CLOSE);
+            }
+        }
+
+        private function _commitChanges():void {
+            if (_pttInstance != null) {
+                var configMap:Object = _currentDataset.getContentMap();
+                ProjectData(_referenceDataset).importContent(configMap);
+                _currentDataset = ProjectData(_referenceDataset.clone());
+                _updateUiBasedOnModificationsStatus();
+                var data:Object = [];
+                var exporter:PlainObjectExporter = new PlainObjectExporter;
+                var exportedCfgData:Object = exporter.export(_currentDataset);
+                data[GeneratorKeys.GEN_CFG_DATASET] = exportedCfgData;
+                _pttInstance.send(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, data);
+            }
+            if (autoCloseCheckBox.selected) {
+                _closeWindow();
+            }
+        }
+
+        private static function _compareElementsByIndex(elA:Object, elB:Object):int {
+            var indexA:int = (parseInt(elA[GeneratorBaseKeys.INDEX]) as int);
+            var indexB:int = (parseInt(elB[GeneratorBaseKeys.INDEX]) as int);
+            return indexA - indexB;
+        }
+
+        private function _discardChanges():void {
+            _currentDataset = ProjectData(_referenceDataset.clone());
+            _updateUiBasedOnModificationsStatus();
+            if (autoCloseCheckBox.selected) {
+                _closeWindow();
+            }
+        }
+
+        private function _haveUnsavedChanges():Boolean {
+            var haveChanges:Boolean = (!_referenceDataset.isEqualTo(_currentDataset));
+            return haveChanges;
+        }
+
+        private function _onApplyButtonClick(event:Event):void {
+            _commitChanges();
+        }
+
+        private function _onCbChange(event:Event):void {
+            var cb:CheckBox = (event.target as CheckBox);
+            var key:String = cb.name;
+            var value:Boolean = cb.selected;
+            _registerUserChange(key, value);
+        }
+
+        private function _onNsChange(event:Event):void {
+            var ns:NonEditableNumericStepper = (event.target as NonEditableNumericStepper);
+            var key:String = ns.name;
+            var value:Number = ns.value;
+            _registerUserChange(key, value);
+        }
+
+        private function _onPickUpChange(event:Event):void {
+            var pickup:PickupComponent = (event.target as PickupComponent);
+            var key:String = pickup.name;
+            var value:Array = pickup.pickedUpItems.concat();
+            _registerUserChange(key, value);
+        }
+
+        private function _onComboChange(event:Event):void {
+            var combo:ComboBox = (event.target as ComboBox);
+            var key:String = combo.name;
+            var value:Object = combo.selectedItem;
+            _registerUserChange(key, value);
+        }
+
+        private function _registerUserChange(key:String, value:Object):void {
+
+            // Change a value in the current BD when the user changes something in the graphical interface
+            ProjectData(_currentDataset).setContent(key, value);
+
+            // Postpone the comparison of the two BDs until the user pauses making changes, so we do not trouble him
+            _changesProcrastinator.procrastinate();
+        }
+
+        private function _onResetButtonClick(event:Event):void {
+            _discardChanges();
+        }
+
+        private function _onWindowClosing(...ignore):void {
+            if (!_haveUnsavedChanges()) {
+                _closeWindow();
+            } else {
+                _updateCommonControls(true);
+                _setNotificationAreaColor(true);
+            }
+        }
+
+        private function _populateUi():void {
+
+            // Extract from the current BD a list of key-values in it
+            var currentContentMap:Object = ProjectData(_currentDataset).getContentMap();
+            for (var key:String in currentContentMap) {
+                var value:Object = currentContentMap[key];
+
+                // If there isn't a stored value for a particular key, the generator's default
+                // value for that key remains in service
+                if (value != DataFields.VALUE_NOT_SET) {
+
+                    if (key in _uiMap) {
+                        var component:UIComponent = (_uiMap[key] as UIComponent);
+                        var type:Class = Object(component).constructor;
+                        switch (type) {
+                            case CheckBox:
+                                (component as CheckBox).selected = value;
+                                break;
+                            case NonEditableNumericStepper:
+                                (component as NonEditableNumericStepper).value = (value as Number);
+                                break;
+                            case PickupComponent:
+                                (component as PickupComponent).pickedUpItems = (value as Array);
+                                break;
+                            case ComboBox:
+                                var selectedIndex:int = _findIndexOf(value, (component as ComboBox).dataProvider);
+                                (component as ComboBox).selectedIndex = selectedIndex;
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static function _findIndexOf(element:Object, inArray:Object):int {
+
+            var all:Array = null;
+            var elVal:Object = (element['value'] as Object);
+            var testEl:Object = null;
+            var testElVal:Object = null;
+
+            if (inArray is Array) {
+                all = (inArray as Array);
+            } else if (inArray is ArrayCollection) {
+                all = (inArray as ArrayCollection).source;
+            }
+
+            var allLen:uint = all.length;
+            var i:int = 0;
+            for (i; i < allLen; i++) {
+                testEl = (all[i] as Object);
+                testElVal = (testEl['value'] as Object);
+                if (elVal is Array && testElVal is Array) {
+                    if (Arrays.testForIdentity((elVal as Array), (testElVal as Array))) {
+                        return i;
+                    }
+                    continue;
+                }
+                if (elVal is Object && testElVal is Object) {
+                    if (ObjectUtil.compare(elVal, testElVal) == 0) {
+                        return i;
+                    }
+                    continue;
+                }
+                if (elVal === testElVal) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private function _setNotificationAreaColor(mustWarn:Boolean):void {
+            if (mustWarn) {
+                bottomBox.setStyle('backgroundColor', Colors.WARNING);
+            } else {
+                bottomBox.clearStyle('backgroundColor');
+            }
+        }
+
+        private function _updateCommonControls(withChanges:Boolean):void {
+            warningText.enabled = withChanges;
+            applyButton.enabled = withChanges;
+            resetButton.enabled = withChanges;
+            autoCloseCheckBox.enabled = withChanges;
+        }
+
+        /**
+         * Returns the UID of the window owning this content. The windows manager assigns unique IDs to all windows upon creation,
+         * and manipulates them by mean of these IDS. Will return `null` if the owner window has been destroyed (or, in other words,
+         * `windowUid` will be `null` for orphaned content).
+         * @readonly
+         */
+        public function get windowUid():String {
+            return _windowBehavior.windowUid;
+        }
+
+        /**
+         * Returns the screen this content is, or was displayed onto. Returns null if this content was never displayed (e.g., if the
+         * windows holding this content has been created, but never shown).
+         * @readonly
+         */
+        public function get homeScreen():Screen {
+            return _windowBehavior.homeScreen;
+        }
+
+        /**
+         * Returns the horizontal position of this content across the joined space of all screens in use. For instance, it will return
+         * `1920` for a content held by a window which is placed at (0, 0) on the second monitor on the right, on a two, side-by-side
+         * Full HD monitors setup. The offset of the window chrome, if any, is also taken into account. Returns `NaN` for orphaned content
+         * (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+         * @readonly
+         */
+        public function get allScreensX():Number {
+            return _windowBehavior.allScreensX;
+        }
+
+        /**
+         * @see `allScreensX`
+         * @readonly
+         */
+        public function get allScreensY():Number {
+            return _windowBehavior.allScreensY;
+        }
+
+        /**
+         * Returns the horizontal position of this content within the screen its left boundary is laid on. For instance, it will return
+         * `0` (rather than `1920`) for a content held by a window which is placed at (0, 0) on the second monitor on the right,
+         * on a two, side-by-side Full HD monitors setup. The offset of the window chrome, if any, is also taken into account.
+         *  Returns `NaN` for orphaned content (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+         * @readonly
+         */
+        public function get currentScreensX():Number {
+            return _windowBehavior.currentScreensX;
+        }
+
+        /**
+         * @see `currentScreensX`
+         * @readonly
+         */
+        public function get currentScreensY():Number {
+            return _windowBehavior.currentScreensY;
+        }
+
+        /**
+         * Sends an instance of the windows manager owner into this implementor (required for performing various calculations).
+         */
+        public function set manager(value:IWindowsManager):void {
+            _windowBehavior.manager = value;
+        }
+
+        public function get manager():IWindowsManager {
+            return _windowBehavior.manager;
+        }
+
+        protected function _onPreinitialize(event:FlexEvent):void {
+            _windowBehavior = new WindowContentBehavior(this);
+        }
+        ]]>
 	</fx:Script>
 
-	<!-- Content -->
-	<mx:VBox height="{rule.y - 10}"
-			 horizontalScrollPolicy="off"
-			 backgroundColor="#000000"
-			 backgroundAlpha="0.001"
-			 id="content"
-			 paddingBottom="10"
-			 paddingLeft="10"
-			 paddingRight="10"
-			 paddingTop="10"
-			 verticalGap="2"
-			 width="{width}"
-			 x="0"
-			 y="0"/>
+    <!-- Content -->
+    <mx:VBox height="{rule.y - 10}"
+             horizontalScrollPolicy="off"
+             backgroundColor="#000000"
+             backgroundAlpha="0.001"
+             id="content"
+             paddingBottom="10"
+             paddingLeft="10"
+             paddingRight="10"
+             paddingTop="10"
+             verticalGap="2"
+             width="{width}"
+             x="0"
+             y="0"/>
 
-	<!-- Commit / Discard buttons -->
-	<mx:HRule id="rule"
-			  width="{width - 20}"
-			  x="10"
-			  y="{bottomBox.y - rule.height - 10}"/>
+    <!-- Commit / Discard buttons -->
+    <mx:HRule id="rule"
+              width="{width - 20}"
+              x="10"
+              y="{bottomBox.y - rule.height - 10}"/>
 
-	<mx:VBox horizontalScrollPolicy="off"
-			 id="bottomBox"
-			 paddingBottom="15"
-			 paddingLeft="15"
-			 paddingRight="15"
-			 paddingTop="5"
-			 verticalScrollPolicy="off"
-			 width="{width}"
-			 x="0"
-			 y="{height - bottomBox.height}">
+    <mx:VBox horizontalScrollPolicy="off"
+             id="bottomBox"
+             paddingBottom="15"
+             paddingLeft="15"
+             paddingRight="15"
+             paddingTop="5"
+             verticalScrollPolicy="off"
+             width="{width}"
+             x="0"
+             y="{height - bottomBox.height}">
 
-		<!-- Apply/Discard notice -->
-		<mx:Text enabled="false"
-				 id="warningText"
-				 selectable="false"
-				 styleName="editorNote"
-				 text="You must APPLY or RESET the current changes before closing this window."
-				 textAlign="left"
-				 width="100%"/>
-
-
-		<mx:HBox horizontalScrollPolicy="off"
-				 verticalScrollPolicy="off">
-
-			<!-- Apply / Discard buttons -->
-			<mx:Button skin="{ApplyChangesSkin}"
-					   click="_onApplyButtonClick(event)"
-					   enabled="false"
-					   id="applyButton"
-					   toolTip="Apply changes"/>
-
-			<mx:Button skin="{ResetChangesSkin}"
-					   click="_onResetButtonClick(event)"
-					   enabled="false"
-					   id="resetButton"
-					   toolTip="Reset changes"/>
-
-			<!-- Auto-close button -->
-			<mx:CheckBox enabled="false"
-						 id="autoCloseCheckBox"
-						 label="auto close"
-						 selected="true"/>
+        <!-- Apply/Discard notice -->
+        <mx:Text enabled="false"
+                 id="warningText"
+                 selectable="false"
+                 styleName="editorNote"
+                 text="You must APPLY or RESET the current changes before closing this window."
+                 textAlign="left"
+                 width="100%"/>
 
 
-		</mx:HBox>
-	</mx:VBox>
+        <mx:HBox horizontalScrollPolicy="off"
+                 verticalScrollPolicy="off">
+
+            <!-- Apply / Discard buttons -->
+            <mx:Button skin="{ApplyChangesSkin}"
+                       click="_onApplyButtonClick(event)"
+                       enabled="false"
+                       id="applyButton"
+                       toolTip="Apply changes"/>
+
+            <mx:Button skin="{ResetChangesSkin}"
+                       click="_onResetButtonClick(event)"
+                       enabled="false"
+                       id="resetButton"
+                       toolTip="Reset changes"/>
+
+            <!-- Auto-close button -->
+            <mx:CheckBox enabled="false"
+                         id="autoCloseCheckBox"
+                         label="auto close"
+                         selected="true"/>
+
+
+        </mx:HBox>
+    </mx:VBox>
 
 </mx:Canvas>

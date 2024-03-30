@@ -21,6 +21,8 @@
         import eu.claudius.iacob.EmbeddedFontsHelper;
         import eu.claudius.iacob.maidens.Colors;
         import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
         import eu.claudiusiacob.desktop.GlobalMenu;
         import eu.claudiusiacob.desktop.GlobalMenuEvent;
 
@@ -34,13 +36,14 @@
         import ro.ciacob.desktop.windows.WindowsManagerEvent;
         import ro.ciacob.maidens.controller.Controller;
         import ro.ciacob.maidens.controller.GhostScriptChecker;
-        import ro.ciacob.maidens.model.constants.DataFields;
+        import ro.ciacob.maidens.legacy.constants.DataFields;
+
         import ro.ciacob.maidens.model.constants.GlobalMenuData;
-        import ro.ciacob.maidens.model.constants.StaticTokens;
+
         import ro.ciacob.maidens.view.MainUi;
         import ro.ciacob.maidens.view.constants.MenuCommandNames;
         import ro.ciacob.maidens.view.constants.UiColorizationThemes;
-        import ro.ciacob.maidens.view.constants.ViewKeys;
+
         import ro.ciacob.utils.Descriptor;
         import ro.ciacob.utils.OSFamily;
         import ro.ciacob.utils.ScreenUtils;
@@ -127,7 +130,7 @@
             if (_mainWinUid != null) {
                 _wManager.observeWindowActivity(_mainWinUid, WindowActivity.BEFORE_DESTROY, _onDirectWindowClose, this);
                 _wManager.observeWindowActivity(_mainWinUid, WindowActivity.FOCUS, _onMainWindowShown, this);
-                var bounds : Rectangle = Sizes.MIN_MAIN_WINDOW_BOUNDS;
+                var bounds:Rectangle = Sizes.MIN_MAIN_WINDOW_BOUNDS;
                 _wManager.updateWindowMinSize(_mainWinUid, bounds.width, bounds.height);
             } else {
                 throw (new Error('Window Manager could not create the main window.'));
@@ -356,7 +359,7 @@
                width="{width}"
                height="{height}"
                styleName="tintorettoBackground"
-               chromeColor="{Colors.SPLASH_TEXT_BACKROUND}"/>
+               chromeColor="{Colors.SPLASH_TEXT_BACKGROUND}"/>
     <mx:Label id="copyrightLabel"
               text="by {Descriptor.getAppCopyright(false)}"
               bottom="{Sizes.SPLASH_BOTTOM_MARGIN + 10}"

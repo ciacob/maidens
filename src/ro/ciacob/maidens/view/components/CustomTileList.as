@@ -1,13 +1,13 @@
 package ro.ciacob.maidens.view.components {
-	import mx.controls.TileList;
+import mx.controls.TileList;
 
-	public class CustomTileList extends TileList {
-		
-		public function CustomTileList () {
-			super();
-		}
-		
-		[Bindable]
-		public var itemStyleName:String;
-	}
+public class CustomTileList extends TileList {
+
+    public function CustomTileList() {
+        super();
+    }
+
+    [Bindable]
+    public var itemStyleName:String;
+}
 }

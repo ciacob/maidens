@@ -1,4 +1,6 @@
 package ro.ciacob.maidens.model.constants {
+import eu.claudius.iacob.maidens.constants.StaticTokens;
+
 import ro.ciacob.maidens.view.constants.MenuCommandNames;
 import ro.ciacob.maidens.view.constants.MenuIds;
 import ro.ciacob.maidens.view.constants.UiColorizationThemes;
@@ -10,19 +12,19 @@ public class GlobalMenuData {
 
     private static function _generateThemesSubmenu():Array {
         var themes:Array = UiColorizationThemes.getAllThemes();
-        return themes.map (
-            function (themeInfo:Object, ...ignore):Object {
-                var itemData : Object = {
-                    label: themeInfo.name,
-                    cmdName: [MenuCommandNames.APPLY_THEME, themeInfo.key]
-                            .join(CommonStrings.BROKEN_VERTICAL_BAR)
-                };
-                return itemData;
-            }
+        return themes.map(
+                function (themeInfo:Object, ...ignore):Object {
+                    var itemData:Object = {
+                        label: themeInfo.name,
+                        cmdName: [MenuCommandNames.APPLY_THEME, themeInfo.key]
+                                .join(CommonStrings.BROKEN_VERTICAL_BAR)
+                    };
+                    return itemData;
+                }
         );
     }
 
-    public static const STRUCTURE : Object = {
+    public static const STRUCTURE:Object = {
         "menu": [
             {
                 "label": StaticTokens.FILE,
@@ -30,25 +32,25 @@ public class GlobalMenuData {
                     {
                         "label": StaticTokens.NEW,
                         "cmdName": MenuCommandNames.CREATE_NEW_PROJECT,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "n" ],
-                            "mac":[ "cmd", "n" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "n"],
+                            "mac": ["cmd", "n"]
                         }
                     },
                     {
                         "label": StaticTokens.NEW_FROM_TEMPLATE,
                         "cmdName": MenuCommandNames.CREATE_PROJECT_FROM_TEMPLATE,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "alt", "n" ],
-                            "mac":[ "cmd", "alt", "n" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "alt", "n"],
+                            "mac": ["cmd", "alt", "n"]
                         }
                     },
                     {
                         "label": StaticTokens.OPEN + '...',
                         "cmdName": MenuCommandNames.OPEN_EXISTING_PROJECT,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "o" ],
-                            "mac":[ "cmd", "o" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "o"],
+                            "mac": ["cmd", "o"]
                         }
                     },
                     {
@@ -57,17 +59,17 @@ public class GlobalMenuData {
                     {
                         "label": StaticTokens.SAVE,
                         "cmdName": MenuCommandNames.SAVE_PROJECT,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "s" ],
-                            "mac":[ "cmd", "s" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "s"],
+                            "mac": ["cmd", "s"]
                         }
                     },
                     {
                         "label": StaticTokens.SAVE_AS + '...',
                         "cmdName": MenuCommandNames.SAVE_PROJECT_AS,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "alt", "s" ],
-                            "mac":[ "cmd", "alt", "s" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "alt", "s"],
+                            "mac": ["cmd", "alt", "s"]
                         }
                     },
                     {
@@ -79,42 +81,42 @@ public class GlobalMenuData {
                             {
                                 "label": StaticTokens.TO_MIDI_FILE + '...',
                                 "cmdName": MenuCommandNames.EXPORT_PROJECT_TO_MIDI,
-                                "kbShortcuts":{
-                                    "win":[ "ctrl", "alt", "m" ],
-                                    "mac":[ "cmd", "alt", "m" ]
+                                "kbShortcuts": {
+                                    "win": ["ctrl", "alt", "m"],
+                                    "mac": ["cmd", "alt", "m"]
                                 }
                             },
                             {
                                 "label": StaticTokens.TO_ABC_NOTATION_FILE + '...',
                                 "cmdName": MenuCommandNames.EXPORT_PROJECT_TO_ABC,
-                                "kbShortcuts":{
-                                    "win":[ "ctrl", "alt", "a" ],
-                                    "mac":[ "cmd", "alt", "a" ]
+                                "kbShortcuts": {
+                                    "win": ["ctrl", "alt", "a"],
+                                    "mac": ["cmd", "alt", "a"]
                                 }
                             },
                             {
                                 "label": StaticTokens.TO_XML_NOTATION_FILE + '...',
                                 "cmdName": MenuCommandNames.EXPORT_PROJECT_TO_XML,
-                                "kbShortcuts":{
-                                    "win":[ "ctrl", "alt", "x" ],
-                                    "mac":[ "cmd", "alt", "x" ]
+                                "kbShortcuts": {
+                                    "win": ["ctrl", "alt", "x"],
+                                    "mac": ["cmd", "alt", "x"]
                                 }
                             },
                             {
                                 "label": StaticTokens.TO_PDF_FILE + '...',
                                 "cmdName": MenuCommandNames.EXPORT_PROJECT_TO_PDF,
                                 "enabled": false,
-                                "kbShortcuts":{
-                                    "win":[ "ctrl", "alt", "p" ],
-                                    "mac":[ "cmd", "alt", "p" ]
+                                "kbShortcuts": {
+                                    "win": ["ctrl", "alt", "p"],
+                                    "mac": ["cmd", "alt", "p"]
                                 }
                             },
                             {
                                 "label": StaticTokens.TO_WAV_FILE + '...',
                                 "cmdName": MenuCommandNames.EXPORT_PROJECT_TO_WAV,
-                                "kbShortcuts":{
-                                    "win":[ "ctrl", "alt", "w" ],
-                                    "mac":[ "cmd", "alt", "w" ]
+                                "kbShortcuts": {
+                                    "win": ["ctrl", "alt", "w"],
+                                    "mac": ["cmd", "alt", "w"]
                                 }
                             }
                         ]
@@ -126,9 +128,9 @@ public class GlobalMenuData {
                         "label": StaticTokens.EXIT,
                         "cmdName": MenuCommandNames.EXIT_APPLICATION,
                         "isHomeItem": true,
-                        "kbShortcuts":{
-                            "win":[ "alt", "f4" ],
-                            "mac":[ "cmd", "q" ]
+                        "kbShortcuts": {
+                            "win": ["alt", "f4"],
+                            "mac": ["cmd", "q"]
                         }
                     }
                 ]
@@ -141,9 +143,9 @@ public class GlobalMenuData {
                         "cmdName": MenuCommandNames.UNDO,
                         "id": MenuIds.UNDO_ITEM,
                         "disabled": true,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "z" ],
-                            "mac":[ "cmd", "z" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "z"],
+                            "mac": ["cmd", "z"]
                         }
                     },
                     {
@@ -151,20 +153,20 @@ public class GlobalMenuData {
                         "cmdName": MenuCommandNames.REDO,
                         "id": MenuIds.REDO_ITEM,
                         "disabled": true,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "y" ],
-                            "mac":[ "cmd", "y" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "y"],
+                            "mac": ["cmd", "y"]
                         }
                     },
                     {
                         "isSeparator": true
                     },
                     {
-                      "label": StaticTokens.CREATE_ELEMENT,
+                        "label": StaticTokens.CREATE_ELEMENT,
                         "cmdName": MenuCommandNames.ADD_ITEM,
                         "id": MenuIds.ADD_MENU_ITEM,
                         "disabled": true,
-                        "kbShortcuts": ["alt", "i" ]
+                        "kbShortcuts": ["alt", "i"]
 
                     },
                     {
@@ -172,7 +174,7 @@ public class GlobalMenuData {
                         "cmdName": MenuCommandNames.DELETE_ITEM,
                         "id": MenuIds.REMOVE_MENU_ITEM,
                         "disabled": true,
-                        "kbShortcuts": ["alt", "r" ]
+                        "kbShortcuts": ["alt", "r"]
 
                     },
                     {
@@ -183,9 +185,9 @@ public class GlobalMenuData {
                         "cmdName": MenuCommandNames.COPY,
                         "id": MenuIds.COPY_ITEM,
                         "disabled": true,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "c" ],
-                            "mac":[ "cmd", "c" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "c"],
+                            "mac": ["cmd", "c"]
                         }
                     },
                     {
@@ -193,9 +195,9 @@ public class GlobalMenuData {
                         "cmdName": MenuCommandNames.CUT,
                         "id": MenuIds.CUT_ITEM,
                         "disabled": true,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "x" ],
-                            "mac":[ "cmd", "x" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "x"],
+                            "mac": ["cmd", "x"]
                         }
                     },
                     {
@@ -203,9 +205,9 @@ public class GlobalMenuData {
                         "cmdName": MenuCommandNames.PASTE,
                         "id": MenuIds.PASTE_ITEM,
                         "disabled": true,
-                        "kbShortcuts":{
-                            "win":[ "ctrl", "v" ],
-                            "mac":[ "cmd", "v" ]
+                        "kbShortcuts": {
+                            "win": ["ctrl", "v"],
+                            "mac": ["cmd", "v"]
                         }
                     }
                 ]
@@ -227,13 +229,13 @@ public class GlobalMenuData {
                         "label": StaticTokens.TRANSPOSE + '...',
                         "cmdName": MenuCommandNames.TRANSPOSE,
                         "id": MenuIds.TRANSPOSE_ITEM,
-                        "kbShortcuts": ["alt", "T" ]
+                        "kbShortcuts": ["alt", "T"]
                     },
                     {
                         "label": StaticTokens.SCALE_INTERVALS + '...',
                         "cmdName": MenuCommandNames.SCALE_INTERVALS,
                         "id": MenuIds.SCALE_INTERVALS_ITEM,
-                        "kbShortcuts": ["alt", "S" ]
+                        "kbShortcuts": ["alt", "S"]
                     }
                 ]
             },

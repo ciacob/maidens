@@ -1,14 +1,14 @@
-package ro.ciacob.maidens.controller.generators {
+package ro.ciacob.maidens.controller.delegates.generators {
 import flash.utils.getDefinitionByName;
 
 import ro.ciacob.desktop.signals.PTT;
 import ro.ciacob.maidens.controller.Controller;
-import ro.ciacob.maidens.controller.constants.GeneratorKeys;
 import ro.ciacob.maidens.controller.constants.GeneratorPipes;
 import ro.ciacob.maidens.controller.constants.GeneratorsTable;
-import ro.ciacob.maidens.model.ModelUtils;
-import ro.ciacob.maidens.model.ProjectData;
-import ro.ciacob.maidens.model.constants.DataFields;
+import ro.ciacob.maidens.generators.constants.GeneratorKeys;
+import ro.ciacob.maidens.legacy.ModelUtils;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.legacy.constants.DataFields;
 import ro.ciacob.maidens.view.constants.PromptColors;
 import ro.ciacob.utils.Strings;
 
@@ -102,8 +102,8 @@ public class GeneratorsManager {
      *            The listening function receives the UID of the generator that has been initialized.
      *
      * @sends    GeneratorKeys.QUEUE_POSITION_EXHAUSTED, through the local (private) pipe. The listening
-     *            function receives no data, but must accomodate for a single `null` argument. This is
-     *            consummed locally, by the batch initialization process.
+     *            function receives no data, but must accommodate for a single `null` argument. This is
+     *            consumed locally, by the batch initialization process.
      */
     public function initializeGenerator(genUid:String):Boolean {
 
@@ -129,7 +129,7 @@ public class GeneratorsManager {
 
     /**
      * Initializes all Generators used by given `project` (to minimize impact on CPU and RAM, we
-     * only initialize a Generator when the user explicitely requests it, or when a Project has been
+     * only initialize a Generator when the user explicitly requests it, or when a Project has been
      * loaded that uses an instance of that Generator).
      *
      * @param    project
@@ -196,7 +196,7 @@ public class GeneratorsManager {
 
     /**
      * Fully resets the internal state of the manager. Useful when loading a new Project
-     * (unless running several Projects in paralel is supported, which may be the case
+     * (unless running several Projects in parallel is supported, which may be the case
      * in the future).
      */
     public final function reset():void {
@@ -212,7 +212,7 @@ public class GeneratorsManager {
         } else {
             _initializedGeneratorUids = new Vector.<String>;
         }
-        _reIndexBultinGenerators();
+        _reIndexBuiltInGenerators();
     }
 
     /**
@@ -232,9 +232,9 @@ public class GeneratorsManager {
     }
 
     /**
-     * Re-reads the list of available Generators and recreats any dependent lists.
+     * Re-reads the list of available Generators and recreates any dependent lists.
      */
-    private function _reIndexBultinGenerators():void {
+    private function _reIndexBuiltInGenerators():void {
         if (_allGeneratorUids) {
             _allGeneratorUids.length = 0;
         } else {

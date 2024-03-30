@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:Canvas height="100%"
-		   horizontalScrollPolicy="off"
-		   styleName="tintorettoBackground"
-		   verticalScrollPolicy="off"
-		   width="100%"
-		   xmlns:components="ro.ciacob.maidens.view.components.*"
-		   xmlns:fx="http://ns.adobe.com/mxml/2009"
-		   xmlns:mx="library://ns.adobe.com/flex/mx"
-		   xmlns:s="library://ns.adobe.com/flex/spark"
-		   implements="ro.ciacob.desktop.windows.IWindowContent"
-		   preinitialize="_onPreinitialize(event)">
-	<fx:Declarations/>
+           horizontalScrollPolicy="off"
+           styleName="tintorettoBackground"
+           verticalScrollPolicy="off"
+           width="100%"
+           xmlns:components="ro.ciacob.maidens.view.components.*"
+           xmlns:fx="http://ns.adobe.com/mxml/2009"
+           xmlns:mx="library://ns.adobe.com/flex/mx"
+           implements="ro.ciacob.desktop.windows.IWindowContent"
+           preinitialize="_onPreinitialize(event)">
+    <fx:Declarations/>
 
-	<fx:Script>
+    <fx:Script>
 		<![CDATA[
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+
         import mx.collections.ArrayCollection;
         import mx.events.CollectionEvent;
         import mx.events.CollectionEventKind;
@@ -24,7 +26,7 @@
         import ro.ciacob.desktop.signals.PTT;
         import ro.ciacob.desktop.windows.IWindowsManager;
         import ro.ciacob.desktop.windows.WindowContentBehavior;
-        import ro.ciacob.maidens.model.constants.StaticTokens;
+
 
         import eu.claudius.iacob.maidens.Colors;
 
@@ -32,7 +34,6 @@
 
         import eu.claudius.iacob.maidens.Sizes;
 
-        import ro.ciacob.maidens.view.constants.ViewKeys;
 
         import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
         import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
@@ -46,7 +47,7 @@
         private static const SCROLL_BAR_WIDTH:Number = 8;
 
         private var _allCategories:Array;
-        private var _allowDupplicates:Boolean;
+        private var _allowDuplicates:Boolean;
         private var _categoryIndex:int;
         private var _editorSession:String;
         private var _itemsStyleName:String;
@@ -59,7 +60,6 @@
         private var _referenceTargetListDpSource:Array;
         [Bindable]
         private var _sourceListDp:ArrayCollection;
-        private var _sourceListDpSource:Array;
         private var _sourceListSelIndex:int = -1;
         private var _windowDataChanged:Boolean;
         private var _windowBehavior:WindowContentBehavior;
@@ -70,7 +70,7 @@
             _referenceTargetListDpSource = _targetListDpSource.concat();
             _allCategories = (_pickupWindowData[ViewKeys.AVAILABLE_SETS] as Array);
             _editorSession = _pickupWindowData[ViewKeys.EDITOR_SESSION];
-            _allowDupplicates = _pickupWindowData[ViewKeys.ARE_DUPLICATES_PERMITTED];
+            _allowDuplicates = _pickupWindowData[ViewKeys.ARE_DUPLICATES_PERMITTED];
             _itemsStyleName = _pickupWindowData[PickupComponentKeys.ITEMS_STYLE_NAME];
             _windowDataChanged = true;
             invalidateProperties();
@@ -209,7 +209,7 @@
 
         private function _onCategoryIndexChange(event:ItemClickEvent):void {
             _categoryIndex = event.index;
-            _sourceListDpSource = (_allCategories[_categoryIndex][ViewKeys.PAGE_BODY] as Array);
+            var _sourceListDpSource:Array = (_allCategories[_categoryIndex][ViewKeys.PAGE_BODY] as Array);
             if (_sourceListDp == null) {
                 _sourceListDp = new ArrayCollection;
             }
@@ -267,7 +267,7 @@
             _updateWindowControls();
         }
 
-        private function _onWindowClosing(...args):void {
+        private function _onWindowClosing(...ignore):void {
             if (!_haveUnsavedChanges()) {
                 _closeWindow();
             } else {
@@ -276,9 +276,9 @@
         }
 
         private function _transferSelectedItemToTargetList():void {
-            var transferrable:Object = sourceList.selectedItem;
-            if (transferrable != null) {
-                var transferred:PickupItem = new PickupItem(transferrable);
+            var transferable:Object = sourceList.selectedItem;
+            if (transferable != null) {
+                var transferred:PickupItem = new PickupItem(transferable);
                 _targetListDp.addItem(transferred);
                 _targetListSelIndex = (_targetListDp.length - 1);
                 Time.delay(0.1, function ():void {
@@ -304,7 +304,7 @@
         private function _updateTransferButtonState():void {
             var selectedItem:PickupItem = (sourceList.selectedItem as PickupItem);
             if (selectedItem != null) {
-                transferButton.enabled = (_allowDupplicates || !_targetListContains(selectedItem));
+                transferButton.enabled = (_allowDuplicates || !_targetListContains(selectedItem));
             } else {
                 transferButton.enabled = false;
             }
@@ -376,8 +376,8 @@
         }
 
         /**
-         * Sends an instance of the windows manager owner into this implementor (required for performing various calculations).
-         * @writeonly
+         * Sends an instance of the windows manager owner into this implementor (required for performing various
+         * calculations).
          */
         public function set manager(value:IWindowsManager):void {
             _windowBehavior.manager = value;
@@ -393,153 +393,153 @@
         ]]>
 	</fx:Script>
 
-	<!-- Content -->
+    <!-- Content -->
 
 
-	<!-- List with available elements (source list) -->
-	<components:CustomTileList change="_onSourceListUserSelection(event)"
-							   columnWidth="{Sizes.LARGE_TILE_SIZE}"
-							   dataProvider="{_sourceListDp}"
-							   id="sourceList"
-							   labelField="label"
-							   itemRenderer="ro.ciacob.maidens.view.components.PickupComponentItemRenderer"
-							   rowHeight="{Sizes.LARGE_TILE_SIZE}"
-							   styleName="thickText"
-							   updateComplete="_onSourceListUpdateComplete(event)"
-							   verticalAlign="middle"
-							   width="{(width - transferButton.width - movePrevButton.width - PADDING * 7) * 0.5 }"
-							   x="{PADDING * 2}"
-							   y="{sourceListCategoryTab.height + PADDING * 2}"
-							   height="{height - sourceList.y - (height - bottomRule.y) - PADDING * 3}"/>
+    <!-- List with available elements (source list) -->
+    <components:CustomTileList change="_onSourceListUserSelection(event)"
+                               columnWidth="{Sizes.LARGE_TILE_SIZE}"
+                               dataProvider="{_sourceListDp}"
+                               id="sourceList"
+                               labelField="label"
+                               itemRenderer="ro.ciacob.maidens.view.components.PickupComponentItemRenderer"
+                               rowHeight="{Sizes.LARGE_TILE_SIZE}"
+                               styleName="thickText"
+                               updateComplete="_onSourceListUpdateComplete(event)"
+                               verticalAlign="middle"
+                               width="{(width - transferButton.width - movePrevButton.width - PADDING * 7) * 0.5 }"
+                               x="{PADDING * 2}"
+                               y="{sourceListCategoryTab.height + PADDING * 2}"
+                               height="{height - sourceList.y - (height - bottomRule.y) - PADDING * 3}"/>
 
-	<!-- Transfer button -->
-	<mx:Button click="_onTransferButtonClick(event)"
-			   enabled="false"
-			   id="transferButton"
-			   label="→"
-			   styleName="skinnedButton"
-			   toolTip="add to selection"
-			   x="{sourceList.x + sourceList.width + PADDING}"
-			   y="{sourceList.y + (sourceList.height - (transferButton.height + deleteButton.height)) * 0.5}"
-			   width="{Sizes.SMALL_BUTTON_WIDTH}"/>
+    <!-- Transfer button -->
+    <mx:Button click="_onTransferButtonClick(event)"
+               enabled="false"
+               id="transferButton"
+               label="→"
+               styleName="skinnedButton"
+               toolTip="add to selection"
+               x="{sourceList.x + sourceList.width + PADDING}"
+               y="{sourceList.y + (sourceList.height - (transferButton.height + deleteButton.height)) * 0.5}"
+               width="{Sizes.SMALL_BUTTON_WIDTH}"/>
 
-	<!-- Delete button -->
-	<mx:Button click="_onDeleteButtonClick(event)"
-			   enabled="false"
-			   id="deleteButton"
-			   label="←"
-			   styleName="skinnedButton"
-			   toolTip="remove element"
-			   x="{transferButton.x}"
-			   y="{transferButton.y + transferButton.height + PADDING * 2}"
-			   width="{transferButton.width}"/>
+    <!-- Delete button -->
+    <mx:Button click="_onDeleteButtonClick(event)"
+               enabled="false"
+               id="deleteButton"
+               label="←"
+               styleName="skinnedButton"
+               toolTip="remove element"
+               x="{transferButton.x}"
+               y="{transferButton.y + transferButton.height + PADDING * 2}"
+               width="{transferButton.width}"/>
 
-	<!-- List with selected elements (target list) -->
-	<components:CustomTileList change="_onTargetListUserSelection(event)"
-							   columnWidth="{Sizes.LARGE_TILE_SIZE}"
-							   dataProvider="{_targetListDp}"
-							   labelField="label"
-							   id="targetList"
-							   itemRenderer="ro.ciacob.maidens.view.components.PickupComponentItemRenderer"
-							   rowHeight="{Sizes.LARGE_TILE_SIZE}"
-							   styleName="thickText"
-							   updateComplete="_onTargetListUpdateComplete(event)"
-							   verticalAlign="middle"
-							   width="{ sourceList.width }"
-							   x="{transferButton.x + transferButton.width + PADDING }"
-							   y="{sourceList.y}"
-							   height="{sourceList.height}"/>
+    <!-- List with selected elements (target list) -->
+    <components:CustomTileList change="_onTargetListUserSelection(event)"
+                               columnWidth="{Sizes.LARGE_TILE_SIZE}"
+                               dataProvider="{_targetListDp}"
+                               labelField="label"
+                               id="targetList"
+                               itemRenderer="ro.ciacob.maidens.view.components.PickupComponentItemRenderer"
+                               rowHeight="{Sizes.LARGE_TILE_SIZE}"
+                               styleName="thickText"
+                               updateComplete="_onTargetListUpdateComplete(event)"
+                               verticalAlign="middle"
+                               width="{ sourceList.width }"
+                               x="{transferButton.x + transferButton.width + PADDING }"
+                               y="{sourceList.y}"
+                               height="{sourceList.height}"/>
 
-	<!-- Move before button (up or left) -->
-	<mx:Button click="_onPrevButtonClick(event)"
-			   enabled="false"
-			   id="movePrevButton"
-			   label="↑"
-			   styleName="skinnedButton"
-			   toolTip="move before"
-			   y="{transferButton.y}"
-			   x="{targetList.x + targetList.width + PADDING}"
-			   width="{transferButton.width}"/>
+    <!-- Move before button (up or left) -->
+    <mx:Button click="_onPrevButtonClick(event)"
+               enabled="false"
+               id="movePrevButton"
+               label="↑"
+               styleName="skinnedButton"
+               toolTip="move before"
+               y="{transferButton.y}"
+               x="{targetList.x + targetList.width + PADDING}"
+               width="{transferButton.width}"/>
 
-	<!-- Move after button (down or right) -->
-	<mx:Button click="_onNextButtonClick(event)"
-			   enabled="false"
-			   id="moveNextButton"
-			   label="↓"
-			   styleName="skinnedButton"
-			   toolTip="move after"
-			   y="{deleteButton.y}"
-			   x="{movePrevButton.x}"
-			   width="{transferButton.width}"/>
+    <!-- Move after button (down or right) -->
+    <mx:Button click="_onNextButtonClick(event)"
+               enabled="false"
+               id="moveNextButton"
+               label="↓"
+               styleName="skinnedButton"
+               toolTip="move after"
+               y="{deleteButton.y}"
+               x="{movePrevButton.x}"
+               width="{transferButton.width}"/>
 
-	<!-- Commit / Discard buttons -->
-	<mx:HRule id="bottomRule"
-			  width="{bottomBox.width}"
-			  x="{bottomBox.x}"
-			  y="{bottomBox.y - PADDING - GAP}"/>
+    <!-- Commit / Discard buttons -->
+    <mx:HRule id="bottomRule"
+              width="{bottomBox.width}"
+              x="{bottomBox.x}"
+              y="{bottomBox.y - PADDING - GAP}"/>
 
-	<mx:HBox horizontalAlign="right"
-			 id="bottomBox"
-			 paddingBottom="5"
-			 paddingLeft="5"
-			 paddingRight="5"
-			 paddingTop="5"
-			 width="{width - PADDING * 2}"
-			 x="{PADDING}"
-			 y="{height - bottomBox.height - PADDING}">
+    <mx:HBox horizontalAlign="right"
+             id="bottomBox"
+             paddingBottom="5"
+             paddingLeft="5"
+             paddingRight="5"
+             paddingTop="5"
+             width="{width - PADDING * 2}"
+             x="{PADDING}"
+             y="{height - bottomBox.height - PADDING}">
 
-		<!-- Apply/Discard notice -->
-		<mx:Text enabled="false"
-				 id="warningText"
-				 selectable="false"
-				 styleName="editorNote"
-				 text="You must APPLY or RESET the current changes before closing this window."
-				 textAlign="left"
-				 width="100%"/>
+        <!-- Apply/Discard notice -->
+        <mx:Text enabled="false"
+                 id="warningText"
+                 selectable="false"
+                 styleName="editorNote"
+                 text="You must APPLY or RESET the current changes before closing this window."
+                 textAlign="left"
+                 width="100%"/>
 
-		<mx:Spacer width="40%"/>
+        <mx:Spacer width="40%"/>
 
-		<!-- Apply / Discard buttons -->
-		<mx:Button skin="{ApplyChangesSkin}"
-				   click="_onApplyButtonClick(event)"
-				   enabled="false"
-				   id="applyButton"
-				   toolTip="Apply changes"/>
-		<mx:Button skin="{ResetChangesSkin}"
-				   click="_onResetButtonClick(event)"
-				   enabled="false"
-				   id="resetButton"
-				   toolTip="Reset changes"/>
+        <!-- Apply / Discard buttons -->
+        <mx:Button skin="{ApplyChangesSkin}"
+                   click="_onApplyButtonClick(event)"
+                   enabled="false"
+                   id="applyButton"
+                   toolTip="Apply changes"/>
+        <mx:Button skin="{ResetChangesSkin}"
+                   click="_onResetButtonClick(event)"
+                   enabled="false"
+                   id="resetButton"
+                   toolTip="Reset changes"/>
 
-		<!-- Auto-close button -->
-		<mx:CheckBox enabled="false"
-					 id="autoCloseCheckBox"
-					 label="auto close"
-					 selected="true"/>
-	</mx:HBox>
+        <!-- Auto-close button -->
+        <mx:CheckBox enabled="false"
+                     id="autoCloseCheckBox"
+                     label="auto close"
+                     selected="true"/>
+    </mx:HBox>
 
 
-	<!-- Tab headers for source list -->
-	<components:CustomBox id="sourceTabBarContainer"
-						  verticalScrollPolicy="off"
-						  width="{sourceList.width - BORDER_WIDTH * 2}"
-						  height="{sourceListCategoryTab.height + (sourceTabBarContainer.isHorizontalScrollBarVisible? SCROLL_BAR_WIDTH : 0)}"
-						  x="{sourceList.x + BORDER_WIDTH}"
-						  y="{(sourceList.y - sourceListCategoryTab.height) + BORDER_WIDTH}">
-		<mx:TabBar id="sourceListCategoryTab"
-				   itemClick="_onCategoryIndexChange(event)"/>
-	</components:CustomBox>
+    <!-- Tab headers for source list -->
+    <components:CustomBox id="sourceTabBarContainer"
+                          verticalScrollPolicy="off"
+                          width="{sourceList.width - BORDER_WIDTH * 2}"
+                          height="{sourceListCategoryTab.height + (sourceTabBarContainer.isHorizontalScrollBarVisible? SCROLL_BAR_WIDTH : 0)}"
+                          x="{sourceList.x + BORDER_WIDTH}"
+                          y="{(sourceList.y - sourceListCategoryTab.height) + BORDER_WIDTH}">
+        <mx:TabBar id="sourceListCategoryTab"
+                   itemClick="_onCategoryIndexChange(event)"/>
+    </components:CustomBox>
 
-	<!-- Tab headers for target list -->
-	<components:CustomBox id="targetTabBarContainer"
-						  verticalScrollPolicy="off"
-						  width="{targetList.width - BORDER_WIDTH * 2}"
-						  height="{targetListCategoryTab.height + (targetTabBarContainer.isHorizontalScrollBarVisible? SCROLL_BAR_WIDTH : 0)}"
-						  x="{targetList.x + BORDER_WIDTH}"
-						  y="{(targetList.y - targetListCategoryTab.height) + BORDER_WIDTH}">
-		<mx:TabBar id="targetListCategoryTab"
-				   itemClick="_onCategoryIndexChange(event)"/>
-	</components:CustomBox>
+    <!-- Tab headers for target list -->
+    <components:CustomBox id="targetTabBarContainer"
+                          verticalScrollPolicy="off"
+                          width="{targetList.width - BORDER_WIDTH * 2}"
+                          height="{targetListCategoryTab.height + (targetTabBarContainer.isHorizontalScrollBarVisible? SCROLL_BAR_WIDTH : 0)}"
+                          x="{targetList.x + BORDER_WIDTH}"
+                          y="{(targetList.y - targetListCategoryTab.height) + BORDER_WIDTH}">
+        <mx:TabBar id="targetListCategoryTab"
+                   itemClick="_onCategoryIndexChange(event)"/>
+    </components:CustomBox>
 
 
 </mx:Canvas>

@@ -2,7 +2,6 @@
 <mx:Canvas height="100%"
 		   width="100%"
 		   initialize="_onInitialize(event)"
-		   xmlns:components="ro.ciacob.maidens.view.components.*"
 		   xmlns:fx="http://ns.adobe.com/mxml/2009"
 		   xmlns:mx="library://ns.adobe.com/flex/mx"
 		   xmlns:images="eu.claudius.iacob.maidens.skins.images.*"
@@ -12,162 +11,157 @@
 	<fx:Script>
 		<![CDATA[
 		import eu.claudius.iacob.maidens.Colors;
+		import eu.claudius.iacob.maidens.Sizes;
+		import eu.claudius.iacob.maidens.constants.ViewKeys;
+		import eu.claudius.iacob.maidens.constants.ViewPipes;
 
-		import mx.core.FlexGlobals;
-        import mx.core.UIComponent;
-        import mx.events.FlexEvent;
+		import mx.core.UIComponent;
+		import mx.events.FlexEvent;
 
-        import ro.ciacob.desktop.signals.PTT;
-        import ro.ciacob.maidens.model.ProjectData;
-        import ro.ciacob.maidens.model.constants.DataFields;
+		import ro.ciacob.desktop.signals.PTT;
+		import ro.ciacob.maidens.legacy.ProjectData;
+		import ro.ciacob.maidens.legacy.constants.DataFields;
+		import ro.ciacob.utils.ColorUtils;
 
-        import eu.claudius.iacob.maidens.Sizes;
+		[Bindable]
+		public var title:String;
 
-        import ro.ciacob.maidens.view.constants.ViewKeys;
-        import ro.ciacob.maidens.view.constants.ViewPipes;
-        import ro.ciacob.utils.ColorUtils;
+		/**
+		 * A copy of the (unchanged) element in the data model, in the form it was
+		 * before any editing. This copy is meant to be left unaltered.
+		 */
+		private var _element:ProjectData;
 
-        [Bindable]
-        public var title:String;
+		/**
+		 * This is the element's unique address in the data model. Since we only own
+		 * copies of the element we edit, we need a way to tell the controller were to
+		 * put (or `commit` our changes).
+		 */
+		private var _elementAddress:String;
 
-        /**
-         * A copy of the (unchanged) element in the data model, in the form it was
-         * before any editing. This copy is meant to be left unaltered.
-         */
-        private var _element:ProjectData;
+		/**
+		 * Stores the type of the element last loaded in the editor. We use it to
+		 * prevent recreating UIComponents when we don't have to (e.g., if user is
+		 * editing all the clusters of a measure, we need not recreate the `ClusterUI`
+		 * panel for each one of them).
+		 */
+		private var _loadedType:String;
+		private var _ui:UIComponent;
 
-        /**
-         * This is the element's unique address in the data model. Since we only own
-         * copies of the element we edit, we need a way to tell the controller were to
-         * put (or `commit` our changes).
-         */
-        private var _elementAddress:String;
+		protected function _onLabelIconAdded(event:Event):void {
+			ColorUtils.tintSprite(Colors.PRIMARY_COLOR_DARK, labelIcon);
+		}
 
-        /**
-         * Stores the type of the element last loaded in the editor. We use it to
-         * prevent recreating UIComponents when we don't have to (e.g., if user is
-         * editing all the clusters of a measure, we need not recreate the `ClusterUI`
-         * panel for each one of them).
-         */
-        private var _loadedType:String;
-        private var _ui:UIComponent;
+		/**
+		 * Stores, and deals with the new content sent to the editor.
+		 */
+		private function _acceptNewContent(data:Object):void {
 
-        protected function _onLabelIconAdded(event:Event):void {
-            ColorUtils.tintSprite(Colors.PRIMARY_COLOR_DARK, labelIcon);
-        }
+			// Receive new ones; at this stage, we must accept null values (the editor
+			// will show a blank, default page)
+			_element = (data[ViewKeys.EDITED_ELEMENT] as ProjectData);
+			_elementAddress = (data[ViewKeys.EDITED_ELEMENT_ROUTE] as String);
+			_populateEditor();
+		}
 
-        /**
-         * Stores, and deals with the new content sent to the editor.
-         */
-        private function _acceptNewContent(data:Object):void {
+		/**
+		 * Runs when a new element reaches the editor
+		 */
+		private function _onEditorContentChanged(data:Object):void {
+			_acceptNewContent(data);
+		}
 
-            // Receive new ones; at this stage, we must accept null values (the editor
-            // will show a blank, default page)
-            _element = (data[ViewKeys.EDITED_ELEMENT] as ProjectData);
-            _elementAddress = (data[ViewKeys.EDITED_ELEMENT_ROUTE] as String);
-            _populateEditor();
-        }
+		/**
+		 * Runs when this component starts being initialized.
+		 */
+		private function _onInitialize(event:FlexEvent):void {
 
-        /**
-         * Runs when a new element reaches the editor
-         */
-        private function _onEditorContentChanged(data:Object):void {
-            _acceptNewContent(data);
-        }
+			// We hook up to PTT messages, also taking into account the situation where
+			// messages were already sent before initializing the editor
+			var editorPipe:PTT = PTT.getPipe(ViewPipes.EDITOR_PIPE);
+			editorPipe.subscribe(ViewKeys.EDITOR_CONTENT, _onEditorContentChanged);
+			if (editorPipe.hasBackupFor(ViewKeys.EDITOR_CONTENT)) {
+				_onEditorContentChanged(editorPipe.recoverBackupFor(ViewKeys.EDITOR_CONTENT));
+				editorPipe.deleteBackupFor(ViewKeys.EDITOR_CONTENT);
+			}
+		}
 
-        /**
-         * Runs when this component starts being initialized.
-         */
-        private function _onInitialize(event:FlexEvent):void {
+		/**
+		 * Causes the editor to actually display editing controls for altering the
+		 * loaded content.
+		 */
+		private function _populateEditor():void {
 
-            // We hook up to PTT messages, also taking into account the situation where
-            // messages were already sent before initializing the editor
-            var editorPipe:PTT = PTT.getPipe(ViewPipes.EDITOR_PIPE);
-            editorPipe.subscribe(ViewKeys.EDITOR_CONTENT, _onEditorContentChanged);
-            if (editorPipe.hasBackupFor(ViewKeys.EDITOR_CONTENT)) {
-                _onEditorContentChanged(editorPipe.recoverBackupFor(ViewKeys.EDITOR_CONTENT));
-                editorPipe.deleteBackupFor(ViewKeys.EDITOR_CONTENT);
-            }
+			// Determine the type of element we are loading
+			var type:String = null;
+			if (_element != null) {
+				var test:Object = _element.getContent(DataFields.DATA_TYPE) as Object;
+				if (test != DataFields.VALUE_NOT_SET) {
+					type = (test as String);
+				}
+			}
 
-            var globalPipe:PTT = PTT.getPipe();
-        }
+			// We will only create a new panel if we cannot reuse the existing one
+			if (_loadedType != type) {
+				_loadedType = type;
 
-        /**
-         * Causes the editor to actually display editing controls for altering the
-         * loaded content.
-         */
-        private function _populateEditor():void {
+				// Remove existing panel if needed
+				if (_ui != null) {
+					PTT.getPipe().send(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _ui);
+					controlsArea.removeAllChildren();
+					_ui = null;
+				}
 
-            // Determine the type of element we are loading
-            var type:String = null;
-            if (_element != null) {
-                var test:Object = _element.getContent(DataFields.DATA_TYPE) as Object;
-                if (test != DataFields.VALUE_NOT_SET) {
-                    type = (test as String);
-                }
-            }
+				// Construct a new panel
+				switch (_loadedType) {
+					case DataFields.PROJECT:
+						_ui = new ProjectUI;
+						break;
+					case DataFields.GENERATOR:
+						_ui = new GeneratorUI;
+						break;
+					case DataFields.SECTION:
+						_ui = new SectionUI;
+						break;
+					case DataFields.PART:
+						_ui = new PartUI;
+						break;
+					case DataFields.MEASURE:
+						_ui = new MeasureUI;
+						break;
+					case DataFields.VOICE:
+						_ui = new VoiceUI;
+						break;
+					case DataFields.CLUSTER:
+						_ui = new ClusterUI;
+						break;
+					case DataFields.NOTE:
+						_ui = new NoteUI;
+						break;
+				}
 
-            // We will only create a new panel if we cannot reuse the existing one
-            if (_loadedType != type) {
-                _loadedType = type;
+				// Use the default panel if nothing else matches
+				if (_ui == null) {
+					_ui = new DefaultEditorUI;
+				}
 
-                // Remove existing panel if needed
-                if (_ui != null) {
-                    PTT.getPipe().send(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _ui);
-                    controlsArea.removeAllChildren();
-                    _ui = null;
-                }
+				// Add the panel to the editor
+				controlsArea.addChild(UIComponent(_ui));
+			}
 
-                // Construct a new panel
-                switch (_loadedType) {
-                    case DataFields.PROJECT:
-                        _ui = new ProjectUI;
-                        break;
-                    case DataFields.GENERATOR:
-                        _ui = new GeneratorUI;
-                        break;
-                    case DataFields.SECTION:
-                        _ui = new SectionUI;
-                        break;
-                    case DataFields.PART:
-                        _ui = new PartUI;
-                        break;
-                    case DataFields.MEASURE:
-                        _ui = new MeasureUI;
-                        break;
-                    case DataFields.VOICE:
-                        _ui = new VoiceUI;
-                        break;
-                    case DataFields.CLUSTER:
-                        _ui = new ClusterUI;
-                        break;
-                    case DataFields.NOTE:
-                        _ui = new NoteUI;
-                        break;
-                }
+			// Reset and (re-)populate the panel
+			PTT.getPipe().send(ViewKeys.RESET);
+			PTT.getPipe().send(ViewKeys.EDITED_ELEMENT_DATA, _element);
+			PTT.getPipe().send(ViewKeys.EDITED_ELEMENT_ROUTE, _elementAddress);
+		}
 
-                // Use the default panel if nothing else matches
-                if (_ui == null) {
-                    _ui = new DefaultEditorUI;
-                }
-
-                // Add the panel to the editor
-                controlsArea.addChild(UIComponent(_ui));
-            }
-
-            // Reset and (re-)populate the panel
-            PTT.getPipe().send(ViewKeys.RESET);
-            PTT.getPipe().send(ViewKeys.EDITED_ELEMENT_DATA, _element);
-            PTT.getPipe().send(ViewKeys.EDITED_ELEMENT_ROUTE, _elementAddress);
-        }
-
-        /**
-         * Triggered when the header icon is clicked
-         */
-        protected function _onHeaderIconClick(event:MouseEvent):void {
-            PTT.getPipe().send(ViewKeys.EDITOR_HEADER_CLICK);
-        }
-        ]]>
+		/**
+		 * Triggered when the header icon is clicked
+		 */
+		protected function _onHeaderIconClick(event:MouseEvent):void {
+			PTT.getPipe().send(ViewKeys.EDITOR_HEADER_CLICK);
+		}
+		]]>
 	</fx:Script>
 
 	<!-- Pane Icon and Title -->

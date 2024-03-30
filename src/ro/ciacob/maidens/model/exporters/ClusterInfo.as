@@ -1,7 +1,10 @@
 package ro.ciacob.maidens.model.exporters {
-import ro.ciacob.maidens.controller.MusicUtils;
-import ro.ciacob.maidens.model.ProjectData;
-import ro.ciacob.maidens.model.constants.DataFields;
+
+import ro.ciacob.maidens.legacy.MusicUtils;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.legacy.constants.DataFields;
+
+
 import ro.ciacob.math.Fraction;
 import ro.ciacob.utils.Strings;
 

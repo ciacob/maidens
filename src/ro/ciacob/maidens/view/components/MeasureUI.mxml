@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <components:UIBase initialize="_onInitialize(event)"
-				   xmlns:components="ro.ciacob.maidens.view.components.*"
-				   xmlns:fx="http://ns.adobe.com/mxml/2009"
-				   xmlns:mx="library://ns.adobe.com/flex/mx"
-				   xmlns:s="library://ns.adobe.com/flex/spark">
-	<fx:Script>
+                   xmlns:components="ro.ciacob.maidens.view.components.*"
+                   xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+>
+    <fx:Script>
 		<![CDATA[
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+
         import mx.core.UIComponent;
         import mx.events.FlexEvent;
         import mx.events.SliderEvent;
 
         import ro.ciacob.desktop.signals.PTT;
-        import ro.ciacob.maidens.model.ProjectData;
-        import ro.ciacob.maidens.model.constants.DataFields;
+
 
         import eu.claudius.iacob.maidens.Sizes;
 
-        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.maidens.legacy.ProjectData;
+
+        import ro.ciacob.maidens.legacy.constants.DataFields;
+
+
         import ro.ciacob.math.Fraction;
         import ro.ciacob.utils.constants.CommonStrings;
 
@@ -129,7 +134,7 @@
          * into a fraction denominator that can be used to express the
          * nominal time signature of the current measure.
          */
-        private function _computeDenominator(percentage:Number):uint {
+        private static function _computeDenominator(percentage:Number):uint {
             var index:int = Math.round(percentage * (DENOMINATORS_LIST.length - 1));
             return (DENOMINATORS_LIST[index] as Number);
         }
@@ -137,7 +142,7 @@
         /**
          * Formats the "tip", or hint that is displayed above the denominator slider, as it is dragged
          */
-        private function _denominatorDataTipFunction(currentValue:Number):String {
+        private static function _denominatorDataTipFunction(currentValue:Number):String {
             return _computeDenominator(currentValue).toString();
         }
 
@@ -184,7 +189,7 @@
          * into a fraction numerator that can be used to express the
          * nominal time signature of the current measure.
          */
-        private function _computeNumerator(percentage:Number):uint {
+        private static function _computeNumerator(percentage:Number):uint {
             var range:Number = (NUMERATOR_MAXIMUM - NUMERATOR_MINIMUM);
             return NUMERATOR_MINIMUM + Math.round(range * percentage);
         }
@@ -192,7 +197,7 @@
         /**
          * Formats the "tip", or hint that is displayed above the numerator slider, as it is dragged
          */
-        private function _numeratorDataTipFunction(currentValue:Number):String {
+        private static function _numeratorDataTipFunction(currentValue:Number):String {
             return _computeNumerator(currentValue).toString()
         }
 
@@ -203,20 +208,6 @@
             _beatDuration = (data[DataFields.BEAT_DURATION] as uint);
             _timeFractionChanged = true;
             invalidateProperties();
-        }
-
-        private function _requireMsNumConversion(targetFieldName:String, measureNumber:int):void {
-            var data:Object = {};
-            data[ViewKeys.TARGET_FIELD_NAME] = targetFieldName;
-            data[ViewKeys.MEASURE_NUMBER_TO_CONVERT] = measureNumber;
-            PTT.getPipe().send(ViewKeys.CONVERT_MEASURE_NUMBER_TO_UID, data);
-        }
-
-        private function _requireMsUidConversion(targetFieldName:String, measureUid:String):void {
-            var data:Object = {};
-            data[ViewKeys.TARGET_FIELD_NAME] = targetFieldName;
-            data[ViewKeys.MEASURE_UID_TO_CONVERT] = measureUid;
-            PTT.getPipe().send(ViewKeys.CONVERT_UID_TO_MEASURE_NUMBER, data);
         }
 
         private function _requireTimeSignatureData(measureDataUid:String):void {
@@ -250,75 +241,75 @@
         }
         ]]>
 	</fx:Script>
-	<fx:Declarations/>
+    <fx:Declarations/>
 
-	<mx:Label styleName="editorHeader"
-			  text="Measure"
-			  width="100%"/>
+    <mx:Label styleName="editorHeader"
+              text="Measure"
+              width="100%"/>
 
-	<!-- Bar type -->
-	<mx:Label styleName="editorLabel"
-			  text="Bar type:"/>
-	<mx:HorizontalList change="{onControlChanged(event)}"
-					   columnWidth="{Sizes.SMALL_TILE_SIZE}"
-					   fontSize="{Sizes.SMALL_TILE_SIZE * 0.72}"
-					   initialize="{registerUIControl(event, DataFields.BAR_TYPE)}"
-					   paddingBottom="0"
-					   paddingLeft="0"
-					   paddingRight="0"
-					   paddingTop="0"
-					   rowHeight="{Sizes.SMALL_TILE_SIZE}"
-					   styleName="thickText"
-					   width="100%"/>
+    <!-- Bar type -->
+    <mx:Label styleName="editorLabel"
+              text="Bar type:"/>
+    <mx:HorizontalList change="{onControlChanged(event)}"
+                       columnWidth="{Sizes.SMALL_TILE_SIZE}"
+                       fontSize="{Sizes.SMALL_TILE_SIZE * 0.72}"
+                       initialize="{registerUIControl(event, DataFields.BAR_TYPE)}"
+                       paddingBottom="0"
+                       paddingLeft="0"
+                       paddingRight="0"
+                       paddingTop="0"
+                       rowHeight="{Sizes.SMALL_TILE_SIZE}"
+                       styleName="thickText"
+                       width="100%"/>
 
-	<!-- Time signature -->
-	<mx:Label styleName="editorLabel"
-			  text="Time Signature"/>
-	<mx:CheckBox change="{_commitMeasureTime(event)}"
-				 id="timeSignatureCheckbox"
-				 label="Set explicit time signature:"
-				 styleName="editorLabel"/>
+    <!-- Time signature -->
+    <mx:Label styleName="editorLabel"
+              text="Time Signature"/>
+    <mx:CheckBox change="{_commitMeasureTime(event)}"
+                 id="timeSignatureCheckbox"
+                 label="Set explicit time signature:"
+                 styleName="editorLabel"/>
 
-	<mx:HBox horizontalGap="0"
-			 verticalAlign="top"
-			 width="100%">
-		<mx:HSlider change="_onNumSliderChange(event)"
-					enabled="{timeSignatureCheckbox.selected}"
-					id="numeratorSlider"
-					liveDragging="false"
-					maximum="1"
-					minimum="0"
-					showDataTip="true"
-					snapInterval="{_getNumSnapInterval()}"
-					dataTipFormatFunction="_numeratorDataTipFunction"
-					width="100%"/>
-		<mx:Label id="numeratorLabel"
-				  enabled="{timeSignatureCheckbox.selected}"
-				  styleName="timeSignatureDigit"
-				  text="{CommonStrings.ELLIPSIS}"
-				  textAlign="center"
-				  width="{TIME_LABEL_WIDTH}"/>
+    <mx:HBox horizontalGap="0"
+             verticalAlign="top"
+             width="100%">
+        <mx:HSlider change="_onNumSliderChange(event)"
+                    enabled="{timeSignatureCheckbox.selected}"
+                    id="numeratorSlider"
+                    liveDragging="false"
+                    maximum="1"
+                    minimum="0"
+                    showDataTip="true"
+                    snapInterval="{_getNumSnapInterval()}"
+                    dataTipFormatFunction="_numeratorDataTipFunction"
+                    width="100%"/>
+        <mx:Label id="numeratorLabel"
+                  enabled="{timeSignatureCheckbox.selected}"
+                  styleName="timeSignatureDigit"
+                  text="{CommonStrings.ELLIPSIS}"
+                  textAlign="center"
+                  width="{TIME_LABEL_WIDTH}"/>
 
-	</mx:HBox>
-	<mx:HBox horizontalGap="0"
-			 verticalAlign="top"
-			 width="100%">
-		<mx:HSlider change="_onDenSliderChange(event)"
-					enabled="{timeSignatureCheckbox.selected}"
-					id="denominatorSlider"
-					liveDragging="false"
-					maximum="1"
-					minimum="0"
-					showDataTip="true"
-					snapInterval="{_getDenSnapInterval()}"
-					dataTipFormatFunction="_denominatorDataTipFunction"
-					width="100%"/>
-		<mx:Label id="denominatorLabel"
-				  enabled="{timeSignatureCheckbox.selected}"
-				  styleName="timeSignatureDigit"
-				  text="{CommonStrings.ELLIPSIS}"
-				  textAlign="center"
-				  width="{TIME_LABEL_WIDTH}"/>
-	</mx:HBox>
+    </mx:HBox>
+    <mx:HBox horizontalGap="0"
+             verticalAlign="top"
+             width="100%">
+        <mx:HSlider change="_onDenSliderChange(event)"
+                    enabled="{timeSignatureCheckbox.selected}"
+                    id="denominatorSlider"
+                    liveDragging="false"
+                    maximum="1"
+                    minimum="0"
+                    showDataTip="true"
+                    snapInterval="{_getDenSnapInterval()}"
+                    dataTipFormatFunction="_denominatorDataTipFunction"
+                    width="100%"/>
+        <mx:Label id="denominatorLabel"
+                  enabled="{timeSignatureCheckbox.selected}"
+                  styleName="timeSignatureDigit"
+                  text="{CommonStrings.ELLIPSIS}"
+                  textAlign="center"
+                  width="{TIME_LABEL_WIDTH}"/>
+    </mx:HBox>
 
 </components:UIBase>

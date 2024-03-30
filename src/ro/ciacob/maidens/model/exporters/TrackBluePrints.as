@@ -45,7 +45,7 @@ public class TrackBluePrints {
      *          Function to be called for each registered track blueprint. Signature must be:
      *          function myCallback (blueprintUid : String, blueprint : TrackBluePrint, index : uint) : void.
      *
-     *          Registeredtrack blueprints are iterated based on their sorted uids (alphabetically ascending).
+     *          Registered track blueprints are iterated based on their sorted uids (alphabetically ascending).
      */
     public function forEach(callback:Function):void {
         if (callback != null) {
@@ -63,12 +63,12 @@ public class TrackBluePrints {
     }
 
     public function toString():String {
-        var out : Array = [];
+        var out:Array = [];
         var keys:Array = Objects.getKeys(_bluePrints, true);
         for (var i:int = 0; i < keys.length; i++) {
-            out.push ('[' + i + ']' + '. ' + keys[i] + ': ' + _bluePrints[keys[i]]);
+            out.push('[' + i + ']' + '. ' + keys[i] + ': ' + _bluePrints[keys[i]]);
         }
-        return out.join ('\n');
+        return out.join('\n');
     }
 }
 }

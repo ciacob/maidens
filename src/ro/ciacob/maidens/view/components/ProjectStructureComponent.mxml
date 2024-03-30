@@ -15,211 +15,212 @@
 
     <fx:Script>
 		<![CDATA[
-		import eu.claudius.iacob.maidens.Colors;
-		import eu.claudius.iacob.maidens.Sizes;
-		import eu.claudius.iacob.maidens.skins.ClusterSkin;
-		import eu.claudius.iacob.maidens.skins.GeneratorSkin;
-		import eu.claudius.iacob.maidens.skins.GeneratorsSkin;
-		import eu.claudius.iacob.maidens.skins.MeasureSkin;
-		import eu.claudius.iacob.maidens.skins.NoteSkin;
-		import eu.claudius.iacob.maidens.skins.PartSkin;
-		import eu.claudius.iacob.maidens.skins.ProjectNodeSkin;
-		import eu.claudius.iacob.maidens.skins.ScoreSkin;
-		import eu.claudius.iacob.maidens.skins.SectionSkin;
-		import eu.claudius.iacob.maidens.skins.VoiceSkin;
+        import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+        import eu.claudius.iacob.maidens.constants.ViewPipes;
+        import eu.claudius.iacob.maidens.skins.ClusterSkin;
+        import eu.claudius.iacob.maidens.skins.GeneratorSkin;
+        import eu.claudius.iacob.maidens.skins.GeneratorsSkin;
+        import eu.claudius.iacob.maidens.skins.MeasureSkin;
+        import eu.claudius.iacob.maidens.skins.NoteSkin;
+        import eu.claudius.iacob.maidens.skins.PartSkin;
+        import eu.claudius.iacob.maidens.skins.ProjectNodeSkin;
+        import eu.claudius.iacob.maidens.skins.ScoreSkin;
+        import eu.claudius.iacob.maidens.skins.SectionSkin;
+        import eu.claudius.iacob.maidens.skins.VoiceSkin;
 
-		import mx.events.FlexEvent;
-		import mx.events.ListEvent;
+        import mx.events.FlexEvent;
+        import mx.events.ListEvent;
 
-		import ro.ciacob.desktop.data.constants.DataKeys;
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.maidens.model.ProjectData;
-		import ro.ciacob.maidens.model.constants.DataFields;
-		import ro.ciacob.maidens.view.constants.ViewKeys;
-		import ro.ciacob.maidens.view.constants.ViewPipes;
-		import ro.ciacob.utils.ColorUtils;
-		import ro.ciacob.utils.Time;
-		import ro.ciacob.utils.Trees;
+        import ro.ciacob.desktop.data.constants.DataKeys;
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.legacy.ProjectData;
+        import ro.ciacob.maidens.legacy.constants.DataFields;
 
-		private static const DELAY:Number = 0.1;
-		private static var _treeReady:Boolean = true;
+        import ro.ciacob.utils.ColorUtils;
+        import ro.ciacob.utils.Time;
+        import ro.ciacob.utils.Trees;
 
-		[Bindable]
-		public var title:String;
+        private static const DELAY:Number = 0.1;
+        private static var _treeReady:Boolean = true;
 
-		private var _bufferedExternallySelectedUid:String;
-		private var _data:Object;
-		private var _bufferedData:Object;
-		private var _lastFoundItem:Object;
-		private var _uidToFind:String;
+        [Bindable]
+        public var title:String;
 
-		protected function _onItemClick(event:ListEvent):void {
-			var uid:String = _getUidOf(tree.selectedItem);
-			if (uid != null) {
-				PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE).send(ViewKeys.TREE_ITEM_CLICK, uid);
-			} else {
-				PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE).send(ViewKeys.TREE_ITEM_CLICK, null);
-				_reset();
-			}
-		}
+        private var _bufferedExternallySelectedUid:String;
+        private var _data:Object;
+        private var _bufferedData:Object;
+        private var _lastFoundItem:Object;
+        private var _uidToFind:String;
 
-		protected function _onLabelIconAdded(event:Event):void {
-			ColorUtils.tintSprite(Colors.PRIMARY_COLOR_DARK, labelIcon);
-		}
+        protected function _onItemClick(event:ListEvent):void {
+            var uid:String = _getUidOf(tree.selectedItem);
+            if (uid != null) {
+                PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE).send(ViewKeys.TREE_ITEM_CLICK, uid);
+            } else {
+                PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE).send(ViewKeys.TREE_ITEM_CLICK, null);
+                _reset();
+            }
+        }
 
-		private function _focusLastFoundItem():void {
-			Trees.toggleTreeItem(tree, _lastFoundItem, true, false, true, DELAY, _highlightLastFoundItem);
-		}
+        protected function _onLabelIconAdded(event:Event):void {
+            ColorUtils.tintSprite(Colors.PRIMARY_COLOR_DARK, labelIcon);
+        }
 
-		private static function _getUidOf(item:Object):String {
-			if (item != null) {
-				if (DataKeys.SOURCE in item) {
-					var src:ProjectData = (item[DataKeys.SOURCE] as ProjectData);
-					return src.route;
-				}
-			}
-			return null;
-		}
+        private function _focusLastFoundItem():void {
+            Trees.toggleTreeItem(tree, _lastFoundItem, true, false, true, DELAY, _highlightLastFoundItem);
+        }
 
-		private function _highlightLastFoundItem():void {
-			if (_lastFoundItem != null) {
-				Trees.highlightTreeItem(tree, _lastFoundItem, DELAY);
-			}
-		}
+        private static function _getUidOf(item:Object):String {
+            if (item != null) {
+                if (DataKeys.SOURCE in item) {
+                    var src:ProjectData = (item[DataKeys.SOURCE] as ProjectData);
+                    return src.route;
+                }
+            }
+            return null;
+        }
 
-		private function _inspectTreeItem(item:Object):Object {
-			var uid:String = _getUidOf(item);
-			if (uid == _uidToFind) {
-				_lastFoundItem = item;
-				return false;
-			}
-			return null;
-		}
+        private function _highlightLastFoundItem():void {
+            if (_lastFoundItem != null) {
+                Trees.highlightTreeItem(tree, _lastFoundItem, DELAY);
+            }
+        }
 
-		private function _onDataAvailable(data:Object):void {
-			_data = data;
-			if (_treeReady) {
-				_treeReady = false;
-				tree.addEventListener(FlexEvent.UPDATE_COMPLETE, _onTreeUpdateComplete);
-				tree.dataProvider = _data;
-			} else {
-				_bufferedData = _data;
-			}
-		}
+        private function _inspectTreeItem(item:Object):Object {
+            var uid:String = _getUidOf(item);
+            if (uid == _uidToFind) {
+                _lastFoundItem = item;
+                return false;
+            }
+            return null;
+        }
 
-		private function _onExternallySelectedTreeItem(uid:String):void {
-			Trees.clearHighlight(tree);
-			if (_treeReady) {
-				// Conceal previous selection, if any
-				if (_lastFoundItem != null) {
-					_unFocusLastFoundItem();
-				}
+        private function _onDataAvailable(data:Object):void {
+            _data = data;
+            if (_treeReady) {
+                _treeReady = false;
+                tree.addEventListener(FlexEvent.UPDATE_COMPLETE, _onTreeUpdateComplete);
+                tree.dataProvider = _data;
+            } else {
+                _bufferedData = _data;
+            }
+        }
 
-				// Find and emphasize current selection
-				if (uid != null) {
-					_uidToFind = uid;
-					_lastFoundItem = null;
-					Trees.walkTree(_data, _inspectTreeItem, this);
-					if (_lastFoundItem != null) {
-						_focusLastFoundItem();
-					}
-				} else {
-					// Accept `null` uids, by removing/resetting the current selection
-					_reset();
-				}
-			} else {
-				_bufferedExternallySelectedUid = uid;
-			}
-		}
+        private function _onExternallySelectedTreeItem(uid:String):void {
+            Trees.clearHighlight(tree);
+            if (_treeReady) {
+                // Conceal previous selection, if any
+                if (_lastFoundItem != null) {
+                    _unFocusLastFoundItem();
+                }
 
-		private function _onInitialize(event:FlexEvent):void {
+                // Find and emphasize current selection
+                if (uid != null) {
+                    _uidToFind = uid;
+                    _lastFoundItem = null;
+                    Trees.walkTree(_data, _inspectTreeItem, this);
+                    if (_lastFoundItem != null) {
+                        _focusLastFoundItem();
+                    }
+                } else {
+                    // Accept `null` uids, by removing/resetting the current selection
+                    _reset();
+                }
+            } else {
+                _bufferedExternallySelectedUid = uid;
+            }
+        }
 
-			// Register for relevant notifications; also taking into account the situation
-			// where notifications were already sent before this component was initialized
-			var treePipe:PTT = PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE);
-			treePipe.subscribe(ViewKeys.TREE_DATA_READY, _onDataAvailable);
-			if (treePipe.hasBackupFor(ViewKeys.TREE_DATA_READY)) {
-				_onDataAvailable(treePipe.recoverBackupFor(ViewKeys.TREE_DATA_READY));
-				treePipe.deleteBackupFor(ViewKeys.TREE_DATA_READY);
-			}
+        private function _onInitialize(event:FlexEvent):void {
 
-			treePipe.subscribe(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM, _onExternallySelectedTreeItem);
-			if (treePipe.hasBackupFor(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM)) {
-				_onExternallySelectedTreeItem(treePipe.recoverBackupFor(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM) as String);
-				treePipe.deleteBackupFor(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM);
-			}
+            // Register for relevant notifications; also taking into account the situation
+            // where notifications were already sent before this component was initialized
+            var treePipe:PTT = PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE);
+            treePipe.subscribe(ViewKeys.TREE_DATA_READY, _onDataAvailable);
+            if (treePipe.hasBackupFor(ViewKeys.TREE_DATA_READY)) {
+                _onDataAvailable(treePipe.recoverBackupFor(ViewKeys.TREE_DATA_READY));
+                treePipe.deleteBackupFor(ViewKeys.TREE_DATA_READY);
+            }
 
-			// Broadcast availability
-			PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE).send(ViewKeys.STRUCTURE_TREE_READY);
-		}
+            treePipe.subscribe(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM, _onExternallySelectedTreeItem);
+            if (treePipe.hasBackupFor(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM)) {
+                _onExternallySelectedTreeItem(treePipe.recoverBackupFor(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM) as String);
+                treePipe.deleteBackupFor(ViewKeys.EXTERNALLY_SELECTED_TREE_ITEM);
+            }
 
-		private function _onTreeUpdateComplete(event:FlexEvent):void {
-			tree.removeEventListener(FlexEvent.UPDATE_COMPLETE, _onTreeUpdateComplete);
-			Time.delay(DELAY, _doOnTreeReady);
-		}
+            // Broadcast availability
+            PTT.getPipe(ViewPipes.PROJECT_TREE_PIPE).send(ViewKeys.STRUCTURE_TREE_READY);
+        }
 
-		private function _doOnTreeReady():void {
-			_treeReady = true;
-			if (_bufferedExternallySelectedUid != null) {
-				_onExternallySelectedTreeItem(_bufferedExternallySelectedUid);
-				_bufferedExternallySelectedUid = null;
-			}
-			if (_bufferedData) {
-				_onDataAvailable(_bufferedData);
-				_bufferedData = null;
-			}
-		}
+        private function _onTreeUpdateComplete(event:FlexEvent):void {
+            tree.removeEventListener(FlexEvent.UPDATE_COMPLETE, _onTreeUpdateComplete);
+            Time.delay(DELAY, _doOnTreeReady);
+        }
 
-		private function _reset():void {
-			_uidToFind = null;
-			_lastFoundItem = null;
-			Trees.clearHighlight(tree);
-		}
+        private function _doOnTreeReady():void {
+            _treeReady = true;
+            if (_bufferedExternallySelectedUid != null) {
+                _onExternallySelectedTreeItem(_bufferedExternallySelectedUid);
+                _bufferedExternallySelectedUid = null;
+            }
+            if (_bufferedData) {
+                _onDataAvailable(_bufferedData);
+                _bufferedData = null;
+            }
+        }
 
-		private function _unFocusLastFoundItem():void {
-			Trees.toggleTreeItem(tree, _lastFoundItem, false, true, false, DELAY);
-		}
+        private function _reset():void {
+            _uidToFind = null;
+            _lastFoundItem = null;
+            Trees.clearHighlight(tree);
+        }
 
-		/**
-		 * Assigns an icon to tree items based on their time
-		 */
-		private static function getIcon(item:Object):Class {
-			if (item) {
-				var src:ProjectData = (item.source as ProjectData);
-				var dataType:String = src.getContent(DataFields.DATA_TYPE) as String;
-				switch (dataType) {
-					case DataFields.PROJECT:
-						return ProjectNodeSkin;
-					case DataFields.GENERATORS:
-						return GeneratorsSkin;
-					case DataFields.GENERATOR:
-						return GeneratorSkin;
-					case DataFields.SCORE:
-						return ScoreSkin;
-					case DataFields.SECTION:
-						return SectionSkin;
-					case DataFields.PART:
-						return PartSkin;
-					case DataFields.MEASURE:
-						return MeasureSkin;
-					case DataFields.VOICE:
-						return VoiceSkin;
-					case DataFields.CLUSTER:
-						return ClusterSkin;
-					case DataFields.NOTE:
-						return NoteSkin;
-				}
-			}
-			return null;
-		}
+        private function _unFocusLastFoundItem():void {
+            Trees.toggleTreeItem(tree, _lastFoundItem, false, true, false, DELAY);
+        }
 
-		/**
-		 * Triggered when the header icon is clicked
-		 */
-		protected function _onHeaderIconClick(event:MouseEvent):void {
-			PTT.getPipe().send(ViewKeys.TREE_HEADER_CLICK);
-		}
-		]]>
+        /**
+         * Assigns an icon to tree items based on their time
+         */
+        private static function getIcon(item:Object):Class {
+            if (item) {
+                var src:ProjectData = (item.source as ProjectData);
+                var dataType:String = src.getContent(DataFields.DATA_TYPE) as String;
+                switch (dataType) {
+                    case DataFields.PROJECT:
+                        return ProjectNodeSkin;
+                    case DataFields.GENERATORS:
+                        return GeneratorsSkin;
+                    case DataFields.GENERATOR:
+                        return GeneratorSkin;
+                    case DataFields.SCORE:
+                        return ScoreSkin;
+                    case DataFields.SECTION:
+                        return SectionSkin;
+                    case DataFields.PART:
+                        return PartSkin;
+                    case DataFields.MEASURE:
+                        return MeasureSkin;
+                    case DataFields.VOICE:
+                        return VoiceSkin;
+                    case DataFields.CLUSTER:
+                        return ClusterSkin;
+                    case DataFields.NOTE:
+                        return NoteSkin;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Triggered when the header icon is clicked
+         */
+        protected function _onHeaderIconClick(event:MouseEvent):void {
+            PTT.getPipe().send(ViewKeys.TREE_HEADER_CLICK);
+        }
+        ]]>
 	</fx:Script>
 
     <!-- Pane Icon and Title -->

@@ -23,6 +23,7 @@
         import eu.claudius.iacob.desktop.presetmanager.lib.PresetEvent;
         import eu.claudius.iacob.maidens.Colors;
         import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
         import eu.claudius.iacob.ui.components.Constants;
         import eu.claudius.iacob.ui.components.ParameterChangeEvent;
 
@@ -37,15 +38,16 @@
         import ro.ciacob.desktop.ui.utils.Objects;
         import ro.ciacob.desktop.windows.IWindowsManager;
         import ro.ciacob.desktop.windows.WindowContentBehavior;
-        import ro.ciacob.maidens.controller.constants.GeneratorKeys;
+        import ro.ciacob.maidens.generators.constants.GeneratorKeys;
+
         import ro.ciacob.maidens.generators.core.constants.CoreOperationKeys;
         import ro.ciacob.maidens.generators.core.interfaces.IParameter;
         import ro.ciacob.maidens.generators.core.interfaces.IParametersList;
         import ro.ciacob.maidens.generators.core.ui.ParameterUI;
         import ro.ciacob.maidens.generators.core.ui.PointTools;
-        import ro.ciacob.maidens.model.ProjectData;
-        import ro.ciacob.maidens.model.constants.DataFields;
-        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.maidens.legacy.ProjectData;
+        import ro.ciacob.maidens.legacy.constants.DataFields;
+
         import ro.ciacob.utils.ScreenUtils;
         import ro.ciacob.utils.Time;
 
@@ -590,7 +592,7 @@
          */
         private function _showEnvelopeEditor():void {
             _envelopeEditorVisible = true;
-            TweenMax.fromTo (parametersEditor, 1, {alpha : 0}, {alpha : 1});
+            TweenMax.fromTo(parametersEditor, 1, {alpha: 0}, {alpha: 1});
         }
 
         /**
@@ -710,8 +712,8 @@
             // Setup initial window bounds. The Envelope Editor is hidden by default
             var winManager:IWindowsManager = _windowBehavior.manager;
             var windowUid:String = _windowBehavior.windowUid;
-            if (winManager.isWindowAvailable (windowUid)) {
-                var bounds : Rectangle = Sizes.MIN_ADVANCED_GEN_CFG_WINDOW_BOUNDS;
+            if (winManager.isWindowAvailable(windowUid)) {
+                var bounds:Rectangle = Sizes.MIN_ADVANCED_GEN_CFG_WINDOW_BOUNDS;
                 winManager.updateWindowBounds(windowUid, bounds, false);
                 winManager.updateWindowMinSize(windowUid, bounds.width, bounds.height, true);
                 var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
@@ -919,10 +921,10 @@
 
     <!-- BODY -->
     <s:Group id="bodyContainer"
-            x="0"
-            y="0"
-            width="{width}"
-            height="{rule.y - SPACE}">
+             x="0"
+             y="0"
+             width="{width}"
+             height="{rule.y - SPACE}">
         <s:layout>
             <s:HorizontalLayout
                     gap="{SPACE * 2}"
@@ -934,7 +936,7 @@
 
         <!-- Left Pane. Presets manager and list of parameters -->
         <s:Group height="100%"
-                width="{ _envelopeEditorVisible? (bodyContainer.width - SPACE * 4) * 0.4 : bodyContainer.width - SPACE * 2 }">
+                 width="{ _envelopeEditorVisible? (bodyContainer.width - SPACE * 4) * 0.4 : bodyContainer.width - SPACE * 2 }">
             <s:layout>
                 <s:VerticalLayout gap="{2 * SPACE}"
                                   horizontalAlign="left"
@@ -946,7 +948,7 @@
             <ui:PresetManagerUi id="presetManager"
                                 width="{(bodyContainer.width - SPACE * 4) * 0.4}"
                                 minHeight="110"
-                                visible="{_formReady}" />
+                                visible="{_formReady}"/>
 
             <!-- Parameters list label -->
             <mx:Label id="parametersListLabel"

@@ -10,9 +10,10 @@ import eu.claudius.iacob.synth.utils.TrackDescriptor;
 import ro.ciacob.desktop.ui.utils.CommonStrings;
 import ro.ciacob.maidens.generators.constants.duration.TimeSignature;
 import ro.ciacob.maidens.generators.constants.parts.PartMidiPatches;
-import ro.ciacob.maidens.model.ModelUtils;
-import ro.ciacob.maidens.model.ProjectData;
-import ro.ciacob.maidens.model.constants.DataFields;
+import ro.ciacob.maidens.legacy.ModelUtils;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.legacy.constants.DataFields;
+
 import ro.ciacob.math.Fraction;
 import ro.ciacob.utils.Strings;
 
@@ -382,7 +383,7 @@ public class SynthTracksProducer {
      *          their time signature is merely an indicator of their MINIMUM capacity).
      *
      * @return  SIDE EFFECT: returns given `startTime` plus either the given `minAdvanceTime` or the larger value of the
-     *          subjacent's elements' total duration, if applicable (in other words, if the Clusters in a given Voice
+     *          subjacent elements' total duration, if applicable (in other words, if the Clusters in a given Voice
      *          overflow their parent measure's time signature, the overflown duration is used instead of the measure's
      *          "nominal" duration).
      */
@@ -623,7 +624,7 @@ public class SynthTracksProducer {
             var preset:uint = blueprint.presetNumber;
             var notesTrack:Track = new Track(baseTrackUid, preset, baseTrackUid);
             timeline.addTrack(notesTrack);
-            var annotationTrackUid : String = (baseTrackUid + ANNOTATION_SUFFIX);
+            var annotationTrackUid:String = (baseTrackUid + ANNOTATION_SUFFIX);
             var annotationsTrack:Track = new Track(annotationTrackUid, preset, annotationTrackUid);
             timeline.addTrack(annotationsTrack);
 
@@ -682,13 +683,13 @@ public class SynthTracksProducer {
     /**
      * Used as `Array.map()` callback to convert all Strings in an Array into their respective integers.
      */
-    private static function __toIntegers(item:String, ...args):int {
+    private static function __toIntegers(item:String, ...ignore):int {
         return (parseInt(item) as int);
     }
 
     /**
      * Sorting callback to be used when sorting all the "voice objects" stored under a given "track id".
-     * Sorts ascendingly by section index, and then by measure index, effectively ensuring all "voice
+     * Sorts ascending by section index, and then by measure index, effectively ensuring all "voice
      * objects" are listed chronologically per each "track blueprint".
      *
      * @see Array.sort

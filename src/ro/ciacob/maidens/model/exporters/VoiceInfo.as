@@ -1,14 +1,15 @@
 package ro.ciacob.maidens.model.exporters {
-import ro.ciacob.maidens.model.ProjectData;
+
+import ro.ciacob.maidens.legacy.ProjectData;
 import ro.ciacob.math.Fraction;
 
 public class VoiceInfo {
 
-    private var _indicesMap : Array;
-    private var _rawVoiceData : ProjectData;
-    private var _startTime : Fraction;
+    private var _indicesMap:Array;
+    private var _rawVoiceData:ProjectData;
+    private var _startTime:Fraction;
 
-    public function VoiceInfo(indicesMap : Array, rawVoiceData : ProjectData) {
+    public function VoiceInfo(indicesMap:Array, rawVoiceData:ProjectData) {
         _indicesMap = indicesMap;
         _rawVoiceData = rawVoiceData;
     }
@@ -30,7 +31,7 @@ public class VoiceInfo {
         _startTime = value;
     }
 
-    public function toString () : String {
+    public function toString():String {
         return (_startTime + ' | ' + _rawVoiceData.route);
     }
 

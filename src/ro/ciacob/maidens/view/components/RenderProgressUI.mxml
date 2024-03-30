@@ -31,7 +31,7 @@
         import ro.ciacob.utils.Descriptor;
 
         private static const SPACE:int = 10;
-        private static const BARS_MAKE_UP_FACTOR : Number = 3;
+        private static const BARS_MAKE_UP_FACTOR:Number = 3;
 
         private var _pipe:PTT;
         private var _windowBehavior:WindowContentBehavior;

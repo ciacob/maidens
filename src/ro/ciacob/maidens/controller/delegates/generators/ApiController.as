@@ -1,13 +1,14 @@
-package ro.ciacob.maidens.controller.generators {
-	import flash.utils.getQualifiedClassName;
+package ro.ciacob.maidens.controller.delegates.generators {
+import eu.claudius.iacob.maidens.constants.StaticTokens;
+
+import flash.utils.getQualifiedClassName;
 	
 	import ro.ciacob.desktop.signals.PTT;
 	import ro.ciacob.maidens.controller.QueryEngine;
 	import ro.ciacob.maidens.controller.constants.CoreApiArguments;
 	import ro.ciacob.maidens.controller.constants.CoreApiNames;
-	import ro.ciacob.maidens.model.ProjectData;
-	import ro.ciacob.maidens.model.constants.StaticTokens;
-	import ro.ciacob.maidens.view.constants.PromptKeys;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.view.constants.PromptKeys;
 	import ro.ciacob.math.Fraction;
 	import ro.ciacob.utils.NumberUtil;
 	import ro.ciacob.utils.Strings;
@@ -85,7 +86,6 @@ package ro.ciacob.maidens.controller.generators {
 				default:
 					// If we reach down here, this means that there was no match for the
 					// requested API name.
-					// TODO: support API extensions provided by generator modules.
 					if (mustExecute) {
 						throw(new Error(StaticTokens.NO_SUCH_API.replace('%s', apiName).
 							replace('%s', _master.currentlyGeneratingModuleUid)));
@@ -115,9 +115,14 @@ package ro.ciacob.maidens.controller.generators {
 		// Private methods
 		// ---------------
 		/**
-		 * TODO: Document
+		 * Proofs (asserts) that given `apiName` was called with the expected number of arguments, and each of them of the
+		 * expected type. If assertion fails, one of several possible exceptions are thrown (their content is
+		 * standardized via constants in the `StaticTokens` class):
+		 * - StaticTokens.API_WRONG_ARGUMENTS_NUMBER;
+		 * - StaticTokens.API_WRONG_ARGUMENTS_RANGE;
+		 * - StaticTokens.API_WRONG_ARGUMENT_TYPE.
 		 */
-		private function _assertProperArguments(apiName:String, actual:Array, expected:Array):void {
+		private static function _assertProperArguments(apiName:String, actual:Array, expected:Array):void {
 			var numGiven:int = actual.length;
 			var minArgs:int = (expected[0] as int);
 			var maxArgs:int = (expected.length - 1);
@@ -125,13 +130,11 @@ package ro.ciacob.maidens.controller.generators {
 			if (allRequired && numGiven != maxArgs) {
 				throw(new Error(StaticTokens.API_WRONG_ARGUMENTS_NUMBER.replace('%s',
 					apiName).replace('%d', maxArgs).replace('%d', numGiven)));
-				return;
 			}
 			if (numGiven < minArgs || numGiven > maxArgs) {
 				throw(new Error(StaticTokens.API_WRONG_ARGUMENTS_RANGE.replace('%s',
 					apiName).replace('%d', minArgs).replace('%d', maxArgs).replace('%d',
 					numGiven)));
-				return;
 			}
 			for (var i:int = 0; i < numGiven; i++) {
 				var actualType:String = getQualifiedClassName(actual[i]);
@@ -141,7 +144,6 @@ package ro.ciacob.maidens.controller.generators {
 					throw(new Error(StaticTokens.API_WRONG_ARGUMENT_TYPE.replace('%s',
 						apiName).replace('%s', NumberUtil.ordinalise(i + 1)).replace('%s',
 						expectedType).replace('%s', actualType)));
-					return;
 				}
 			}
 		}
@@ -150,13 +152,13 @@ package ro.ciacob.maidens.controller.generators {
 		 * Returns `true` if both given types are one of `int`, `uint` or `Number`; returns `false`
 		 * otherwise.
 		 */
-		private function _bothTypesAreNumeric (typeA : String, typeB : String) : Boolean {
+		private static function _bothTypesAreNumeric (typeA : String, typeB : String) : Boolean {
 			return Strings.isAny(typeA, INT_TYPE, UINT_TYPE, NUMBER_TYPE) &&
 				Strings.isAny (typeB, INT_TYPE, UINT_TYPE, NUMBER_TYPE);
 		}
 
 		/**
-		 * Shows a general purpose dialog. Resulting prompt is clearely marked as being related to
+		 * Shows a general purpose dialog. Resulting prompt is clearly marked as being related to
 		 * (and having been produced by) a generator.
 		 *
 		 * @param	message
@@ -181,7 +183,7 @@ package ro.ciacob.maidens.controller.generators {
 		 * 
 		 * @param	pipe
 		 * 			A dedicated PTT instance to use for communicating with the Generator. Especially
-		 * 			usefull for allowing the user to abort the generation process.
+		 * 			useful for allowing the user to abort the generation process.
 		 */
 		private function _core_reportGenerationProgress (info : Object, pipe : PTT) : void {
 			_master.showGeneratorProgress (_master.currentlyGeneratingModuleUid.fqn, info, pipe);
@@ -212,13 +214,13 @@ package ro.ciacob.maidens.controller.generators {
 		
 		/**
 		 * Resolves given Section names to actual Section datasets and returns them in the same order.
-		 * Usefull when the Generator needs to execute advanced calculations on its own, based on the
+		 * Useful when the Generator needs to execute advanced calculations on its own, based on the
 		 * musical area that is to be filled.
 		 * 
 		 * @param	sectionNames
 		 * 			A Vector of Strings containing unique section names.
 		 * 
-		 * @return 	A Vector of ProjectData instances respectivelly pointing to matching Section datasets.
+		 * @return 	A Vector of ProjectData instances respectively pointing to matching Section datasets.
 		 */
 		private function _core_getSectionsByName (sectionNames : Vector.<String>) : Vector.<ProjectData> {
 			var sections : Vector.<ProjectData> = new Vector.<ProjectData>;

@@ -1,468 +1,439 @@
 <?xml version="1.0" encoding="utf-8"?>
 <components:UIBase initialize="_onInitialize(event)"
-				   xmlns:components="ro.ciacob.maidens.view.components.*"
-				   xmlns:fx="http://ns.adobe.com/mxml/2009"
-				   xmlns:mx="library://ns.adobe.com/flex/mx"
-				   xmlns:s="library://ns.adobe.com/flex/spark">
-	<fx:Declarations/>
+                   xmlns:components="ro.ciacob.maidens.view.components.*"
+                   xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+>
+    <fx:Declarations/>
 
-	<fx:Style>
-		@namespace s "library://ns.adobe.com/flex/spark";
-		@namespace components "ro.ciacob.maidens.view.components.*";
-		@namespace mx "library://ns.adobe.com/flex/mx";
-		
-		.linkageItemsStyleSmall, .linkageItemsStyleLarge {
-			fontSize: 14px;
-			textAlign:center;
-		}
-		
-		.linkageItemsStyleLarge {
-			fontSize: 22px;
-		}
-	</fx:Style>
+    <fx:Style>
+        @namespace s "library://ns.adobe.com/flex/spark";
+        @namespace components "ro.ciacob.maidens.view.components.*";
+        @namespace mx "library://ns.adobe.com/flex/mx";
 
-	<fx:Script>
+        .linkageItemsStyleSmall, .linkageItemsStyleLarge {
+            fontSize: 14px;
+            textAlign: center;
+        }
+
+        .linkageItemsStyleLarge {
+            fontSize: 22px;
+        }
+    </fx:Style>
+
+    <fx:Script>
 		<![CDATA[
-		import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
 
-		import mx.collections.ArrayCollection;
-		import mx.core.UIComponent;
-		import mx.events.FlexEvent;
+        import mx.collections.ArrayCollection;
+        import mx.core.UIComponent;
+        import mx.events.FlexEvent;
 
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.maidens.controller.constants.GeneratorKeys;
-		import ro.ciacob.maidens.controller.constants.GeneratorPipes;
-		import ro.ciacob.maidens.model.GeneratorInstance;
-		import ro.ciacob.maidens.model.ProjectData;
-		import ro.ciacob.maidens.model.constants.DataFields;
-		import ro.ciacob.maidens.model.constants.DataStatus;
-		import ro.ciacob.maidens.model.constants.FileAssets;
-		import ro.ciacob.maidens.model.constants.StaticTokens;
-		import ro.ciacob.maidens.view.constants.ViewKeys;
-		import ro.ciacob.utils.Templates;
-		import ro.ciacob.utils.constants.CommonStrings;
+        import ro.ciacob.desktop.signals.PTT;
 
-		private var _generatorsList:Vector.<ProjectData>;
-		private var _generatorUids:Vector.<String>;
-		private var _generatorName:String;
-		private var _generatorUid:String;
-		private var _generatorInstanceUid:String;
+        import ro.ciacob.maidens.controller.constants.GeneratorPipes;
+        import ro.ciacob.maidens.generators.constants.GeneratorKeys;
+        import ro.ciacob.maidens.legacy.ProjectData;
+        import ro.ciacob.maidens.legacy.constants.DataFields;
+        import ro.ciacob.maidens.legacy.constants.FileAssets;
+        import ro.ciacob.maidens.model.GeneratorInstance;
 
-		private var _bindingComboBoxDp:ArrayCollection;
-		private var _bindingChanged:Boolean;
-		private var _cachedBindingChangeEvent:Event;
 
-		private var _availableOutputTargets:Array;
-		private var _outputSlots:Array;
-		private var _connectedOutputs:Array;
-		private var _outputsEnabled:Boolean;
-		private var _outputsChanged:Boolean;
+        import ro.ciacob.maidens.model.constants.DataStatus;
 
-		private var _infoText:String;
-		private var _isGenerationInProcess:Boolean;
-		private var _generatorMatch:Object = null;
-		private var _isCfgWindowOpen:Boolean;
 
-		/**
-		 * Processes the properties set on the component. Automatically triggered
-		 * before redrawing the component, and if the `invalidateProperties()`
-		 * method was called before.
-		 *
-		 * @see ro.ciacob.maidens.view.components.UIBase.commitProperties()
-		 */
-		override protected function commitProperties():void {
-			super.commitProperties();
-			if (_bindingChanged) {
-				_bindingChanged = false;
-				_updateGeneratorsListSelection(_generatorMatch);
-			}
+        import ro.ciacob.utils.Templates;
+        import ro.ciacob.utils.constants.CommonStrings;
 
-			// TODO: implement for 1.0 beta
-			// if (_isInputsChanged) {
-			// }
+        private var _generatorsList:Vector.<ProjectData>;
+        private var _generatorUids:Vector.<String>;
+        private var _generatorName:String;
+        private var _generatorUid:String;
+        private var _generatorInstanceUid:String;
 
-			if (_outputsChanged) {
-				_outputsChanged = false;
-				var outputsList:PickupComponent = (getControlByName(GeneratorKeys.OUTPUT_CONNECTIONS) as PickupComponent);
-				outputsList.enabled = _outputsEnabled;
-				outputsList.editorTitle = StaticTokens.CHOOSE_GENERATOR_OUTPUT.replace('%s', _generatorName);
-				outputsList.availableItems = _availableOutputTargets;
-				outputsList.pickedUpItems = _connectedOutputs;
-			}
-		}
+        private var _bindingComboBoxDp:ArrayCollection;
+        private var _bindingChanged:Boolean;
+        private var _cachedBindingChangeEvent:Event;
 
-		/**
-		 * Updates the data displayed inside the UI controls of this component based on the provided
-		 * `workingData` (a Generator dataset).
-		 *
-		 * Called by the `commitProperties()` method in the UIBase superclass.
-		 *
-		 * @see UIBase.populateUI()
-		 */
-		override protected function populateUI(workingData:ProjectData):void {
+        private var _availableOutputTargets:Array;
+        private var _connectedOutputs:Array;
+        private var _outputsEnabled:Boolean;
+        private var _outputsChanged:Boolean;
 
-			// Resetting the generator specifics each time, because user might want to add several
-			// generators to a project
-			_generatorUid = null;
-			_generatorName = null;
-			_generatorInstanceUid = null;
+        private var _infoText:String;
+        private var _isGenerationInProcess:Boolean;
+        private var _generatorMatch:Object = null;
+        private var _isCfgWindowOpen:Boolean;
 
-			// Try to match selected generator's UID to one of the supported generator UIDs.
-			_generatorUid = workingData.getContent(GeneratorKeys.GLOBAL_UID) as String;
-			if (_generatorUid != DataFields.VALUE_NOT_SET) {
-				_generatorMatch = _findListItem(GeneratorKeys.GLOBAL_UID, _generatorUid);
-			}
+        /**
+         * Processes the properties set on the component. Automatically triggered
+         * before redrawing the component, and if the `invalidateProperties()`
+         * method was called before.
+         *
+         * @see ro.ciacob.maidens.view.components.UIBase.commitProperties()
+         */
+        override protected function commitProperties():void {
+            super.commitProperties();
+            if (_bindingChanged) {
+                _bindingChanged = false;
+                _updateGeneratorsListSelection(_generatorMatch);
+            }
 
-			// Combo box
-			var newName:String = workingData.getContent(GeneratorKeys.NAME);
-			if (newName != _generatorName) {
-				var item:Object = _findListItem(GeneratorKeys.GLOBAL_UID, _generatorUid);
-				_bindingChanged = true;
-			}
-			_generatorName = newName;
-			_generatorInstanceUid = (workingData.getContent(DataFields.CONNECTION_UID) as String);
+            if (_outputsChanged) {
+                _outputsChanged = false;
+                var outputsList:PickupComponent = (getControlByName(GeneratorKeys.OUTPUT_CONNECTIONS) as PickupComponent);
+                outputsList.enabled = _outputsEnabled;
+                outputsList.editorTitle = StaticTokens.CHOOSE_GENERATOR_OUTPUT.replace('%s', _generatorName);
+                outputsList.availableItems = _availableOutputTargets;
+                outputsList.pickedUpItems = _connectedOutputs;
+            }
+        }
 
-			// Inputs
-			// TODO: implement
+        /**
+         * Updates the data displayed inside the UI controls of this component based on the provided
+         * `workingData` (a Generator dataset).
+         *
+         * Called by the `commitProperties()` method in the UIBase superclass.
+         *
+         * @see UIBase.populateUI()
+         */
+        override protected function populateUI(workingData:ProjectData):void {
 
-			// Outputs
-			// Available choices
-			_outputSlots = null;
-			_connectedOutputs = null;
-			_outputsEnabled = false;
-			if (_generatorMatch) {
-				var outputsDescription:Object = workingData.getContent(GeneratorKeys.OUTPUTS_DESCRIPTION);
-				if (outputsDescription != DataFields.VALUE_NOT_SET) {
-					_outputSlots = (outputsDescription as Array);
-					_outputsEnabled = (_outputSlots.length > 0);
-					if (_availableOutputTargets != null) {
-						_outputsChanged = true;
-						invalidateProperties();
-					} else {
-						PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_OUTPUT_TARGETS, workingData);
-					}
-				}
-			}
+            // Resetting the generator specifics each time, because user might want to add several
+            // generators to a project
+            _generatorUid = null;
+            _generatorName = null;
+            _generatorInstanceUid = null;
 
-			// Selected choices
-			var outputConnections:Object = workingData.getContent(GeneratorKeys.OUTPUT_CONNECTIONS);
-			if (outputConnections != DataFields.VALUE_NOT_SET) {
-				_connectedOutputs = (outputConnections as Array);
-				_outputsChanged = true;
-				invalidateProperties();
-			}
+            // Try to match selected generator's UID to one of the supported generator UIDs.
+            _generatorUid = workingData.getContent(GeneratorKeys.GLOBAL_UID) as String;
+            if (_generatorUid != DataFields.VALUE_NOT_SET) {
+                _generatorMatch = _findListItem(GeneratorKeys.GLOBAL_UID, _generatorUid);
+            }
 
-			// Produce the content displayed upon clicking the "Info" button
-			if (_generatorUid != DataFields.VALUE_NOT_SET) {
-				var infoData:Object = workingData.getContentMap();
-				_infoText = Templates.fillSimpleTemplate(
-						FileAssets.TEMPLATES_DIR.resolvePath(FileAssets.GENERATOR_INFO_TEMPLATE),
-						infoData,
-						false
-				);
-			}
+            // Combo box
+            var newName:String = workingData.getContent(GeneratorKeys.NAME);
+            if (newName != _generatorName) {
+                _bindingChanged = true;
+            }
+            _generatorName = newName;
+            _generatorInstanceUid = (workingData.getContent(DataFields.CONNECTION_UID) as String);
 
-			// Update the enablement of the action buttons ('generate', 'configure', 'info')
-			_updateActionButtons(DataStatus.UNCHANGED);
-		}
+            // Outputs
+            // Available choices
+            var _outputSlots:Array = null;
+            _connectedOutputs = null;
+            _outputsEnabled = false;
+            if (_generatorMatch) {
+                var outputsDescription:Object = workingData.getContent(GeneratorKeys.OUTPUTS_DESCRIPTION);
+                if (outputsDescription != DataFields.VALUE_NOT_SET) {
+                    _outputSlots = (outputsDescription as Array);
+                    _outputsEnabled = (_outputSlots.length > 0);
+                    if (_availableOutputTargets != null) {
+                        _outputsChanged = true;
+                        invalidateProperties();
+                    } else {
+                        PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_OUTPUT_TARGETS, workingData);
+                    }
+                }
+            }
 
-		/**
-		 * Locates an item in the "Binding" combo box's data provider by its given key:value
-		 * combination.
-		 */
-		private function _findListItem(key:String, value:Object):Object {
-			var match:Object = null;
-			if (_bindingComboBoxDp != null) {
-				for (var i:int = 0; i < _bindingComboBoxDp.length; i++) {
-					var item:Object = _bindingComboBoxDp[i];
-					if (item[key] == value) {
-						match = item;
-						break;
-					}
-				}
-			}
-			return match;
-		}
+            // Selected choices
+            var outputConnections:Object = workingData.getContent(GeneratorKeys.OUTPUT_CONNECTIONS);
+            if (outputConnections != DataFields.VALUE_NOT_SET) {
+                _connectedOutputs = (outputConnections as Array);
+                _outputsChanged = true;
+                invalidateProperties();
+            }
 
-		/**
-		 * TODO: document
-		 */
-		private function _haveOutputs():Boolean {
-			return (_connectedOutputs != null && _connectedOutputs.length > 0);
-		}
+            // Produce the content displayed upon clicking the "Info" button
+            if (_generatorUid != DataFields.VALUE_NOT_SET) {
+                var infoData:Object = workingData.getContentMap();
+                _infoText = Templates.fillSimpleTemplate(
+                        FileAssets.TEMPLATES_DIR.resolvePath(FileAssets.GENERATOR_INFO_TEMPLATE),
+                        infoData,
+                        false
+                );
+            }
 
-		/**
-		 * TODO: document
-		 */
-		private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
-			if (subpanel == this) {
-				removeStandardControls();
-				PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
-				PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
-				PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
-				PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
-				PTT.getPipe().unsubscribe(ViewKeys.GENERATORS_LIST, _onGeneratorsListAvailable);
-				PTT.getPipe(GeneratorPipes.INITIALIZATION).unsubscribe(ViewKeys.GENERATOR_BINDING_DONE, _onGeneratorBound);
-				PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.OUTPUT_TARGETS, _onOutputTargetsAvailable);
-				PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, _onGenCfgCommit);
-				PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.GEN_CFG_WINDOW_CLOSE, _onGenCfgWindowClose);
-				PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.ALL_GENERATION_DONE, _onAllGenerationDone);
-			}
-		}
+            // Update the enablement of the action buttons ('generate', 'configure', 'info')
+            _updateActionButtons(DataStatus.UNCHANGED);
+        }
 
-		/**
-		 * TODO: document
-		 */
-		private function _onAllGenerationDone(...args):void {
-			_isGenerationInProcess = false;
-			_updateActionButtons(DataStatus.UNCHANGED);
-		}
+        /**
+         * Locates an item in the "Binding" combo box's data provider by its given key:value
+         * combination.
+         */
+        private function _findListItem(key:String, value:Object):Object {
+            var match:Object = null;
+            if (_bindingComboBoxDp != null) {
+                for (var i:int = 0; i < _bindingComboBoxDp.length; i++) {
+                    var item:Object = _bindingComboBoxDp[i];
+                    if (item[key] == value) {
+                        match = item;
+                        break;
+                    }
+                }
+            }
+            return match;
+        }
 
-		/**
-		 * TODO: document
-		 */
-		private function _onGenCfgCommit(data:Object):void {
-			var receivedDataSet:Object = data[GeneratorKeys.GEN_CFG_DATASET];
-			updateWorkingData(receivedDataSet, GeneratorKeys.CONFIGURATION_DATA);
-			notifyDataSetChanged();
-		}
+        private function _haveOutputs():Boolean {
+            return (_connectedOutputs != null && _connectedOutputs.length > 0);
+        }
 
-		/**
-		 * TODO: document
-		 */
-		private function _onGenCfgWindowClose(...args):void {
-			_isCfgWindowOpen = false;
-			_updateActionButtons(DataStatus.UNCHANGED);
-		}
+        private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
+            if (subpanel == this) {
+                removeStandardControls();
+                PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+                PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+                PTT.getPipe().unsubscribe(ViewKeys.GENERATORS_LIST, _onGeneratorsListAvailable);
+                PTT.getPipe(GeneratorPipes.INITIALIZATION).unsubscribe(ViewKeys.GENERATOR_BINDING_DONE, _onGeneratorBound);
+                PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.OUTPUT_TARGETS, _onOutputTargetsAvailable);
+                PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, _onGenCfgCommit);
+                PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.GEN_CFG_WINDOW_CLOSE, _onGenCfgWindowClose);
+                PTT.getPipe(GeneratorPipes.OPERATION).unsubscribe(GeneratorKeys.ALL_GENERATION_DONE, _onAllGenerationDone);
+            }
+        }
 
-		/**
-		 * Responds to a `ViewKeys.GENERATOR_BINDING_DONE` notification sent through the
-		 * `GeneratorPipes.INITIALIZATION` pipe.
-		 *
-		 * Executed when the Generator that the user selected inside the "Binding"
-		 * combo box has been successfully initialized. Causes the UI to be updated
-		 * to reflect the selected Generator's properties, most notably, causes
-		 * the "Inputs" and/or "Outputs" section(s) to become available.
-		 *
-		 */
-		private function _onGeneratorBound(uid:String):void {
-			var generatorIndex:int = _generatorUids.indexOf(uid);
+        private function _onAllGenerationDone(...ignore):void {
+            _isGenerationInProcess = false;
+            _updateActionButtons(DataStatus.UNCHANGED);
+        }
 
-			// We want to allow the user to use the same Generator several times in
-			// the score, with different configuration (in other words, we want to enable
-			// the use of "generator instances").
-			//
-			// In order to achieve that, we clone the matching Generator dataset and "stamp" it with
-			// the "connectionUid" of the initial, "blank" Generator node. This merged dataset becomes
-			// a "generator instance" and it replaces the initial Generator node in the Project's data
-			// model.
-			var generatorInstance:ProjectData = _generatorsList[generatorIndex].clone() as ProjectData;
-			generatorInstance.setContent(DataFields.CONNECTION_UID, _generatorInstanceUid);
-			updateWorkingDataSet(generatorInstance as ProjectData);
+        private function _onGenCfgCommit(data:Object):void {
+            var receivedDataSet:Object = data[GeneratorKeys.GEN_CFG_DATASET];
+            updateWorkingData(receivedDataSet, GeneratorKeys.CONFIGURATION_DATA);
+            notifyDataSetChanged();
+        }
 
-			notifyDataSetChanged();
-			if (_cachedBindingChangeEvent) {
-				onControlChanged(_cachedBindingChangeEvent, true);
-				_cachedBindingChangeEvent = null;
-			}
-		}
+        private function _onGenCfgWindowClose(...ignore):void {
+            _isCfgWindowOpen = false;
+            _updateActionButtons(DataStatus.UNCHANGED);
+        }
 
-		/**
-		 * Executes when the Controller responds with the full list of available Generators.
-		 */
-		private function _onGeneratorsListAvailable(list:Vector.<ProjectData>):void {
-			if (_generatorUids) {
-				_generatorUids.length = 0;
-			} else {
-				_generatorUids = new Vector.<String>;
-			}
-			if (_bindingComboBoxDp) {
-				_bindingComboBoxDp.removeAll();
-			} else {
-				_bindingComboBoxDp = new ArrayCollection;
-			}
-			_generatorsList = (list as Vector.<ProjectData>);
-			if (_generatorsList) {
-				var i:int;
-				var generatorInfo:ProjectData;
-				var dpItem:Object;
-				var uid:String;
-				var label:String;
-				for (i = 0; i < _generatorsList.length; i++) {
-					generatorInfo = _generatorsList[i];
-					uid = (generatorInfo.getContent(GeneratorKeys.GLOBAL_UID) as String);
-					_generatorUids[i] = uid;
-					label = (generatorInfo.getContent(GeneratorKeys.NAME) as String) + CommonStrings.SPACE +
-							(generatorInfo.getContent(GeneratorKeys.VERSION) as String);
-					dpItem = {};
-					dpItem[GeneratorKeys.GLOBAL_UID] = uid;
-					dpItem[GeneratorKeys.NAME] = label;
-					_bindingComboBoxDp.addItem(dpItem);
-				}
-				bindingComboBox.dataProvider = _bindingComboBoxDp;
-			}
-			_bindingChanged = true;
-			invalidateProperties();
-		}
+        /**
+         * Responds to a `ViewKeys.GENERATOR_BINDING_DONE` notification sent through the
+         * `GeneratorPipes.INITIALIZATION` pipe.
+         *
+         * Executed when the Generator that the user selected inside the "Binding"
+         * combo box has been successfully initialized. Causes the UI to be updated
+         * to reflect the selected Generator's properties, most notably, causes
+         * the "Inputs" and/or "Outputs" section(s) to become available.
+         *
+         */
+        private function _onGeneratorBound(uid:String):void {
+            var generatorIndex:int = _generatorUids.indexOf(uid);
 
-		/**
-		 * Executed when this component initializes. At this time, children are instantiated
-		 * but not initialized.
-		 */
-		private function _onInitialize(event:FlexEvent):void {
-			addStandardControls();
+            // We want to allow the user to use the same Generator several times in
+            // the score, with different configuration (in other words, we want to enable
+            // the use of "generator instances").
+            //
+            // In order to achieve that, we clone the matching Generator dataset and "stamp" it with
+            // the "connectionUid" of the initial, "blank" Generator node. This merged dataset becomes
+            // a "generator instance" and it replaces the initial Generator node in the Project's data
+            // model.
+            var generatorInstance:ProjectData = _generatorsList[generatorIndex].clone() as ProjectData;
+            generatorInstance.setContent(DataFields.CONNECTION_UID, _generatorInstanceUid);
+            updateWorkingDataSet(generatorInstance as ProjectData);
 
-			const GLOBAL_PIPE:PTT = PTT.getPipe();
-			const GENERATORS_INIT_PIPE:PTT = PTT.getPipe(GeneratorPipes.INITIALIZATION);
-			const GENERATORS_OP_PIPE:PTT = PTT.getPipe(GeneratorPipes.OPERATION);
+            notifyDataSetChanged();
+            if (_cachedBindingChangeEvent) {
+                onControlChanged(_cachedBindingChangeEvent, true);
+                _cachedBindingChangeEvent = null;
+            }
+        }
 
-			// Subscribe to termination signal
-			GLOBAL_PIPE.subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+        /**
+         * Executes when the Controller responds with the full list of available Generators.
+         */
+        private function _onGeneratorsListAvailable(list:Vector.<ProjectData>):void {
+            if (_generatorUids) {
+                _generatorUids.length = 0;
+            } else {
+                _generatorUids = new Vector.<String>;
+            }
+            if (_bindingComboBoxDp) {
+                _bindingComboBoxDp.removeAll();
+            } else {
+                _bindingComboBoxDp = new ArrayCollection;
+            }
+            _generatorsList = (list as Vector.<ProjectData>);
+            if (_generatorsList) {
+                var i:int;
+                var generatorInfo:ProjectData;
+                var dpItem:Object;
+                var uid:String;
+                var label:String;
+                for (i = 0; i < _generatorsList.length; i++) {
+                    generatorInfo = _generatorsList[i];
+                    uid = (generatorInfo.getContent(GeneratorKeys.GLOBAL_UID) as String);
+                    _generatorUids[i] = uid;
+                    label = (generatorInfo.getContent(GeneratorKeys.NAME) as String) + CommonStrings.SPACE +
+                            (generatorInfo.getContent(GeneratorKeys.VERSION) as String);
+                    dpItem = {};
+                    dpItem[GeneratorKeys.GLOBAL_UID] = uid;
+                    dpItem[GeneratorKeys.NAME] = label;
+                    _bindingComboBoxDp.addItem(dpItem);
+                }
+                bindingComboBox.dataProvider = _bindingComboBoxDp;
+            }
+            _bindingChanged = true;
+            invalidateProperties();
+        }
 
-			// Subscribe to misc notifications
-			GLOBAL_PIPE.subscribe(ViewKeys.RESET, reset);
-			GLOBAL_PIPE.subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
-			GLOBAL_PIPE.subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
-			GLOBAL_PIPE.subscribe(ViewKeys.GENERATORS_LIST, _onGeneratorsListAvailable);
-			GENERATORS_INIT_PIPE.subscribe(ViewKeys.GENERATOR_BINDING_DONE, _onGeneratorBound);
-			GENERATORS_OP_PIPE.subscribe(GeneratorKeys.OUTPUT_TARGETS, _onOutputTargetsAvailable);
-			GENERATORS_OP_PIPE.subscribe(GeneratorKeys.GEN_CFG_WINDOW_CLOSE, _onGenCfgWindowClose);
-			GENERATORS_OP_PIPE.subscribe(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, _onGenCfgCommit);
-			GENERATORS_OP_PIPE.subscribe(GeneratorKeys.ALL_GENERATION_DONE, _onAllGenerationDone);
+        /**
+         * Executed when this component initializes. At this time, children are instantiated
+         * but not initialized.
+         */
+        private function _onInitialize(event:FlexEvent):void {
+            addStandardControls();
 
-			// Issue misc. notifications
-			GLOBAL_PIPE.send(ViewKeys.NEED_AVAILABLE_GENERATORS);
-		}
+            const GLOBAL_PIPE:PTT = PTT.getPipe();
+            const GENERATORS_INIT_PIPE:PTT = PTT.getPipe(GeneratorPipes.INITIALIZATION);
+            const GENERATORS_OP_PIPE:PTT = PTT.getPipe(GeneratorPipes.OPERATION);
 
-		/**
-		 * Executes when the selection inside the "binding" ComboBox control changes.
-		 */
-		private function _onBindingChange(event:Event):void {
-			var comboBox:ComboBox = ComboBox(event.target);
-			var generatorData:Object = comboBox.selectedItem;
-			var generatorUID:String = (generatorData[GeneratorKeys.GLOBAL_UID] as String);
-			_cachedBindingChangeEvent = event;
-			PTT.getPipe(GeneratorPipes.INITIALIZATION).send(GeneratorKeys.GENERATOR_BINDING_REQUEST, generatorUID);
-		}
+            // Subscribe to termination signal
+            GLOBAL_PIPE.subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
 
-		/**
-		 * TODO: document
-		 */
-		private function _onOutputTargetsAvailable(data:Object):void {
-			_availableOutputTargets = (data as Array);
-			_outputsChanged = true;
-			invalidateProperties();
-		}
+            // Subscribe to misc notifications
+            GLOBAL_PIPE.subscribe(ViewKeys.RESET, reset);
+            GLOBAL_PIPE.subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+            GLOBAL_PIPE.subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+            GLOBAL_PIPE.subscribe(ViewKeys.GENERATORS_LIST, _onGeneratorsListAvailable);
+            GENERATORS_INIT_PIPE.subscribe(ViewKeys.GENERATOR_BINDING_DONE, _onGeneratorBound);
+            GENERATORS_OP_PIPE.subscribe(GeneratorKeys.OUTPUT_TARGETS, _onOutputTargetsAvailable);
+            GENERATORS_OP_PIPE.subscribe(GeneratorKeys.GEN_CFG_WINDOW_CLOSE, _onGenCfgWindowClose);
+            GENERATORS_OP_PIPE.subscribe(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, _onGenCfgCommit);
+            GENERATORS_OP_PIPE.subscribe(GeneratorKeys.ALL_GENERATION_DONE, _onAllGenerationDone);
 
-		/**
-		 * TODO: document
-		 */
-		private function _onOutputsChanged(event:Event):void {
-			var outputsList:PickupComponent = (getControlByName(GeneratorKeys.OUTPUT_CONNECTIONS) as PickupComponent);
-			onControlChanged(event);
-		}
+            // Issue misc. notifications
+            GLOBAL_PIPE.send(ViewKeys.NEED_AVAILABLE_GENERATORS);
+        }
 
-		/**
-		 * TODO: document
-		 */
-		private function _openConfiguration():void {
-			_isCfgWindowOpen = true;
-			_updateActionButtons(DataStatus.UNCHANGED);
-			var generatorId:GeneratorInstance = new GeneratorInstance(_generatorUid, _generatorInstanceUid);
-			PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_CFG, generatorId);
-		}
+        /**
+         * Executes when the selection inside the "binding" ComboBox control changes.
+         */
+        private function _onBindingChange(event:Event):void {
+            var comboBox:ComboBox = ComboBox(event.target);
+            var generatorData:Object = comboBox.selectedItem;
+            var generatorUID:String = (generatorData[GeneratorKeys.GLOBAL_UID] as String);
+            _cachedBindingChangeEvent = event;
+            PTT.getPipe(GeneratorPipes.INITIALIZATION).send(GeneratorKeys.GENERATOR_BINDING_REQUEST, generatorUID);
+        }
 
-		/**
-		 * Executed when the user clicks the "Info" button. Causes a dialog to show with information about the
-		 * current Generator.
-		 */
-		private function _showGeneratorInfo():void {
-			PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_DIALOG, _infoText);
-		}
+        private function _onOutputTargetsAvailable(data:Object):void {
+            _availableOutputTargets = (data as Array);
+            _outputsChanged = true;
+            invalidateProperties();
+        }
 
-		/**
-		 * Executed when the user clicks the "Generate" button. Causes the Generator to produce output and
-		 * write it to selected Section(s).
-		 */
-		private function _startGeneration():void {
-			_isGenerationInProcess = true;
-			_updateActionButtons(DataStatus.UNCHANGED);
-			var generatorId:GeneratorInstance = new GeneratorInstance(_generatorUid, _generatorInstanceUid);
-			PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_EXECUTION, generatorId);
-		}
+        private function _onOutputsChanged(event:Event):void {
+            onControlChanged(event);
+        }
 
-		/**
-		 * Updates the availability of the "Generate", "Configure" and "Info" buttons.
-		 */
-		private function _updateActionButtons(status:String):void {
-			var isGeneratorSaved:Boolean = (status == DataStatus.UNCHANGED);
-			var haveInfoAvailable:Boolean = (_generatorUid != null && _generatorUid != DataFields.VALUE_NOT_SET);
-			infoButton.enabled = (isGeneratorSaved && haveInfoAvailable);
-			generateButton.enabled = (_generatorMatch && !_isGenerationInProcess && isGeneratorSaved && _haveOutputs());
-			configureButton.enabled = (_generatorMatch && !_isGenerationInProcess && !_isCfgWindowOpen && isGeneratorSaved && _haveOutputs());
-		}
+        private function _openConfiguration():void {
+            _isCfgWindowOpen = true;
+            _updateActionButtons(DataStatus.UNCHANGED);
+            var generatorId:GeneratorInstance = new GeneratorInstance(_generatorUid, _generatorInstanceUid);
+            PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_CFG, generatorId);
+        }
 
-		/**
-		 * Updates the "Binding" combo box control, so that its selection matches the current value of the
-		 * `_generatorUid` class member.
-		 */
-		private function _updateGeneratorsListSelection(match:Object):void {
-			bindingComboBox.selectedItem = match;
-		}
-		]]>
+        /**
+         * Executed when the user clicks the "Info" button. Causes a dialog to show with information about the
+         * current Generator.
+         */
+        private function _showGeneratorInfo():void {
+            PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_DIALOG, _infoText);
+        }
+
+        /**
+         * Executed when the user clicks the "Generate" button. Causes the Generator to produce output and
+         * write it to selected Section(s).
+         */
+        private function _startGeneration():void {
+            _isGenerationInProcess = true;
+            _updateActionButtons(DataStatus.UNCHANGED);
+            var generatorId:GeneratorInstance = new GeneratorInstance(_generatorUid, _generatorInstanceUid);
+            PTT.getPipe(GeneratorPipes.OPERATION).send(GeneratorKeys.NEED_GEN_EXECUTION, generatorId);
+        }
+
+        /**
+         * Updates the availability of the "Generate", "Configure" and "Info" buttons.
+         */
+        private function _updateActionButtons(status:String):void {
+            var isGeneratorSaved:Boolean = (status == DataStatus.UNCHANGED);
+            var haveInfoAvailable:Boolean = (_generatorUid != null && _generatorUid != DataFields.VALUE_NOT_SET);
+            infoButton.enabled = (isGeneratorSaved && haveInfoAvailable);
+            generateButton.enabled = (_generatorMatch && !_isGenerationInProcess && isGeneratorSaved && _haveOutputs());
+            configureButton.enabled = (_generatorMatch && !_isGenerationInProcess && !_isCfgWindowOpen && isGeneratorSaved && _haveOutputs());
+        }
+
+        /**
+         * Updates the "Binding" combo box control, so that its selection matches the current value of the
+         * `_generatorUid` class member.
+         */
+        private function _updateGeneratorsListSelection(match:Object):void {
+            bindingComboBox.selectedItem = match;
+        }
+        ]]>
 	</fx:Script>
 
-	<!-- Header -->
-	<mx:Label styleName="editorHeader"
-			  text="Generator"
-			  width="100%"/>
+    <!-- Header -->
+    <mx:Label styleName="editorHeader"
+              text="Generator"
+              width="100%"/>
 
-	<!-- Binding -->
-	<mx:Label styleName="editorLabel"
-			  text="Binding:"/>
-	<mx:ComboBox id="bindingComboBox" 
-				 width="100%"
-				 labelField="{GeneratorKeys.NAME}"
-				 prompt="{StaticTokens.SELECT_GENERATOR}"
-				 change="_onBindingChange(event)" />
+    <!-- Binding -->
+    <mx:Label styleName="editorLabel"
+              text="Binding:"/>
+    <mx:ComboBox id="bindingComboBox"
+                 width="100%"
+                 labelField="{GeneratorKeys.NAME}"
+                 prompt="{StaticTokens.SELECT_GENERATOR}"
+                 change="_onBindingChange(event)"/>
 
-	<!-- Input connections -->
-	<mx:Label styleName="editorLabel"
-			  text="Input connections:"/>
-	<components:PickupComponent enabled="false"
-								initialize="{registerUIControl(event, GeneratorKeys.INPUT_CONNECTIONS)}"
-								width="100%"/>
+    <!-- Input connections -->
+    <mx:Label styleName="editorLabel"
+              text="Input connections:"/>
+    <components:PickupComponent enabled="false"
+                                initialize="{registerUIControl(event, GeneratorKeys.INPUT_CONNECTIONS)}"
+                                width="100%"/>
 
-	<!-- Output connections -->
-	<mx:Label styleName="editorLabel"
-			  text="Output connections:"/>
-	<components:PickupComponent allowDupplicates="false"
-								change="{_onOutputsChanged(event)}"
-								editorItemStyleName=".linkageItemsStyleLarge"
-								enabled="false"
-								initialize="{registerUIControl(event, GeneratorKeys.OUTPUT_CONNECTIONS)}"
-								itemStyleName=".linkageItemsStyleSmall"
-								width="100%"/>
+    <!-- Output connections -->
+    <mx:Label styleName="editorLabel"
+              text="Output connections:"/>
+    <components:PickupComponent allowDuplicates="false"
+                                change="{_onOutputsChanged(event)}"
+                                editorItemStyleName=".linkageItemsStyleLarge"
+                                enabled="false"
+                                initialize="{registerUIControl(event, GeneratorKeys.OUTPUT_CONNECTIONS)}"
+                                itemStyleName=".linkageItemsStyleSmall"
+                                width="100%"/>
 
-	<!-- Actions -->
-	<mx:Label styleName="editorLabel"
-			  text="Actions:"/>
-	<mx:HBox>
-		<mx:LinkButton click="_startGeneration()"
-					   enabled="false"
-					   id="generateButton"
-					   color="{Colors.PRIMARY_COLOR_DARK}"
-					   label="Generate"/>
-		<mx:LinkButton click="_openConfiguration()"
-					   enabled="false"
-					   id="configureButton"
-					   color="{Colors.PRIMARY_COLOR_DARK}"
-					   label="Configure..."/>
-		<mx:LinkButton click="{_showGeneratorInfo()}"
-					   enabled="false"
-					   id="infoButton"
-					   color="{Colors.PRIMARY_COLOR_DARK}"
-					   label="Info..."/>
-	</mx:HBox>
-	
+    <!-- Actions -->
+    <mx:Label styleName="editorLabel"
+              text="Actions:"/>
+    <mx:HBox>
+        <mx:LinkButton click="_startGeneration()"
+                       enabled="false"
+                       id="generateButton"
+                       color="{Colors.PRIMARY_COLOR_DARK}"
+                       label="Generate"/>
+        <mx:LinkButton click="_openConfiguration()"
+                       enabled="false"
+                       id="configureButton"
+                       color="{Colors.PRIMARY_COLOR_DARK}"
+                       label="Configure..."/>
+        <mx:LinkButton click="{_showGeneratorInfo()}"
+                       enabled="false"
+                       id="infoButton"
+                       color="{Colors.PRIMARY_COLOR_DARK}"
+                       label="Info..."/>
+    </mx:HBox>
+
 </components:UIBase>

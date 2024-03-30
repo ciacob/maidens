@@ -1,113 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
 <components:UIBase initialize="_onInitialize(event)"
-			   xmlns:components="ro.ciacob.maidens.view.components.*"
-			   xmlns:fx="http://ns.adobe.com/mxml/2009"
-			   xmlns:mx="library://ns.adobe.com/flex/mx"
-			   xmlns:s="library://ns.adobe.com/flex/spark">
-<fx:Declarations/>
+                   xmlns:components="ro.ciacob.maidens.view.components.*"
+                   xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:mx="library://ns.adobe.com/flex/mx">
+    <fx:Declarations/>
 
-<fx:Script>
+    <fx:Script>
 	<![CDATA[
-		import mx.core.UIComponent;
-		import mx.events.FlexEvent;
-		
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.maidens.model.ProjectData;
-		import ro.ciacob.maidens.model.constants.DataFields;
-		import ro.ciacob.maidens.model.constants.StaticTokens;
-		import ro.ciacob.maidens.view.constants.ViewKeys;
-		import ro.ciacob.utils.Patterns;
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
 
-		protected function _onInitialize(event:FlexEvent):void {
-			addStandardControls();
-			
-			// Subscribe to termination signal
-			PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
-			
-			// Subscribe to new data
-			PTT.getPipe().subscribe(ViewKeys.RESET, reset);
-			PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
-			PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
-			PTT.getPipe().subscribe(ViewKeys.PROJECT_INFO_CHANGED, _onProjectInfoChanged);
-		}
-		
-		private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
-			if (subpanel == this) {
-				removeStandardControls();
-				PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
-				PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
-				PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
-				PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
-				PTT.getPipe().unsubscribe(ViewKeys.PROJECT_INFO_CHANGED, _onProjectInfoChanged);
-			}
-		}
+        import mx.core.UIComponent;
+        import mx.events.FlexEvent;
 
-		override protected function populateUI(data:ProjectData):void {
-			TextInput(getControlByName(DataFields.PROJECT_NAME)).text = data.getContent(DataFields.
-				PROJECT_NAME);
-			TextInput(getControlByName(DataFields.COMPOSER_NAME)).text = data.getContent(DataFields.
-				COMPOSER_NAME);
-			TextInput(getControlByName(DataFields.COPYRIGHT_NOTE)).text = data.getContent(DataFields.
-				COPYRIGHT_NOTE);
-			TextArea(getControlByName(DataFields.CUSTOM_NOTES)).text = data.getContent(DataFields.
-				CUSTOM_NOTES);
-			var creationTimestamp:String = data.getContent(DataFields.CREATION_TIMESTAMP);
-			Label(getControlByName(DataFields.CREATION_TIMESTAMP)).text = StaticTokens.
-				CREATION_DATE.replace('%s', creationTimestamp);
-			_updateModificationTimestamp(data);
-		}
-		
-		private function _onProjectInfoChanged (data : ProjectData) : void {
-			_updateModificationTimestamp(data);
-		}
-		
-		private function _updateModificationTimestamp (data : ProjectData) : void {
-			var modificationTimeStamp:String = data.getContent(DataFields.MODIFICATION_TIMESTAMP);
-			Label(getControlByName(DataFields.MODIFICATION_TIMESTAMP)).text = StaticTokens.
-				MODIFICATION_DATE.replace('%s', modificationTimeStamp);
-		}
-	]]>
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.legacy.ProjectData;
+        import ro.ciacob.maidens.legacy.constants.DataFields;
+
+        import ro.ciacob.utils.Patterns;
+
+        protected function _onInitialize(event:FlexEvent):void {
+            addStandardControls();
+
+            // Subscribe to termination signal
+            PTT.getPipe().subscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+
+            // Subscribe to new data
+            PTT.getPipe().subscribe(ViewKeys.RESET, reset);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+            PTT.getPipe().subscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+            PTT.getPipe().subscribe(ViewKeys.PROJECT_INFO_CHANGED, _onProjectInfoChanged);
+        }
+
+        private function _onAboutToRemoveSubpanel(subpanel:UIComponent):void {
+            if (subpanel == this) {
+                removeStandardControls();
+                PTT.getPipe().unsubscribe(ViewKeys.ABOUT_TO_REMOVE_SUBPANEL, _onAboutToRemoveSubpanel);
+                PTT.getPipe().unsubscribe(ViewKeys.RESET, reset);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_DATA, applyWorkingData);
+                PTT.getPipe().unsubscribe(ViewKeys.EDITED_ELEMENT_ROUTE, applyOrigDataRoute);
+                PTT.getPipe().unsubscribe(ViewKeys.PROJECT_INFO_CHANGED, _onProjectInfoChanged);
+            }
+        }
+
+        override protected function populateUI(data:ProjectData):void {
+            TextInput(getControlByName(DataFields.PROJECT_NAME)).text = data.getContent(DataFields.PROJECT_NAME);
+            TextInput(getControlByName(DataFields.COMPOSER_NAME)).text = data.getContent(DataFields.COMPOSER_NAME);
+            TextInput(getControlByName(DataFields.COPYRIGHT_NOTE)).text = data.getContent(DataFields.COPYRIGHT_NOTE);
+            TextArea(getControlByName(DataFields.CUSTOM_NOTES)).text = data.getContent(DataFields.CUSTOM_NOTES);
+            var creationTimestamp:String = data.getContent(DataFields.CREATION_TIMESTAMP);
+            Label(getControlByName(DataFields.CREATION_TIMESTAMP)).text = StaticTokens.CREATION_DATE.replace('%s', creationTimestamp);
+            _updateModificationTimestamp(data);
+        }
+
+        private function _onProjectInfoChanged(data:ProjectData):void {
+            _updateModificationTimestamp(data);
+        }
+
+        private function _updateModificationTimestamp(data:ProjectData):void {
+            var modificationTimeStamp:String = data.getContent(DataFields.MODIFICATION_TIMESTAMP);
+            Label(getControlByName(DataFields.MODIFICATION_TIMESTAMP)).text = StaticTokens.MODIFICATION_DATE.replace('%s', modificationTimeStamp);
+        }
+        ]]>
 </fx:Script>
 
-<mx:Label styleName="editorHeader"
-		  text="Project"
-		  width="100%"/>
+    <mx:Label styleName="editorHeader"
+              text="Project"
+              width="100%"/>
 
-<mx:Label styleName="editorLabel"
-		  text="Name:"/>
-<mx:TextInput change="onControlChanged(event)"
-			  initialize="{registerUIControl(event, DataFields.PROJECT_NAME)}"
-			  restrict="{Patterns.REJECT_BROKEN_BAR}"
-			  width="100%"/>
+    <mx:Label styleName="editorLabel"
+              text="Name:"/>
+    <mx:TextInput change="onControlChanged(event)"
+                  initialize="{registerUIControl(event, DataFields.PROJECT_NAME)}"
+                  restrict="{Patterns.REJECT_BROKEN_BAR}"
+                  width="100%"/>
 
-<mx:Label styleName="editorLabel"
-		  text="Composer:"/>
-<mx:TextInput change="onControlChanged(event)"
-			  initialize="{registerUIControl(event, DataFields.COMPOSER_NAME)}"
-			  restrict="{Patterns.REJECT_BROKEN_BAR}"
-			  width="100%"/>
+    <mx:Label styleName="editorLabel"
+              text="Composer:"/>
+    <mx:TextInput change="onControlChanged(event)"
+                  initialize="{registerUIControl(event, DataFields.COMPOSER_NAME)}"
+                  restrict="{Patterns.REJECT_BROKEN_BAR}"
+                  width="100%"/>
 
-<mx:Label styleName="editorLabel"
-		  text="Copyright:"/>
-<mx:TextInput change="onControlChanged(event)"
-			  initialize="{registerUIControl(event, DataFields.COPYRIGHT_NOTE)}"
-			  restrict="{Patterns.REJECT_BROKEN_BAR}"
-			  width="100%"/>
+    <mx:Label styleName="editorLabel"
+              text="Copyright:"/>
+    <mx:TextInput change="onControlChanged(event)"
+                  initialize="{registerUIControl(event, DataFields.COPYRIGHT_NOTE)}"
+                  restrict="{Patterns.REJECT_BROKEN_BAR}"
+                  width="100%"/>
 
-<mx:Label styleName="editorLabel"
-		  text="Notes:"/>
-<mx:TextArea change="onControlChanged(event)"
-			 height="80%"
-			 initialize="{registerUIControl(event, DataFields.CUSTOM_NOTES)}"
-			 restrict="{Patterns.REJECT_BROKEN_BAR}"
-			 maxHeight="200"
-			 width="100%"/>
+    <mx:Label styleName="editorLabel"
+              text="Notes:"/>
+    <mx:TextArea change="onControlChanged(event)"
+                 height="80%"
+                 initialize="{registerUIControl(event, DataFields.CUSTOM_NOTES)}"
+                 restrict="{Patterns.REJECT_BROKEN_BAR}"
+                 maxHeight="200"
+                 width="100%"/>
 
-<mx:Label initialize="{registerUIControl(event, DataFields.CREATION_TIMESTAMP)}"
-		  styleName="editorLabel"
-		  text=""/>
-<mx:Label initialize="{registerUIControl(event, DataFields.MODIFICATION_TIMESTAMP)}"
-		  styleName="editorLabel"
-		  text=""/>
+    <mx:Label initialize="{registerUIControl(event, DataFields.CREATION_TIMESTAMP)}"
+              styleName="editorLabel"
+              text=""/>
+    <mx:Label initialize="{registerUIControl(event, DataFields.MODIFICATION_TIMESTAMP)}"
+              styleName="editorLabel"
+              text=""/>
 
 </components:UIBase>

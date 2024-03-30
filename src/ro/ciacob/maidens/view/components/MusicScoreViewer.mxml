@@ -1,1142 +1,1143 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:Group width="100%"
-		height="100%"
-		initialize="_onInitialize(event)"
-		creationComplete="_onCreationComplete (event)"
-		xmlns:fx="http://ns.adobe.com/mxml/2009" 
-		xmlns:s="library://ns.adobe.com/flex/spark" 
-		xmlns:mx="library://ns.adobe.com/flex/mx"
-		xmlns:Flex="com.lorentz.SVG.Flex.*" 
-		xmlns:images="eu.claudius.iacob.maidens.skins.images.*">
-	
-	<fx:Script>
+         height="100%"
+         initialize="_onInitialize(event)"
+         creationComplete="_onCreationComplete (event)"
+         xmlns:fx="http://ns.adobe.com/mxml/2009"
+         xmlns:s="library://ns.adobe.com/flex/spark"
+         xmlns:mx="library://ns.adobe.com/flex/mx"
+         xmlns:Flex="com.lorentz.SVG.Flex.*"
+         xmlns:images="eu.claudius.iacob.maidens.skins.images.*">
+
+    <fx:Script>
 		<![CDATA[
-		import com.greensock.TweenMax;
-		import com.lorentz.SVG.display.SVGDocument;
-		import com.lorentz.SVG.display.base.SVGElement;
-		import com.lorentz.SVG.events.SVGEvent;
-		import com.lorentz.SVG.text.TextFieldSVGTextDrawer;
-
-		import eu.claudius.iacob.maidens.Colors;
-		import eu.claudius.iacob.maidens.Sizes;
-
-		import flash.filters.BitmapFilterQuality;
-
-		import mx.controls.scrollClasses.ScrollBar;
-		import mx.core.Container;
-		import mx.core.FlexGlobals;
-		import mx.core.IToolTip;
-		import mx.events.FlexEvent;
-		import mx.events.FlexMouseEvent;
-		import mx.events.ResizeEvent;
-		import mx.managers.ToolTipManager;
-
-		import ro.ciacob.desktop.operation.Procrastinator;
-		import ro.ciacob.desktop.signals.PTT;
-		import ro.ciacob.maidens.view.constants.MenuCommandNames;
-		import ro.ciacob.maidens.view.constants.SvgEntities;
-		import ro.ciacob.maidens.view.constants.ViewKeys;
-		import ro.ciacob.utils.ColorUtils;
-		import ro.ciacob.utils.Strings;
-		import ro.ciacob.utils.constants.CommonStrings;
-
-		import spark.core.IViewport;
-
-		// Constants
-		private static const GLOBAL_PIPE:PTT = PTT.getPipe();
-		private static const DEFAULT_FONT_NAME:String = 'serif';
-
-		private static const PAGE_GUTTER:Number = 48;
-		private static const PRINTED_MUSIC_GUTTER:Number = 128;
-		private static const SCORE_Y : Number = ((PAGE_GUTTER * 0.5 + PRINTED_MUSIC_GUTTER * 0.5) | 0);
-		private static const PAGE_HEIGHT:Number = Sizes.PAGE_SCORE_WIDTH * Sizes.A4_HEIGHT_TO_WIDTH_RATIO + PAGE_GUTTER;
-		private static const PAGE_WIDTH:Number = Sizes.PAGE_SCORE_WIDTH + PAGE_GUTTER;
-
-		private static const MAX_SCORE_SCALE:Number = 0.9;
-		private static const THREE_QUARTERS:Number = 0.75;
-		private static const UNITY:Number = 1;
-		private static const BASE_SCROLL_STEP:int = 25;
-		private static const TOOLTIP_HIDE_DELAY:int = 12000;
-		private static const TOOLTIP_SHOW_DELAY:int = 750;
-		private static const HOTSPOT_SHOW_DELAY:Number = 0.3;
-		private static const HOTSPOT_SHOW_TIME:Number = 0.2;
-		private static const HOTSPOT_HIDE_TIME:Number = 0.2;
-		private static const PRIMARY_COLOR_MARKUP:String = ('#' + Colors.CHROME_TEXT_COLOR.toString(16));
-		private static const EMPTY_SCORE:String = '<?xml version="1.0" encoding="utf-8"?> <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"> <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="100px" height="322.208px" viewBox="-1.191 0 100 322.208" enable-background="new -1.191 0 100 322.208" xml:space="preserve"> <g> <g> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M3.309,320.113v-15.122c0-0.586-0.472-1.061-1.06-1.061s-1.059,0.475-1.059,1.061v16.15 c0,0.586,0.471,1.063,1.059,1.063h0.81c0.584,0,1.062-0.478,1.062-1.063C4.118,320.643,3.778,320.225,3.309,320.113z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M4.03,185.563H2.251c-0.586,0-1.059,0.477-1.059,1.061v15.18c0,0.584,0.473,1.061,1.059,1.061 c0.588,0,1.06-0.477,1.06-1.061v-14.119h0.724c0.584,0,1.059-0.477,1.059-1.061S4.618,185.563,4.03,185.563z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M27.089,320.084H10.124c-0.584,0-1.059,0.475-1.059,1.061s0.475,1.062,1.059,1.062h16.965 c0.587,0,1.061-0.476,1.061-1.062S27.676,320.084,27.089,320.084z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M28.061,185.563H11.097c-0.585,0-1.061,0.477-1.061,1.061s0.476,1.061,1.061,1.061h16.964 c0.584,0,1.06-0.477,1.06-1.061S28.647,185.563,28.061,185.563z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M51.118,320.084H34.155c-0.584,0-1.06,0.475-1.06,1.061s0.474,1.062,1.06,1.062h16.962 c0.584,0,1.061-0.476,1.061-1.062S51.702,320.084,51.118,320.084z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,250.924c0.586,0,1.061-0.476,1.061-1.061V232.9c0-0.587-0.475-1.062-1.061-1.062 s-1.06,0.475-1.06,1.062v16.964C1.188,250.449,1.663,250.924,2.247,250.924z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,298.983c0.586,0,1.061-0.477,1.061-1.063v-16.961c0-0.584-0.475-1.063-1.061-1.063 s-1.06,0.479-1.06,1.063v16.961C1.188,298.508,1.663,298.983,2.247,298.983z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,226.891c0.586,0,1.061-0.475,1.061-1.061v-16.963c0-0.584-0.475-1.061-1.061-1.061 s-1.06,0.477-1.06,1.061v16.963C1.188,226.417,1.663,226.891,2.247,226.891z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,274.953c0.586,0,1.061-0.476,1.061-1.062v-16.963c0-0.584-0.475-1.06-1.061-1.06 s-1.06,0.476-1.06,1.06v16.963C1.188,274.479,1.663,274.953,2.247,274.953z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M52.09,185.563H35.126c-0.584,0-1.059,0.477-1.059,1.061s0.473,1.061,1.059,1.061H52.09 c0.586,0,1.059-0.477,1.059-1.061S52.676,185.563,52.09,185.563z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,270.59c-0.586,0-1.059,0.477-1.059,1.063v16.962c0,0.586,0.473,1.062,1.059,1.062 s1.061-0.476,1.061-1.062v-16.962C98.805,271.066,98.331,270.59,97.745,270.59z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,294.622c-0.586,0-1.059,0.475-1.059,1.061v16.963c0,0.582,0.473,1.061,1.059,1.061 s1.061-0.479,1.061-1.061v-16.963C98.805,295.096,98.331,294.622,97.745,294.622z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,246.559c-0.586,0-1.059,0.479-1.059,1.062v16.964c0,0.584,0.473,1.061,1.059,1.061 s1.061-0.475,1.061-1.061v-16.964C98.805,247.036,98.331,246.559,97.745,246.559z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,318.651c-0.586,0-1.059,0.477-1.059,1.063v0.373H82.213c-0.584,0-1.059,0.473-1.059,1.059 c0,0.588,0.475,1.063,1.059,1.063h15.529c0.586,0,1.061-0.475,1.061-1.063v-1.432C98.805,319.127,98.331,318.651,97.745,318.651z" /> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M75.149,320.084H58.184c-0.586,0-1.059,0.475-1.059,1.061s0.473,1.062,1.059,1.062h16.965 c0.586,0,1.061-0.476,1.061-1.062S75.735,320.084,75.149,320.084z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M66.776,212.51c-0.586,0-1.061,0.477-1.061,1.061v10.021c0,0.584,0.475,1.061,1.061,1.061h6.941 c0.586,0,1.061-0.477,1.061-1.061c0-0.586-0.475-1.061-1.061-1.061h-5.883v-8.96C67.834,212.983,67.36,212.51,66.776,212.51z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M98.805,223.588c0-0.051-0.021-0.093-0.025-0.143c-0.012-0.073-0.021-0.146-0.041-0.217 c-0.029-0.073-0.072-0.137-0.113-0.201c-0.025-0.039-0.031-0.084-0.066-0.121l-0.109-0.13c-0.318-0.382-0.85-0.459-1.271-0.25 H80.786c-0.586,0-1.061,0.476-1.061,1.06c0,0.586,0.475,1.063,1.061,1.063H96.69v15.904c0,0.586,0.473,1.063,1.059,1.063 s1.061-0.477,1.061-1.063v-16.965H98.805L98.805,223.588z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M92.286,218.725c0.211,0.25,0.512,0.377,0.813,0.377c0.24,0,0.48-0.08,0.682-0.244 c0.447-0.377,0.508-1.045,0.131-1.495l-10.895-13c-0.375-0.45-1.043-0.509-1.492-0.134c-0.449,0.379-0.51,1.047-0.133,1.496 L92.286,218.725z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M67.584,185.943c-0.014-0.015-0.023-0.019-0.033-0.03c-0.055-0.055-0.111-0.093-0.174-0.135 c-0.055-0.039-0.102-0.082-0.158-0.109s-0.115-0.035-0.176-0.05c-0.072-0.021-0.146-0.043-0.225-0.045 c-0.018,0-0.029-0.008-0.043-0.008h-7.615c-0.588,0-1.061,0.476-1.061,1.062c0,0.584,0.473,1.061,1.061,1.061h7.119l0.701,0.838 c-0.07-0.016-0.135-0.041-0.205-0.041c-0.584,0-1.063,0.477-1.063,1.061v16.961c0,0.584,0.479,1.062,1.063,1.062 s1.061-0.478,1.061-1.062v-16.959l9.02,10.762c0.211,0.25,0.51,0.381,0.813,0.381c0.24,0,0.482-0.084,0.682-0.247 c0.449-0.377,0.508-1.046,0.133-1.493L67.584,185.943z"/> </g> <g> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M15.759,279.824h4.888v0.834h-4.034v2.673h4v0.836h-4v3.352h4v0.836h-4.854L15.759,279.824L15.759,279.824 z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M21.98,282.043h0.812v1.09c0.283-0.399,0.574-0.695,0.871-0.881c0.41-0.248,0.843-0.371,1.295-0.371 c0.306,0,0.596,0.062,0.871,0.18c0.273,0.119,0.498,0.279,0.672,0.479c0.175,0.2,0.326,0.485,0.453,0.855 c0.271-0.495,0.606-0.87,1.013-1.129c0.405-0.258,0.841-0.387,1.308-0.387c0.437,0,0.82,0.11,1.153,0.332 c0.334,0.219,0.582,0.526,0.744,0.922c0.161,0.396,0.243,0.984,0.243,1.773v3.443h-0.83v-3.443c0-0.68-0.047-1.143-0.143-1.396 c-0.098-0.252-0.263-0.455-0.496-0.609c-0.232-0.154-0.512-0.23-0.834-0.23c-0.395,0-0.752,0.114-1.078,0.348 c-0.326,0.232-0.563,0.541-0.713,0.929c-0.15,0.388-0.227,1.03-0.227,1.937v2.471h-0.813v-3.229c0-0.761-0.047-1.277-0.142-1.551 c-0.097-0.271-0.261-0.49-0.497-0.654s-0.516-0.246-0.841-0.246c-0.375,0-0.726,0.111-1.052,0.338 c-0.327,0.229-0.569,0.531-0.725,0.914c-0.156,0.383-0.236,0.967-0.236,1.756v2.675h-0.812v-6.313H21.98z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M33.136,282.043h0.813v1.159c0.319-0.44,0.688-0.771,1.105-0.989c0.417-0.223,0.882-0.332,1.396-0.332 c0.896,0,1.664,0.321,2.301,0.969c0.637,0.646,0.955,1.422,0.955,2.33c0,0.93-0.314,1.717-0.947,2.363 c-0.631,0.645-1.393,0.971-2.284,0.971c-0.501,0-0.963-0.104-1.384-0.313c-0.422-0.209-0.801-0.521-1.143-0.934v3.393h-0.813 V282.043z M36.383,282.663c-0.702,0-1.293,0.246-1.772,0.736c-0.479,0.488-0.721,1.1-0.721,1.828c0,0.479,0.105,0.91,0.32,1.291 c0.215,0.385,0.521,0.688,0.92,0.91c0.398,0.226,0.82,0.336,1.265,0.336c0.437,0,0.847-0.111,1.229-0.338 c0.385-0.228,0.688-0.543,0.918-0.947c0.227-0.405,0.34-0.828,0.34-1.273c0-0.447-0.113-0.871-0.338-1.273 c-0.225-0.399-0.529-0.713-0.911-0.936C37.251,282.775,36.833,282.663,36.383,282.663z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M41.933,279.701h0.813v2.343h1.287v0.702h-1.287v5.604h-0.813v-5.604h-1.107v-0.702h1.107V279.701z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M44.571,282.043h0.857l2.168,4.856l2.103-4.856h0.865l-3.763,8.616h-0.857l1.215-2.784L44.571,282.043z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M55.032,279.824h1.697c0.973,0,1.633,0.042,1.971,0.126c0.486,0.12,0.887,0.367,1.195,0.74 c0.311,0.371,0.465,0.842,0.465,1.404c0,0.567-0.15,1.037-0.453,1.406s-0.719,0.617-1.246,0.744 c-0.387,0.094-1.109,0.141-2.168,0.141h-0.609v3.967h-0.852V279.824z M55.883,280.657v2.895l1.443,0.018 c0.58,0,1.012-0.053,1.277-0.157c0.273-0.106,0.484-0.278,0.641-0.517c0.154-0.236,0.23-0.504,0.23-0.797 c0-0.285-0.076-0.547-0.23-0.783c-0.152-0.237-0.357-0.405-0.609-0.508c-0.254-0.1-0.67-0.148-1.244-0.148L55.883,280.657 L55.883,280.657z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M68.217,282.043v6.309h-0.803v-1.084c-0.342,0.414-0.723,0.726-1.146,0.935 c-0.42,0.209-0.885,0.313-1.387,0.313c-0.895,0-1.654-0.323-2.287-0.973c-0.635-0.646-0.949-1.435-0.949-2.361 c0-0.908,0.32-1.687,0.959-2.332c0.639-0.645,1.402-0.969,2.303-0.969c0.518,0,0.986,0.11,1.406,0.332 c0.42,0.219,0.785,0.551,1.104,0.99v-1.16H68.217L68.217,282.043z M64.971,282.663c-0.453,0-0.869,0.112-1.252,0.334 c-0.383,0.223-0.688,0.534-0.912,0.936c-0.227,0.402-0.338,0.826-0.338,1.273c0,0.445,0.113,0.868,0.344,1.273 c0.227,0.404,0.533,0.722,0.916,0.947c0.385,0.227,0.799,0.338,1.236,0.338c0.441,0,0.863-0.11,1.264-0.336 c0.395-0.225,0.703-0.525,0.918-0.91c0.215-0.381,0.32-0.813,0.32-1.291c0-0.729-0.24-1.34-0.723-1.828 C66.264,282.909,65.674,282.663,64.971,282.663z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M75.483,282.043h0.811v5.026c0,0.885-0.078,1.532-0.232,1.94c-0.213,0.58-0.582,1.026-1.105,1.342 c-0.525,0.313-1.158,0.47-1.895,0.47c-0.541,0-1.027-0.077-1.457-0.229c-0.436-0.151-0.783-0.356-1.053-0.617 c-0.271-0.258-0.521-0.635-0.75-1.131h0.883c0.24,0.418,0.549,0.729,0.928,0.931c0.381,0.198,0.85,0.301,1.41,0.301 c0.555,0,1.02-0.104,1.402-0.312c0.381-0.207,0.65-0.465,0.814-0.774c0.162-0.313,0.244-0.815,0.244-1.513v-0.324 c-0.307,0.386-0.68,0.684-1.121,0.891c-0.439,0.207-0.91,0.311-1.404,0.311c-0.582,0-1.125-0.145-1.637-0.432 c-0.512-0.289-0.904-0.676-1.186-1.162c-0.279-0.488-0.418-1.021-0.418-1.606c0-0.583,0.146-1.127,0.438-1.634 c0.289-0.504,0.689-0.901,1.205-1.195c0.512-0.294,1.053-0.439,1.621-0.439c0.471,0,0.91,0.098,1.32,0.293 c0.406,0.194,0.801,0.518,1.182,0.965V282.043L75.483,282.043z M73.084,282.663c-0.459,0-0.889,0.112-1.279,0.335 c-0.396,0.224-0.703,0.528-0.93,0.921c-0.225,0.393-0.336,0.816-0.336,1.272c0,0.69,0.232,1.265,0.695,1.716 c0.465,0.453,1.064,0.68,1.803,0.68c0.748,0,1.348-0.226,1.803-0.673c0.451-0.448,0.68-1.038,0.68-1.771 c0-0.475-0.104-0.897-0.313-1.271c-0.209-0.374-0.506-0.668-0.887-0.886C73.938,282.772,73.526,282.663,73.084,282.663z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M83.344,286.258l0.684,0.359c-0.225,0.439-0.482,0.797-0.777,1.066c-0.293,0.271-0.623,0.476-0.992,0.617 c-0.367,0.142-0.783,0.211-1.248,0.211c-1.027,0-1.834-0.338-2.414-1.012c-0.58-0.676-0.869-1.439-0.869-2.287 c0-0.801,0.244-1.515,0.736-2.141c0.623-0.796,1.455-1.193,2.502-1.193c1.074,0,1.934,0.406,2.576,1.223 c0.455,0.576,0.689,1.297,0.695,2.156h-5.676c0.014,0.734,0.248,1.334,0.701,1.803c0.453,0.471,1.014,0.703,1.68,0.703 c0.32,0,0.631-0.055,0.938-0.168c0.303-0.109,0.561-0.26,0.773-0.442C82.866,286.969,83.096,286.67,83.344,286.258z M83.344,284.559c-0.109-0.432-0.268-0.776-0.477-1.037c-0.207-0.258-0.479-0.467-0.818-0.627 c-0.344-0.157-0.699-0.235-1.076-0.235c-0.617,0-1.15,0.199-1.598,0.599c-0.322,0.289-0.568,0.724-0.734,1.303L83.344,284.559 L83.344,284.559z"/> </g> </g> </svg>';
-
-		// Bindable variables
-		[Bindable]
-		public var title:String;
-
-		[Bindable]
-		private var _scoreScale:Number = 1;
-
-		[Bindable]
-		private var _ownSelectedElement:SVGElement;
-
-		// Variables
-		private var _abcParser:Abc2Svg;
-		private var _inScoreTooltip:IToolTip;
-		private var _result:Object;
-		private var _inScoreTooltipMessage:String;
-		private var _inScoreTooltipX:Number;
-		private var _inScoreTooltipY:Number;
-		private var _scoreReady:Boolean;
-		private var _rightClickInProgress:Boolean;
-		private var _pageIndex:int = 0;
-		private var _numPages:int = 0;
-		private var _zoomFactor:Number = 1;
-		private var _minimumZoomFactor:Number;
-		private var _hotspotsMap:Object = {};
-		private var _allHighlights:Array = [];
-		private var _inScoreTooltipStarter:Procrastinator = new Procrastinator(_onInScoreTooltipReadyToShow, TOOLTIP_SHOW_DELAY);
-		private var _inScoreTooltipTerminator:Procrastinator = new Procrastinator(_onInScoreTooltipReadyToHide, TOOLTIP_HIDE_DELAY);
-
-		// Setters getters
-		protected function set zoomFactor(value:Number):void {
-			if (_zoomFactor != value) {
-				_zoomFactor = value;
-				GLOBAL_PIPE.send(ViewKeys.ZOOM_INTERNAL_CHANGE, value);
-			}
-		}
-
-		protected function get zoomFactor():Number {
-			return _zoomFactor;
-		}
-
-		/**
-		 * Creates and stores an instance of the ABC parser if one is not already
-		 * available. This helps to conveniently recover from a parser error
-		 * (we simply destroy the parser and it will be recreated).
-		 */
-		private function _ensureAbcParser():void {
-			if (!_abcParser) {
-				_abcParser = new Abc2Svg({
-					hotspotStyle: {
-						stroke: '#' + Colors.HOTSPOT_STROKE_COLOR.toString(16),
-						fill: '#' + Colors.HOTSPOT_FILL_COLOR.toString(16),
-						fillOpacity: Colors.FILL_OPACITY,
-						strokeOpacity: Colors.STROKE_OPACITY
-					}
-				});
-			}
-		}
-
-
-		/**
-		 * Provided a hotspot is given, marks it as `the` selection, and
-		 * renders it visible.
-		 */
-		private function _applySelection(element:SVGElement):void {
-			_ownSelectedElement = element;
-			if (_ownSelectedElement != null && _isHotspot(_ownSelectedElement)) {
-				_ownSelectedElement.alpha = Colors.SELECTED_HOTSPOT_ALPHA;
-			}
-			GLOBAL_PIPE.send(ViewKeys.SCORE_SELECTION_CHANGE, _ownSelectedElement);
-		}
-
-		/**
-		 * Causes given SVG string to be rendered, effectively displaying an
-		 * updated/different music page. Also purges any existing
-		 * hotspot-to-unique ID mapping.
-		 */
-		private function _renderSVG(svg:String):void {
-			var haveSourceChange:Boolean = (svg != score.source);
-			if (haveSourceChange) {
-				_scoreReady = false;
-				_hotspotsMap = {};
-				score.source = svg;
-			}
-		}
-
-		/**
-		 * Determines whether given SVG element is a hotspot.
-		 * Note: all hotspots have a `class` attribute that contains
-		 * the text "hotspot".
-		 */
-		private static function _isHotspot(element:SVGElement):Boolean {
-			return _hasClassName(element, SvgEntities.HOTSPOT_CLASS);
-		}
-
-		/**
-		 * Returns `true` if the page scale is currently set at the minimum
-		 */
-		private function _isMinimumZoom():Boolean {
-
-			// We give it a 10% tolerance to account for rounding errors
-			return _zoomFactor <= (_minimumZoomFactor * 1.1);
-		}
-
-		/**
-		 * Checks if given SVG element has a certain class.
-		 */
-		private static function _hasClassName(element:SVGElement, name:String):Boolean {
-			var rawClassVal:String = Strings.trim(element.svgClass);
-			if (rawClassVal) {
-				var classDefs:Array = rawClassVal.split(CommonStrings.SPACE);
-				if (classDefs.length > 0) {
-					return classDefs.indexOf(name) >= 0;
-				}
-			}
-			return false;
-		}
-
-		/**
-		 * Maps given SVG element to given unique ID.
-		 *
-		 * Note: we maintain a map of hotspots by their unique IDs, to facilitate
-		 * the case where the user selects a data-model object outside the score viewer.
-		 * In such a case, the related hotspot shall become selected as if the user
-		 * clicked on it.
-		 */
-		private function _registerHotspot(hotspot:SVGElement, uid:String):void {
-			if (!(uid in _hotspotsMap)) {
-				_hotspotsMap[uid] = new Vector.<SVGElement>;
-			}
-			(_hotspotsMap[uid] as Vector.<SVGElement>).push(hotspot);
-		}
-
-		/**
-		 * Retrieves a `hotspot` SVG element by its associated unique ID.
-		 * See notes for the `_onExternallySelectedScoreItem()` method.
-		 */
-		private function _getHotspotByUid(uid:String):Vector.<SVGElement> {
-			if (uid && (uid in _hotspotsMap)) {
-				return (_hotspotsMap[uid] as Vector.<SVGElement>);
-			}
-			return null;
-		}
-
-		/**
-		 * Loads given page in the renderer
-		 */
-		private function _loadPage(pageIndex:int):void {
-			var page:Object = (_result.pages[pageIndex] as Object);
-
-			// Deleting elements from the score could render the current page empty.
-			// If this happens, try to find and display the last page that has content.
-			while (!page && pageIndex > 0) {
-				pageIndex--;
-				_pageIndex = pageIndex;
-				_numPages = (pageIndex + 1);
-				_updatePageNavUi();
-				page = (_result.pages[pageIndex] as Object);
-			}
-			if (page) {
-				_renderSVG(page.fullSVG);
-			} else {
-
-				// If we reach here, there might be to reasons:
-				// (1) An abnormal parser behavior: we recover by destroying
-				// the parser (it will be recreated on the next parsing request);
-				// (2) The fact that the score actually has no measures in it: nothing
-				// to do.
-				// In both cases, we display a placeholder, to let the user know
-				// that we cannot display any music notation.
-				_abcParser = null;
-				_updatePageNavUi();
-				_scoreScale = UNITY;
-				score.alpha = 0;
-				_renderSVG(EMPTY_SCORE);
-				TweenMax.to(score, 0.3, {alpha: 1, delay: 0.5});
-			}
-		}
-
-		/**
-		 * Broadcasts updates for the enablement state of the "prev page"/"next page"
-		 * buttons, based on the number of pages and the currently active page. Also
-		 * reports the current page and the total number of pages.
-		 */
-		private function _updatePageNavUi():void {
-			var prevEnabled:Boolean = (_pageIndex > 0);
-			var nextEnabled:Boolean = (_pageIndex < _numPages - 1);
-			var currPage:int = _pageIndex + 1;
-			var state:Object = {};
-			state[ViewKeys.PREV_PAGE_ENABLED] = prevEnabled;
-			state[ViewKeys.NEXT_PAGE_ENABLED] = nextEnabled;
-			state[ViewKeys.CURRENT_PAGE] = currPage;
-			state[ViewKeys.PAGES_NUMBER] = _numPages;
-			if (!_abcParser) {
-				state[ViewKeys.NO_SCORE] = true;
-			}
-			GLOBAL_PIPE.send(ViewKeys.NAVIGATION_STATE_CHANGE, state);
-		}
-
-		/**
-		 * Computes and sets the `zoom` value, the way that the score width fits its
-		 * current viewport's width, ideally with no horizontal scrollbar showing
-		 * (which is not always the case due to rounding errors, but there is nothing
-		 * we can do against this platform limitation).
-		 */
-		private function _fitScoreWidth():void {
-			var factor:Number = ((scoreContainer.width - ScrollBar.THICKNESS) / scorePage.width);
-
-			// Trial and error has found that, while horizontally centering the score into
-			// its container, the "properly computed" factor is a bit too large. This is a
-			// hack, but a small one, and it works, so let it be.
-			factor *= 0.97;
-			zoomFactor = factor;
-			_updatePageScale(factor);
-		}
-
-		/**
-		 * Attempts to adjust `zoom` value and scroll position, so that given score element(s)
-		 * fit(s) within the current score viewport boundaries.
-		 */
-		private function _fitScoreElements(...elements):void {
-
-			// Compute the element(s) boundaries
-			var numElements:int = elements.length;
-			if (!numElements) {
-				return;
-			}
-			var i:int = 0;
-			var element:SVGElement;
-			var elementBounds:Rectangle;
-			var groupBounds:Rectangle;
-			for (i; i < numElements; i++) {
-				element = (elements[i] as SVGElement);
-				elementBounds = element.getBounds(score);
-				if (!groupBounds) {
-					groupBounds = elementBounds;
-				} else {
-					groupBounds = groupBounds.union(elementBounds);
-				}
-			}
-
-			// Compute the viewport boundaries
-			var scrollable:IViewport = scoreContainer.viewport;
-			var factor:Number = zoomFactor;
-			var resizedElementBounds:Rectangle = new Rectangle(
-					groupBounds.x * factor,
-					groupBounds.y * factor,
-					groupBounds.width * factor,
-					groupBounds.height * factor);
-			var viewPort:Rectangle = new Rectangle(
-					scrollable.horizontalScrollPosition,
-					scrollable.verticalScrollPosition,
-					scoreContainer.width,
-					scoreContainer.height);
-
-			// Determine if viewport and/or zoom factor must be adjusted so that
-			// the element fits. For our purposes, we will choose to do nothing if
-			// at least 75% of the element is visible in the current viewport.
-			var visibleSpot:Rectangle = viewPort.intersection(resizedElementBounds);
-			var visibilityPercent:Number = 0;
-			var visibleArea:Number = 0;
-			var elementArea:Number = 0;
-			if (!visibleSpot.isEmpty()) {
-				visibleArea = (visibleSpot.width * visibleSpot.height);
-				elementArea = (resizedElementBounds.width * resizedElementBounds.height);
-				visibilityPercent = (visibleArea / elementArea);
-			}
-			var needsAdjustment:Boolean = (visibilityPercent < THREE_QUARTERS);
-
-			// If the element does not fit, we center and, if needed, scale it down.
-			if (needsAdjustment) {
-				var viewPortArea:Number = (viewPort.width * viewPort.height);
-				var elToViewPortFactor:Number = (elementArea / viewPortArea);
-				var needsScaleDown:Boolean = (elToViewPortFactor > UNITY);
-
-				// Ad-hoc closure we build to encapsulate adjustments needed to the page scroll (i.e., X/Y amounts to
-				// translate the viewport by). This is needed because otherwise scaling and scrolling the page create
-				// a race condition, and the results are unpredictable (and usually yield flickers).
-				var updateScrollClosure:Function = (function ():Function {
-					return function ():void {
-						var scrollXOffset:Number = (Math.max(0, (resizedElementBounds.x -
-								(viewPort.width - resizedElementBounds.width) * 0.5)) | 0);
-						var scrollYOffset:Number = (Math.max(0, (resizedElementBounds.y -
-								(viewPort.height - resizedElementBounds.height) * 0.5)) | 0);
-						if (scoreContainer.horizontalScrollBar) {
-							scrollXOffset = Math.min (scrollXOffset, scoreContainer.horizontalScrollBar.maximum);
-						}
-						if (scoreContainer.verticalScrollBar) {
-							scrollYOffset = Math.min (scrollYOffset, scoreContainer.verticalScrollBar.maximum);
-						}
-						if (scrollable.horizontalScrollPosition != scrollXOffset) {
-							scrollable.horizontalScrollPosition = scrollXOffset;
-						}
-						if (scrollable.verticalScrollPosition != scrollYOffset) {
-								scrollable.verticalScrollPosition = scrollYOffset;
-						}
-					}
-				})();
-				if (needsScaleDown) {
-					var reversedFactor:Number = (viewPortArea / elementArea);
-					var adjustedZoomFactor:Number = (zoomFactor * reversedFactor);
-					zoomFactor = adjustedZoomFactor;
-
-					// If we need to update the page zoom, we will wait until page is drawn before applying scrolling.
-					var onUpdateComplete:Function = function (event:FlexEvent):void {
-						removeEventListener(FlexEvent.UPDATE_COMPLETE, onUpdateComplete);
-						updateScrollClosure();
-					}
-					addEventListener(FlexEvent.UPDATE_COMPLETE, onUpdateComplete);
-					_updatePageScale(adjustedZoomFactor);
-				} else {
-
-					// Otherwise, we apply scroll immediately.
-					updateScrollClosure();
-				}
-			}
-		}
-
-		/**
-		 * Vertically scrolls the score when the mouse scroll wheel is moved.
-		 * This custom implementation takes the current score scale into account,
-		 * so that scrolling at different zoom scales feels about even.
-		 */
-		private function _doVerticalScroll(direction:int):void {
-			var scrollable:IViewport = scoreContainer.viewport;
-			var requestedOffset:Number = scrollable.verticalScrollPosition + BASE_SCROLL_STEP * zoomFactor * direction;
-			var availableOffset:Number = Math.abs((direction < 0) ? scrollable.verticalScrollPosition :
-					scrollable.contentHeight - scrollable.height);
-			var newPosition:Number = Math.min(requestedOffset, availableOffset);
-			scrollable.verticalScrollPosition = newPosition;
-		}
-
-		/**
-		 * Causes the graphical rendering of the score to be displayed in the given
-		 * scale.
-		 */
-		private function _updatePageScale(scale:Number):void {
-			scorePage.scaleX = scale;
-			scorePage.scaleY = scale;
-		}
-
-
-		/**
-		 * Triggered when user clicks either "Fit width" or "Fit selection" buttons.
-		 * Makes sure the currently selected score element, if any, is visible in the
-		 * current viewport bounds.
-		 */
-		private function _fitSelectedScoreElement():void {
-			if (_ownSelectedElement != null) {
-				_fitScoreElements(_ownSelectedElement);
-			}
-		}
-
-		/**
-		 * Triggered when a different document loads, or use flips to a different page. Resets the page scroll to the
-		 * top.
-		 */
-		private function _resetPageScroll():void {
-			var scrollable:IViewport = scoreContainer.viewport;
-			scrollable.horizontalScrollPosition = 0;
-			scrollable.verticalScrollPosition = 0;
-		}
-
-		/**
-		 * Hides and unsets the currently selected hotspot, if any.
-		 */
-		private function _clearExistingSelection():void {
-			if (_ownSelectedElement != null) {
-				_ownSelectedElement.alpha = Colors.DEFAULT_HOTSPOT_ALPHA;
-				_ownSelectedElement = null;
-				GLOBAL_PIPE.send(ViewKeys.SCORE_SELECTION_CHANGE, _ownSelectedElement);
-			}
-		}
-
-		/**
-		 * Makes sure all currently shown tooltips get hidden, and all scheduled occurrences get cancelled.
-		 * @see `_claimInScoreUITooltip()`
-		 */
-		private function _discardInScoreUITooltips():void {
-			_inScoreTooltipStarter.leaveItForNow();
-			_inScoreTooltipTerminator.leaveItForNow();
-			if (_inScoreTooltip) {
-				ToolTipManager.destroyToolTip(_inScoreTooltip);
-				_inScoreTooltip = null;
-			}
-		}
-
-		/**
-		 * Causes custom tooltips to be shown
-		 */
-		private function _claimInScoreUITooltip(targetElement:SVGElement, x:Number, y:Number):void {
-			_discardInScoreUITooltips();
-			_inScoreTooltipMessage = targetElement.getAttribute('title') as String;
-			if (_inScoreTooltipMessage) {
-				_inScoreTooltipX = x + Sizes.IN_SCORE_TOOLTIP_X_OFFSET;
-				_inScoreTooltipY = y + Sizes.IN_SCORE_TOOLTIP_Y_OFFSET;
-				_inScoreTooltipStarter.procrastinate();
-			}
-		}
-
-		/**
-		 * Delays programmatic (aka, "external") selection of a hotspot, so that
-		 * it occurs after the page has rendered. Also see the notes for the
-		 * `_onExternallySelectedScoreItem()` method.
-		 */
-		private function _scheduleScoreItemSelection(uid:String):void {
-			var closure:Function = function (event:Event):void {
-				score.removeEventListener(SVGEvent.RENDERED, closure);
-				_onExternallySelectedScoreItem(uid, true);
-			}
-			score.addEventListener(SVGEvent.RENDERED, closure);
-		}
-
-		/**
-		 * Delays programmatic (aka, "external") highlight of a hotspot, so that
-		 * it occurs after the page has rendered. Also see the notes for the
-		 * `_onHighlightRequested()` method.
-		 */
-		private function _scheduleScoreItemHighlight(uid:String):void {
-			var closure:Function = function (event:Event):void {
-				score.removeEventListener(SVGEvent.RENDERED, closure);
-				_onHighlightRequested(uid, true);
-			}
-			score.addEventListener(SVGEvent.RENDERED, closure);
-		}
-
-		/**
-		 * Runs after this Flex component has been initialized.
-		 */
-		private function _onInitialize(event:FlexEvent):void {
-
-			// Hook-up to incoming messages
-			GLOBAL_PIPE.subscribe(ViewKeys.ABC_MARKUP_READY, _onAbcMarkupReady);
-			GLOBAL_PIPE.subscribe(ViewKeys.NEW_SCORE_LOADED, _onNewScoreLoaded);
-			GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM, _onExternallySelectedScoreItem);
-			GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_HIGHLIGHTED_SCORE_ITEM, _onHighlightRequested);
-			GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_UNHIGHLIGHTED_SCORE_ITEM, _onUnhighlightRequested);
-			GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_REMOVED_HIGHLIGHTS, _unhighlightAll);
-
-			GLOBAL_PIPE.subscribe(ViewKeys.APP_MENU_TRIGGERED, _onAppMenuTriggered);
-			GLOBAL_PIPE.subscribe(ViewKeys.ZOOM_EXTERNAL_CHANGE, _onScoreZoomChanged);
-			GLOBAL_PIPE.subscribe(ViewKeys.ZOOM_FIT_TO_WIDTH_REQUEST, _onFitToWidthRequested);
-			GLOBAL_PIPE.subscribe(ViewKeys.ZOOM_FIT_SELECTION_REQUEST, _onFitToSelectionRequested);
-			GLOBAL_PIPE.subscribe(ViewKeys.MINIMUM_ZOOM_CHANGE, _onMinimumZoomChanged);
-
-			// Hook up events to respond to the musical score being scrolled
-			scoreContainer.verticalScrollBar.addEventListener(Event.CHANGE, _onScoreScrolled);
-			scoreContainer.horizontalScrollBar.addEventListener(Event.CHANGE, _onScoreScrolled);
-			scoreContainer.addEventListener(FlexMouseEvent.MOUSE_WHEEL_CHANGING, _onScoreScrolled, true, int.MAX_VALUE);
-
-			// Hook up to the score renderer "ready to go" event. This listener must always be executed
-			// first, and especially before any deferred selection listeners.
-			score.addEventListener(SVGEvent.RENDERED, _onScoreRendered, false, int.MAX_VALUE);
-
-			// Provide the initial parser instance
-			_ensureAbcParser();
-
-			// Broadcast availability
-			GLOBAL_PIPE.send(ViewKeys.SCORE_RENDERER_AVAILABLE);
-
-			// For some reason, binding fails to broadcast changes in parent container's height.
-			// The only fix we could find was to manually propagate these changes.
-			(parent as Container).addEventListener(ResizeEvent.RESIZE, _onParentResized);
-		}
-
-		/**
-		 * Runs each time the parent container resizes.
-		 */
-		private function _onParentResized(event:ResizeEvent):void {
-			if (event.oldHeight != parent.height) {
-				height = (parent.height - Sizes.MAIN_UI_VERTICAL_MARGIN);
-				invalidateProperties();
-				invalidateDisplayList();
-			}
-		}
-
-		/**
-		 * Runs after this Flex component has been initialized and measured.
-		 */
-		private function _onCreationComplete(event:FlexEvent):void {
-
-			// Respond to messages that came in too early (before this component was initialized)
-			if (GLOBAL_PIPE.hasBackupFor(ViewKeys.NEW_SCORE_LOADED)) {
-				_onNewScoreLoaded();
-				GLOBAL_PIPE.deleteBackupFor(ViewKeys.NEW_SCORE_LOADED);
-			}
-
-			if (GLOBAL_PIPE.hasBackupFor(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM)) {
-				_onExternallySelectedScoreItem(GLOBAL_PIPE.recoverBackupFor(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM) as String);
-				GLOBAL_PIPE.deleteBackupFor(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM);
-			}
-		}
-
-		/**
-		 * Fired when the score container is scrolled. Useful to discard contextual menus that might be
-		 * showing over the score (and scrolling would break their alignment to their target).
-		 */
-		private function _onScoreScrolled(event:Event):void {
-
-			// The built-in scroll logic causes very high scroll speeds, and lowering
-			// the "delta" property of the scroll event doesn't really help. We will
-			// disable the built-in logic and use our own.
-			if (event is FlexMouseEvent) {
-				var mouseEvent:FlexMouseEvent = (event as FlexMouseEvent);
-				var direction:int = (mouseEvent.delta > 0) ? -1 : 1;
-				mouseEvent.delta = 0;
-				_doVerticalScroll(direction);
-			}
-			GLOBAL_PIPE.send(ViewKeys.SCORE_WAS_SCROLLED);
-		}
-
-		/**
-		 * Fired when new ABC markup becomes available
-		 */
-		private function _onAbcMarkupReady(abcMarkup:String):void {
-			_ensureAbcParser();
-			_result = _abcParser.getSvg(abcMarkup);
-			_numPages = _result.info.numPages;
-			_updatePageNavUi();
-			_loadPage(_pageIndex);
-		}
-
-		/**
-		 * Called when the user selects a data model object by other means than clicking
-		 * in the visual representation of the musical score (e.g., by selecting an
-		 * item in the `Project Structure`) tree.
-		 *
-		 * So, in brief, if (A) we are requested to select a score element whose uid is found
-		 * in the current page, we locate its related hotspot, select it, and we're done.
-		 * Otherwise, (B) we search the uid throughout the cached SVG code. When/if we find it,
-		 * we load the corresponding code as the current page and we are in case (A) again.
-		 */
-		private function _onExternallySelectedScoreItem(uid:String, skipExtendedSearch:Boolean = false):void {
-			if (!uid) {
-				return;
-			}
-
-			// Try to resolve given `uid` to a hotspot; if found on current page, highlight it
-			_clearExistingSelection();
-			if (_scoreReady) {
-				var match:Vector.<SVGElement> = _getHotspotByUid(uid) as Vector.<SVGElement>;
-
-				// We found a matching hotspot on the current page
-				if (match != null) {
-					var hotspot:SVGElement = match[0] as SVGElement;
-					_applySelection(hotspot);
-					_fitScoreElements(hotspot);
-				} else {
-
-					// The element might lie on another page. All pages' SVG code is cached
-					// in the `_result.pages` Array.
-					if (!skipExtendedSearch && _numPages > 1) {
-						var searchPage:String;
-						var searchPageIndex:int = 0;
-						var pages:Array = _result.pages;
-						for (searchPageIndex; searchPageIndex < _numPages; searchPageIndex++) {
-							if (searchPageIndex == _pageIndex) {
-								continue;
-							}
-							searchPage = pages[searchPageIndex].fullSVG as String;
-							if (searchPage.indexOf(uid) != -1) {
-								_scheduleScoreItemSelection(uid);
-								_pageIndex = searchPageIndex;
-								_loadPage(_pageIndex);
-								_updatePageNavUi();
-								break;
-							}
-						}
-					}
-				}
-			}
-
-					// If we are externally requested to select a hotspot but the page is still loading/rendering
-			// wait until it is ready.
-			else {
-				_scheduleScoreItemSelection(uid);
-			}
-		}
-
-		/**
-		 * Displays a score item as being highlighted without making it "semantically" selected. Used by the playback
-		 * engine to mark the score items it is currently playing.
-		 * @param    uid
-		 *            The unique id of the element in the score to highlight.
-		 *
-		 * @param    skipExtendedSearch
-		 *            Optional. If `true`, will silently fail if the given `uid` cannot be found on the current page; if
-		 *            `false` (the default) will try to locate the `uid` on other pages.
-		 */
-		private function _onHighlightRequested(uid:String, skipExtendedSearch:Boolean = false):void {
-			if (!uid) {
-				return;
-			}
-
-			// Try to resolve given `uid` to a hotspot; if found on current page, highlight it.
-			if (_scoreReady) {
-				var scoreItem:SVGElement;
-				var match:Vector.<SVGElement> = _getHotspotByUid(uid) as Vector.<SVGElement>;
-
-				// We found a matching hotspot on the current page
-				if (match != null && match.length == 1 && (_isHotspot(scoreItem = match[0]))) {
-					scoreItem.alpha = Colors.HIGHLIGHTED_HOTSPOT_ALPHA;
-					_fitScoreElements(scoreItem);
-					_allHighlights.push(uid);
-				} else {
-
-					// The element is not to be found on the current page. Given the fact that the playback engine
-					// broadcasts the elements to be highlighted sequentially, it only makes sense to look on the
-					// very next page. All pages' SVG code is cached in the `_result.pages` Array.
-					if (!skipExtendedSearch && _numPages > 1) {
-						var searchPage:String;
-						var searchPageIndex:int = 0;
-						var pages:Array = _result.pages;
-						for (searchPageIndex; searchPageIndex < _numPages; searchPageIndex++) {
-							if (searchPageIndex == _pageIndex) {
-								continue;
-							}
-							searchPage = (pages[searchPageIndex].fullSVG as String);
-							if (searchPage.indexOf(uid) != -1) {
-								_scheduleScoreItemHighlight(uid);
-								_pageIndex = searchPageIndex;
-								_loadPage(_pageIndex);
-								_updatePageNavUi();
-								break;
-							}
-						}
-					}
-				}
-			} else {
-				_scheduleScoreItemHighlight(uid);
-			}
-		}
-
-		/**
-		 * Reverts the effect of the `_onHighlightRequested()` function, causing all items that were
-		 * highlighted upon external request to return to their default (not highlighted) state. Only operates
-		 * within the current page.
-		 *
-		 * @param    uid
-		 *            The unique id of the element in the score to highlight.
-		 */
-		private function _onUnhighlightRequested(uid:String):void {
-			if (!uid) {
-				return;
-			}
-
-			// Try to resolve given `uid` to a hotspot; if found on current page, un-highlight it.
-			if (_scoreReady) {
-				var scoreItem:SVGElement;
-				var match:Vector.<SVGElement> = _getHotspotByUid(uid) as Vector.<SVGElement>;
-
-				// We found a matching hotspot on the current page
-				if (match != null && match.length == 1 && (_isHotspot(scoreItem = match[0]))) {
-					scoreItem.alpha = Colors.DEFAULT_HOTSPOT_ALPHA;
-					var itemIndex:int = _allHighlights.indexOf(uid);
-					if (itemIndex != -1) {
-						_allHighlights.splice(itemIndex, 1);
-					}
-				}
-			}
-		}
-
-		/**
-		 * Removes all the "highlights" added by the `_onHighlightRequested()` method. To be
-		 * used when playback stops, to ensure that no hotspots remain "stuck" in their highlighted position.
-		 */
-		private function _unhighlightAll(...args):void {
-			while (_allHighlights.length) {
-				var uid:String = _allHighlights.pop();
-				_onUnhighlightRequested(uid);
-			}
-		}
-
-		/**
-		 * Fired when an external command is triggered
-		 */
-		private function _onAppMenuTriggered(info:Object):void {
-			var commandName:String = info.commandName;
-			switch (commandName) {
-				case MenuCommandNames.PREVIOUS_PAGE:
-					_onPrevPageClick();
-					break;
-				case MenuCommandNames.NEXT_PAGE:
-					_onNextPageClick();
-					break;
-			}
-		}
-
-		/**
-		 * Fired when the user requests the next page of the score to be displayed
-		 */
-		private function _onPrevPageClick():void {
-			if (_pageIndex > 0) {
-				_pageIndex--;
-				_loadPage(_pageIndex);
-
-				// By exception, we will not reset page zoom when the scale factor is
-				// at minimum (which is the "fit height" ratio) because user might
-				// have done this on purpose, to be able to sight the entire score
-				if (!_isMinimumZoom()) {
-					_fitScoreWidth();
-				}
-				_resetPageScroll();
-				_updatePageNavUi();
-			}
-		}
-
-		/**
-		 * Fired when the user requests the previous page of the score to be displayed
-		 */
-		private function _onNextPageClick():void {
-			if (_pageIndex < _numPages - 1) {
-				_pageIndex++;
-				_loadPage(_pageIndex);
-
-				// By exception, we will not reset page zoom when the scale factor is
-				// at minimum (which is the "fit height" ratio) because user might
-				// have done this on purpose, to be able to sight the entire score
-				if (!_isMinimumZoom()) {
-					_fitScoreWidth();
-				}
-				_resetPageScroll();
-				_updatePageNavUi();
-			}
-		}
-
-		/**
-		 * Fired when the score container get resized. Useful to update the zoom controls (the current
-		 * value displayed by these controls is context-dependent).
-		 */
-		private function _onScoreResized(event:ResizeEvent):void {
-			var sizes:Object = {};
-			sizes[ViewKeys.SCORE_CONTAINER] = {
-				width: scoreContainer.width,
-				height: scoreContainer.height
-			};
-			sizes[ViewKeys.SCORE_PAGE] = {
-				width: scorePage.width,
-				height: scorePage.height
-			};
-			GLOBAL_PIPE.send(ViewKeys.SCORE_WAS_RESIZED, sizes);
-		}
-
-		/**
-		 * This function is called against every SVG element, as it is added to the
-		 * SVG document by the renderer.
-		 *
-		 * Note: Hotspots are SVG elements that were previously added to the SVG document
-		 * by the ABC parser. They contain information that connects them
-		 * to actual objects in the data model, which, in turn, allows the user to
-		 * click an element in the score and immediately interact with it.
-		 */
-		private function _onSvgElementAdded(event:SVGEvent):void {
-			var svgElement:SVGElement = event.element;
-
-			// The element being added is a hotspot (a clickable rectangle bound to a model object)
-			// We make all hotspots transparent initially (they will be revealed as the user hovers/clicks them)
-			if (_isHotspot(svgElement)) {
-
-				// [DEBUG]
-				// We don't register, nor hide, test hotspots
+        import com.greensock.TweenMax;
+        import com.lorentz.SVG.display.SVGDocument;
+        import com.lorentz.SVG.display.base.SVGElement;
+        import com.lorentz.SVG.events.SVGEvent;
+        import com.lorentz.SVG.text.TextFieldSVGTextDrawer;
+
+        import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+
+        import flash.filters.BitmapFilterQuality;
+
+        import mx.controls.scrollClasses.ScrollBar;
+        import mx.core.Container;
+        import mx.core.FlexGlobals;
+        import mx.core.IToolTip;
+        import mx.events.FlexEvent;
+        import mx.events.FlexMouseEvent;
+        import mx.events.ResizeEvent;
+        import mx.managers.ToolTipManager;
+
+        import ro.ciacob.desktop.operation.Procrastinator;
+        import ro.ciacob.desktop.signals.PTT;
+        import ro.ciacob.maidens.view.constants.MenuCommandNames;
+        import ro.ciacob.maidens.view.constants.SvgEntities;
+        import ro.ciacob.utils.ColorUtils;
+        import ro.ciacob.utils.Strings;
+        import ro.ciacob.utils.constants.CommonStrings;
+
+        import spark.core.IViewport;
+
+        // Constants
+        private static const GLOBAL_PIPE:PTT = PTT.getPipe();
+        private static const DEFAULT_FONT_NAME:String = 'serif';
+
+        private static const PAGE_GUTTER:Number = 48;
+        private static const PRINTED_MUSIC_GUTTER:Number = 128;
+        private static const SCORE_Y:Number = ((PAGE_GUTTER * 0.5 + PRINTED_MUSIC_GUTTER * 0.5) | 0);
+        private static const PAGE_HEIGHT:Number = Sizes.PAGE_SCORE_WIDTH * Sizes.A4_HEIGHT_TO_WIDTH_RATIO + PAGE_GUTTER;
+        private static const PAGE_WIDTH:Number = Sizes.PAGE_SCORE_WIDTH + PAGE_GUTTER;
+
+        private static const MAX_SCORE_SCALE:Number = 0.9;
+        private static const THREE_QUARTERS:Number = 0.75;
+        private static const UNITY:Number = 1;
+        private static const BASE_SCROLL_STEP:int = 25;
+        private static const TOOLTIP_HIDE_DELAY:int = 12000;
+        private static const TOOLTIP_SHOW_DELAY:int = 750;
+        private static const HOTSPOT_SHOW_DELAY:Number = 0.3;
+        private static const HOTSPOT_SHOW_TIME:Number = 0.2;
+        private static const HOTSPOT_HIDE_TIME:Number = 0.2;
+        private static const PRIMARY_COLOR_MARKUP:String = ('#' + Colors.CHROME_TEXT_COLOR.toString(16));
+        private static const EMPTY_SCORE:String = '<?xml version="1.0" encoding="utf-8"?> <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"> <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="100px" height="322.208px" viewBox="-1.191 0 100 322.208" enable-background="new -1.191 0 100 322.208" xml:space="preserve"> <g> <g> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M3.309,320.113v-15.122c0-0.586-0.472-1.061-1.06-1.061s-1.059,0.475-1.059,1.061v16.15 c0,0.586,0.471,1.063,1.059,1.063h0.81c0.584,0,1.062-0.478,1.062-1.063C4.118,320.643,3.778,320.225,3.309,320.113z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M4.03,185.563H2.251c-0.586,0-1.059,0.477-1.059,1.061v15.18c0,0.584,0.473,1.061,1.059,1.061 c0.588,0,1.06-0.477,1.06-1.061v-14.119h0.724c0.584,0,1.059-0.477,1.059-1.061S4.618,185.563,4.03,185.563z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M27.089,320.084H10.124c-0.584,0-1.059,0.475-1.059,1.061s0.475,1.062,1.059,1.062h16.965 c0.587,0,1.061-0.476,1.061-1.062S27.676,320.084,27.089,320.084z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M28.061,185.563H11.097c-0.585,0-1.061,0.477-1.061,1.061s0.476,1.061,1.061,1.061h16.964 c0.584,0,1.06-0.477,1.06-1.061S28.647,185.563,28.061,185.563z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M51.118,320.084H34.155c-0.584,0-1.06,0.475-1.06,1.061s0.474,1.062,1.06,1.062h16.962 c0.584,0,1.061-0.476,1.061-1.062S51.702,320.084,51.118,320.084z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,250.924c0.586,0,1.061-0.476,1.061-1.061V232.9c0-0.587-0.475-1.062-1.061-1.062 s-1.06,0.475-1.06,1.062v16.964C1.188,250.449,1.663,250.924,2.247,250.924z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,298.983c0.586,0,1.061-0.477,1.061-1.063v-16.961c0-0.584-0.475-1.063-1.061-1.063 s-1.06,0.479-1.06,1.063v16.961C1.188,298.508,1.663,298.983,2.247,298.983z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,226.891c0.586,0,1.061-0.475,1.061-1.061v-16.963c0-0.584-0.475-1.061-1.061-1.061 s-1.06,0.477-1.06,1.061v16.963C1.188,226.417,1.663,226.891,2.247,226.891z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M2.247,274.953c0.586,0,1.061-0.476,1.061-1.062v-16.963c0-0.584-0.475-1.06-1.061-1.06 s-1.06,0.476-1.06,1.06v16.963C1.188,274.479,1.663,274.953,2.247,274.953z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M52.09,185.563H35.126c-0.584,0-1.059,0.477-1.059,1.061s0.473,1.061,1.059,1.061H52.09 c0.586,0,1.059-0.477,1.059-1.061S52.676,185.563,52.09,185.563z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,270.59c-0.586,0-1.059,0.477-1.059,1.063v16.962c0,0.586,0.473,1.062,1.059,1.062 s1.061-0.476,1.061-1.062v-16.962C98.805,271.066,98.331,270.59,97.745,270.59z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,294.622c-0.586,0-1.059,0.475-1.059,1.061v16.963c0,0.582,0.473,1.061,1.059,1.061 s1.061-0.479,1.061-1.061v-16.963C98.805,295.096,98.331,294.622,97.745,294.622z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,246.559c-0.586,0-1.059,0.479-1.059,1.062v16.964c0,0.584,0.473,1.061,1.059,1.061 s1.061-0.475,1.061-1.061v-16.964C98.805,247.036,98.331,246.559,97.745,246.559z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M97.745,318.651c-0.586,0-1.059,0.477-1.059,1.063v0.373H82.213c-0.584,0-1.059,0.473-1.059,1.059 c0,0.588,0.475,1.063,1.059,1.063h15.529c0.586,0,1.061-0.475,1.061-1.063v-1.432C98.805,319.127,98.331,318.651,97.745,318.651z" /> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M75.149,320.084H58.184c-0.586,0-1.059,0.475-1.059,1.061s0.473,1.062,1.059,1.062h16.965 c0.586,0,1.061-0.476,1.061-1.062S75.735,320.084,75.149,320.084z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M66.776,212.51c-0.586,0-1.061,0.477-1.061,1.061v10.021c0,0.584,0.475,1.061,1.061,1.061h6.941 c0.586,0,1.061-0.477,1.061-1.061c0-0.586-0.475-1.061-1.061-1.061h-5.883v-8.96C67.834,212.983,67.36,212.51,66.776,212.51z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M98.805,223.588c0-0.051-0.021-0.093-0.025-0.143c-0.012-0.073-0.021-0.146-0.041-0.217 c-0.029-0.073-0.072-0.137-0.113-0.201c-0.025-0.039-0.031-0.084-0.066-0.121l-0.109-0.13c-0.318-0.382-0.85-0.459-1.271-0.25 H80.786c-0.586,0-1.061,0.476-1.061,1.06c0,0.586,0.475,1.063,1.061,1.063H96.69v15.904c0,0.586,0.473,1.063,1.059,1.063 s1.061-0.477,1.061-1.063v-16.965H98.805L98.805,223.588z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M92.286,218.725c0.211,0.25,0.512,0.377,0.813,0.377c0.24,0,0.48-0.08,0.682-0.244 c0.447-0.377,0.508-1.045,0.131-1.495l-10.895-13c-0.375-0.45-1.043-0.509-1.492-0.134c-0.449,0.379-0.51,1.047-0.133,1.496 L92.286,218.725z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M67.584,185.943c-0.014-0.015-0.023-0.019-0.033-0.03c-0.055-0.055-0.111-0.093-0.174-0.135 c-0.055-0.039-0.102-0.082-0.158-0.109s-0.115-0.035-0.176-0.05c-0.072-0.021-0.146-0.043-0.225-0.045 c-0.018,0-0.029-0.008-0.043-0.008h-7.615c-0.588,0-1.061,0.476-1.061,1.062c0,0.584,0.473,1.061,1.061,1.061h7.119l0.701,0.838 c-0.07-0.016-0.135-0.041-0.205-0.041c-0.584,0-1.063,0.477-1.063,1.061v16.961c0,0.584,0.479,1.062,1.063,1.062 s1.061-0.478,1.061-1.062v-16.959l9.02,10.762c0.211,0.25,0.51,0.381,0.813,0.381c0.24,0,0.482-0.084,0.682-0.247 c0.449-0.377,0.508-1.046,0.133-1.493L67.584,185.943z"/> </g> <g> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M15.759,279.824h4.888v0.834h-4.034v2.673h4v0.836h-4v3.352h4v0.836h-4.854L15.759,279.824L15.759,279.824 z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M21.98,282.043h0.812v1.09c0.283-0.399,0.574-0.695,0.871-0.881c0.41-0.248,0.843-0.371,1.295-0.371 c0.306,0,0.596,0.062,0.871,0.18c0.273,0.119,0.498,0.279,0.672,0.479c0.175,0.2,0.326,0.485,0.453,0.855 c0.271-0.495,0.606-0.87,1.013-1.129c0.405-0.258,0.841-0.387,1.308-0.387c0.437,0,0.82,0.11,1.153,0.332 c0.334,0.219,0.582,0.526,0.744,0.922c0.161,0.396,0.243,0.984,0.243,1.773v3.443h-0.83v-3.443c0-0.68-0.047-1.143-0.143-1.396 c-0.098-0.252-0.263-0.455-0.496-0.609c-0.232-0.154-0.512-0.23-0.834-0.23c-0.395,0-0.752,0.114-1.078,0.348 c-0.326,0.232-0.563,0.541-0.713,0.929c-0.15,0.388-0.227,1.03-0.227,1.937v2.471h-0.813v-3.229c0-0.761-0.047-1.277-0.142-1.551 c-0.097-0.271-0.261-0.49-0.497-0.654s-0.516-0.246-0.841-0.246c-0.375,0-0.726,0.111-1.052,0.338 c-0.327,0.229-0.569,0.531-0.725,0.914c-0.156,0.383-0.236,0.967-0.236,1.756v2.675h-0.812v-6.313H21.98z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M33.136,282.043h0.813v1.159c0.319-0.44,0.688-0.771,1.105-0.989c0.417-0.223,0.882-0.332,1.396-0.332 c0.896,0,1.664,0.321,2.301,0.969c0.637,0.646,0.955,1.422,0.955,2.33c0,0.93-0.314,1.717-0.947,2.363 c-0.631,0.645-1.393,0.971-2.284,0.971c-0.501,0-0.963-0.104-1.384-0.313c-0.422-0.209-0.801-0.521-1.143-0.934v3.393h-0.813 V282.043z M36.383,282.663c-0.702,0-1.293,0.246-1.772,0.736c-0.479,0.488-0.721,1.1-0.721,1.828c0,0.479,0.105,0.91,0.32,1.291 c0.215,0.385,0.521,0.688,0.92,0.91c0.398,0.226,0.82,0.336,1.265,0.336c0.437,0,0.847-0.111,1.229-0.338 c0.385-0.228,0.688-0.543,0.918-0.947c0.227-0.405,0.34-0.828,0.34-1.273c0-0.447-0.113-0.871-0.338-1.273 c-0.225-0.399-0.529-0.713-0.911-0.936C37.251,282.775,36.833,282.663,36.383,282.663z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M41.933,279.701h0.813v2.343h1.287v0.702h-1.287v5.604h-0.813v-5.604h-1.107v-0.702h1.107V279.701z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M44.571,282.043h0.857l2.168,4.856l2.103-4.856h0.865l-3.763,8.616h-0.857l1.215-2.784L44.571,282.043z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M55.032,279.824h1.697c0.973,0,1.633,0.042,1.971,0.126c0.486,0.12,0.887,0.367,1.195,0.74 c0.311,0.371,0.465,0.842,0.465,1.404c0,0.567-0.15,1.037-0.453,1.406s-0.719,0.617-1.246,0.744 c-0.387,0.094-1.109,0.141-2.168,0.141h-0.609v3.967h-0.852V279.824z M55.883,280.657v2.895l1.443,0.018 c0.58,0,1.012-0.053,1.277-0.157c0.273-0.106,0.484-0.278,0.641-0.517c0.154-0.236,0.23-0.504,0.23-0.797 c0-0.285-0.076-0.547-0.23-0.783c-0.152-0.237-0.357-0.405-0.609-0.508c-0.254-0.1-0.67-0.148-1.244-0.148L55.883,280.657 L55.883,280.657z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M68.217,282.043v6.309h-0.803v-1.084c-0.342,0.414-0.723,0.726-1.146,0.935 c-0.42,0.209-0.885,0.313-1.387,0.313c-0.895,0-1.654-0.323-2.287-0.973c-0.635-0.646-0.949-1.435-0.949-2.361 c0-0.908,0.32-1.687,0.959-2.332c0.639-0.645,1.402-0.969,2.303-0.969c0.518,0,0.986,0.11,1.406,0.332 c0.42,0.219,0.785,0.551,1.104,0.99v-1.16H68.217L68.217,282.043z M64.971,282.663c-0.453,0-0.869,0.112-1.252,0.334 c-0.383,0.223-0.688,0.534-0.912,0.936c-0.227,0.402-0.338,0.826-0.338,1.273c0,0.445,0.113,0.868,0.344,1.273 c0.227,0.404,0.533,0.722,0.916,0.947c0.385,0.227,0.799,0.338,1.236,0.338c0.441,0,0.863-0.11,1.264-0.336 c0.395-0.225,0.703-0.525,0.918-0.91c0.215-0.381,0.32-0.813,0.32-1.291c0-0.729-0.24-1.34-0.723-1.828 C66.264,282.909,65.674,282.663,64.971,282.663z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M75.483,282.043h0.811v5.026c0,0.885-0.078,1.532-0.232,1.94c-0.213,0.58-0.582,1.026-1.105,1.342 c-0.525,0.313-1.158,0.47-1.895,0.47c-0.541,0-1.027-0.077-1.457-0.229c-0.436-0.151-0.783-0.356-1.053-0.617 c-0.271-0.258-0.521-0.635-0.75-1.131h0.883c0.24,0.418,0.549,0.729,0.928,0.931c0.381,0.198,0.85,0.301,1.41,0.301 c0.555,0,1.02-0.104,1.402-0.312c0.381-0.207,0.65-0.465,0.814-0.774c0.162-0.313,0.244-0.815,0.244-1.513v-0.324 c-0.307,0.386-0.68,0.684-1.121,0.891c-0.439,0.207-0.91,0.311-1.404,0.311c-0.582,0-1.125-0.145-1.637-0.432 c-0.512-0.289-0.904-0.676-1.186-1.162c-0.279-0.488-0.418-1.021-0.418-1.606c0-0.583,0.146-1.127,0.438-1.634 c0.289-0.504,0.689-0.901,1.205-1.195c0.512-0.294,1.053-0.439,1.621-0.439c0.471,0,0.91,0.098,1.32,0.293 c0.406,0.194,0.801,0.518,1.182,0.965V282.043L75.483,282.043z M73.084,282.663c-0.459,0-0.889,0.112-1.279,0.335 c-0.396,0.224-0.703,0.528-0.93,0.921c-0.225,0.393-0.336,0.816-0.336,1.272c0,0.69,0.232,1.265,0.695,1.716 c0.465,0.453,1.064,0.68,1.803,0.68c0.748,0,1.348-0.226,1.803-0.673c0.451-0.448,0.68-1.038,0.68-1.771 c0-0.475-0.104-0.897-0.313-1.271c-0.209-0.374-0.506-0.668-0.887-0.886C73.938,282.772,73.526,282.663,73.084,282.663z"/> <path fill="' + PRIMARY_COLOR_MARKUP + '" d="M83.344,286.258l0.684,0.359c-0.225,0.439-0.482,0.797-0.777,1.066c-0.293,0.271-0.623,0.476-0.992,0.617 c-0.367,0.142-0.783,0.211-1.248,0.211c-1.027,0-1.834-0.338-2.414-1.012c-0.58-0.676-0.869-1.439-0.869-2.287 c0-0.801,0.244-1.515,0.736-2.141c0.623-0.796,1.455-1.193,2.502-1.193c1.074,0,1.934,0.406,2.576,1.223 c0.455,0.576,0.689,1.297,0.695,2.156h-5.676c0.014,0.734,0.248,1.334,0.701,1.803c0.453,0.471,1.014,0.703,1.68,0.703 c0.32,0,0.631-0.055,0.938-0.168c0.303-0.109,0.561-0.26,0.773-0.442C82.866,286.969,83.096,286.67,83.344,286.258z M83.344,284.559c-0.109-0.432-0.268-0.776-0.477-1.037c-0.207-0.258-0.479-0.467-0.818-0.627 c-0.344-0.157-0.699-0.235-1.076-0.235c-0.617,0-1.15,0.199-1.598,0.599c-0.322,0.289-0.568,0.724-0.734,1.303L83.344,284.559 L83.344,284.559z"/> </g> </g> </svg>';
+
+        // Bindable variables
+        [Bindable]
+        public var title:String;
+
+        [Bindable]
+        private var _scoreScale:Number = 1;
+
+        [Bindable]
+        private var _ownSelectedElement:SVGElement;
+
+        // Variables
+        private var _abcParser:Abc2Svg;
+        private var _inScoreTooltip:IToolTip;
+        private var _result:Object;
+        private var _inScoreTooltipMessage:String;
+        private var _inScoreTooltipX:Number;
+        private var _inScoreTooltipY:Number;
+        private var _scoreReady:Boolean;
+        private var _rightClickInProgress:Boolean;
+        private var _pageIndex:int = 0;
+        private var _numPages:int = 0;
+        private var _zoomFactor:Number = 1;
+        private var _minimumZoomFactor:Number;
+        private var _hotspotsMap:Object = {};
+        private var _allHighlights:Array = [];
+        private var _inScoreTooltipStarter:Procrastinator = new Procrastinator(_onInScoreTooltipReadyToShow, TOOLTIP_SHOW_DELAY);
+        private var _inScoreTooltipTerminator:Procrastinator = new Procrastinator(_onInScoreTooltipReadyToHide, TOOLTIP_HIDE_DELAY);
+
+        // Setters getters
+        protected function set zoomFactor(value:Number):void {
+            if (_zoomFactor != value) {
+                _zoomFactor = value;
+                GLOBAL_PIPE.send(ViewKeys.ZOOM_INTERNAL_CHANGE, value);
+            }
+        }
+
+        protected function get zoomFactor():Number {
+            return _zoomFactor;
+        }
+
+        /**
+         * Creates and stores an instance of the ABC parser if one is not already
+         * available. This helps to conveniently recover from a parser error
+         * (we simply destroy the parser and it will be recreated).
+         */
+        private function _ensureAbcParser():void {
+            if (!_abcParser) {
+                _abcParser = new Abc2Svg({
+                    hotspotStyle: {
+                        stroke: '#' + Colors.HOTSPOT_STROKE_COLOR.toString(16),
+                        fill: '#' + Colors.HOTSPOT_FILL_COLOR.toString(16),
+                        fillOpacity: Colors.FILL_OPACITY,
+                        strokeOpacity: Colors.STROKE_OPACITY
+                    }
+                });
+            }
+        }
+
+
+        /**
+         * Provided a hotspot is given, marks it as `the` selection, and
+         * renders it visible.
+         */
+        private function _applySelection(element:SVGElement):void {
+            _ownSelectedElement = element;
+            if (_ownSelectedElement != null && _isHotspot(_ownSelectedElement)) {
+                _ownSelectedElement.alpha = Colors.SELECTED_HOTSPOT_ALPHA;
+            }
+            GLOBAL_PIPE.send(ViewKeys.SCORE_SELECTION_CHANGE, _ownSelectedElement);
+        }
+
+        /**
+         * Causes given SVG string to be rendered, effectively displaying an
+         * updated/different music page. Also purges any existing
+         * hotspot-to-unique ID mapping.
+         */
+        private function _renderSVG(svg:String):void {
+            var haveSourceChange:Boolean = (svg != score.source);
+            if (haveSourceChange) {
+                _scoreReady = false;
+                _hotspotsMap = {};
+                score.source = svg;
+            }
+        }
+
+        /**
+         * Determines whether given SVG element is a hotspot.
+         * Note: all hotspots have a `class` attribute that contains
+         * the text "hotspot".
+         */
+        private static function _isHotspot(element:SVGElement):Boolean {
+            return _hasClassName(element, SvgEntities.HOTSPOT_CLASS);
+        }
+
+        /**
+         * Returns `true` if the page scale is currently set at the minimum
+         */
+        private function _isMinimumZoom():Boolean {
+
+            // We give it a 10% tolerance to account for rounding errors
+            return _zoomFactor <= (_minimumZoomFactor * 1.1);
+        }
+
+        /**
+         * Checks if given SVG element has a certain class.
+         */
+        private static function _hasClassName(element:SVGElement, name:String):Boolean {
+            var rawClassVal:String = Strings.trim(element.svgClass);
+            if (rawClassVal) {
+                var classDefs:Array = rawClassVal.split(CommonStrings.SPACE);
+                if (classDefs.length > 0) {
+                    return classDefs.indexOf(name) >= 0;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Maps given SVG element to given unique ID.
+         *
+         * Note: we maintain a map of hotspots by their unique IDs, to facilitate
+         * the case where the user selects a data-model object outside the score viewer.
+         * In such a case, the related hotspot shall become selected as if the user
+         * clicked on it.
+         */
+        private function _registerHotspot(hotspot:SVGElement, uid:String):void {
+            if (!(uid in _hotspotsMap)) {
+                _hotspotsMap[uid] = new Vector.<SVGElement>;
+            }
+            (_hotspotsMap[uid] as Vector.<SVGElement>).push(hotspot);
+        }
+
+        /**
+         * Retrieves a `hotspot` SVG element by its associated unique ID.
+         * See notes for the `_onExternallySelectedScoreItem()` method.
+         */
+        private function _getHotspotByUid(uid:String):Vector.<SVGElement> {
+            if (uid && (uid in _hotspotsMap)) {
+                return (_hotspotsMap[uid] as Vector.<SVGElement>);
+            }
+            return null;
+        }
+
+        /**
+         * Loads given page in the renderer
+         */
+        private function _loadPage(pageIndex:int):void {
+            var page:Object = (_result.pages[pageIndex] as Object);
+
+            // Deleting elements from the score could render the current page empty.
+            // If this happens, try to find and display the last page that has content.
+            while (!page && pageIndex > 0) {
+                pageIndex--;
+                _pageIndex = pageIndex;
+                _numPages = (pageIndex + 1);
+                _updatePageNavUi();
+                page = (_result.pages[pageIndex] as Object);
+            }
+            if (page) {
+                _renderSVG(page.fullSVG);
+            } else {
+
+                // If we reach here, there might be to reasons:
+                // (1) An abnormal parser behavior: we recover by destroying
+                // the parser (it will be recreated on the next parsing request);
+                // (2) The fact that the score actually has no measures in it: nothing
+                // to do.
+                // In both cases, we display a placeholder, to let the user know
+                // that we cannot display any music notation.
+                _abcParser = null;
+                _updatePageNavUi();
+                _scoreScale = UNITY;
+                score.alpha = 0;
+                _renderSVG(EMPTY_SCORE);
+                TweenMax.to(score, 0.3, {alpha: 1, delay: 0.5});
+            }
+        }
+
+        /**
+         * Broadcasts updates for the enablement state of the "prev page"/"next page"
+         * buttons, based on the number of pages and the currently active page. Also
+         * reports the current page and the total number of pages.
+         */
+        private function _updatePageNavUi():void {
+            var prevEnabled:Boolean = (_pageIndex > 0);
+            var nextEnabled:Boolean = (_pageIndex < _numPages - 1);
+            var currPage:int = _pageIndex + 1;
+            var state:Object = {};
+            state[ViewKeys.PREV_PAGE_ENABLED] = prevEnabled;
+            state[ViewKeys.NEXT_PAGE_ENABLED] = nextEnabled;
+            state[ViewKeys.CURRENT_PAGE] = currPage;
+            state[ViewKeys.PAGES_NUMBER] = _numPages;
+            if (!_abcParser) {
+                state[ViewKeys.NO_SCORE] = true;
+            }
+            GLOBAL_PIPE.send(ViewKeys.NAVIGATION_STATE_CHANGE, state);
+        }
+
+        /**
+         * Computes and sets the `zoom` value, the way that the score width fits its
+         * current viewport's width, ideally with no horizontal scrollbar showing
+         * (which is not always the case due to rounding errors, but there is nothing
+         * we can do against this platform limitation).
+         */
+        private function _fitScoreWidth():void {
+            var factor:Number = ((scoreContainer.width - ScrollBar.THICKNESS) / scorePage.width);
+
+            // Trial and error has found that, while horizontally centering the score into
+            // its container, the "properly computed" factor is a bit too large. This is a
+            // hack, but a small one, and it works, so let it be.
+            factor *= 0.97;
+            zoomFactor = factor;
+            _updatePageScale(factor);
+        }
+
+        /**
+         * Attempts to adjust `zoom` value and scroll position, so that given score element(s)
+         * fit(s) within the current score viewport boundaries.
+         */
+        private function _fitScoreElements(...elements):void {
+
+            // Compute the element(s) boundaries
+            var numElements:int = elements.length;
+            if (!numElements) {
+                return;
+            }
+            var i:int = 0;
+            var element:SVGElement;
+            var elementBounds:Rectangle;
+            var groupBounds:Rectangle;
+            for (i; i < numElements; i++) {
+                element = (elements[i] as SVGElement);
+                elementBounds = element.getBounds(score);
+                if (!groupBounds) {
+                    groupBounds = elementBounds;
+                } else {
+                    groupBounds = groupBounds.union(elementBounds);
+                }
+            }
+
+            // Compute the viewport boundaries
+            var scrollable:IViewport = scoreContainer.viewport;
+            var factor:Number = zoomFactor;
+            var resizedElementBounds:Rectangle = new Rectangle(
+                    groupBounds.x * factor,
+                    groupBounds.y * factor,
+                    groupBounds.width * factor,
+                    groupBounds.height * factor);
+            var viewPort:Rectangle = new Rectangle(
+                    scrollable.horizontalScrollPosition,
+                    scrollable.verticalScrollPosition,
+                    scoreContainer.width,
+                    scoreContainer.height);
+
+            // Determine if viewport and/or zoom factor must be adjusted so that
+            // the element fits. For our purposes, we will choose to do nothing if
+            // at least 75% of the element is visible in the current viewport.
+            var visibleSpot:Rectangle = viewPort.intersection(resizedElementBounds);
+            var visibilityPercent:Number = 0;
+            var visibleArea:Number = 0;
+            var elementArea:Number = 0;
+            if (!visibleSpot.isEmpty()) {
+                visibleArea = (visibleSpot.width * visibleSpot.height);
+                elementArea = (resizedElementBounds.width * resizedElementBounds.height);
+                visibilityPercent = (visibleArea / elementArea);
+            }
+            var needsAdjustment:Boolean = (visibilityPercent < THREE_QUARTERS);
+
+            // If the element does not fit, we center and, if needed, scale it down.
+            if (needsAdjustment) {
+                var viewPortArea:Number = (viewPort.width * viewPort.height);
+                var elToViewPortFactor:Number = (elementArea / viewPortArea);
+                var needsScaleDown:Boolean = (elToViewPortFactor > UNITY);
+
+                // Ad-hoc closure we build to encapsulate adjustments needed to the page scroll (i.e., X/Y amounts to
+                // translate the viewport by). This is needed because otherwise scaling and scrolling the page create
+                // a race condition, and the results are unpredictable (and usually yield flickers).
+                var updateScrollClosure:Function = (function ():Function {
+                    return function ():void {
+                        var scrollXOffset:Number = (Math.max(0, (resizedElementBounds.x -
+                                (viewPort.width - resizedElementBounds.width) * 0.5)) | 0);
+                        var scrollYOffset:Number = (Math.max(0, (resizedElementBounds.y -
+                                (viewPort.height - resizedElementBounds.height) * 0.5)) | 0);
+                        if (scoreContainer.horizontalScrollBar) {
+                            scrollXOffset = Math.min(scrollXOffset, scoreContainer.horizontalScrollBar.maximum);
+                        }
+                        if (scoreContainer.verticalScrollBar) {
+                            scrollYOffset = Math.min(scrollYOffset, scoreContainer.verticalScrollBar.maximum);
+                        }
+                        if (scrollable.horizontalScrollPosition != scrollXOffset) {
+                            scrollable.horizontalScrollPosition = scrollXOffset;
+                        }
+                        if (scrollable.verticalScrollPosition != scrollYOffset) {
+                            scrollable.verticalScrollPosition = scrollYOffset;
+                        }
+                    }
+                })();
+                if (needsScaleDown) {
+                    var reversedFactor:Number = (viewPortArea / elementArea);
+                    var adjustedZoomFactor:Number = (zoomFactor * reversedFactor);
+                    zoomFactor = adjustedZoomFactor;
+
+                    // If we need to update the page zoom, we will wait until page is drawn before applying scrolling.
+                    var onUpdateComplete:Function = function (event:FlexEvent):void {
+                        removeEventListener(FlexEvent.UPDATE_COMPLETE, onUpdateComplete);
+                        updateScrollClosure();
+                    }
+                    addEventListener(FlexEvent.UPDATE_COMPLETE, onUpdateComplete);
+                    _updatePageScale(adjustedZoomFactor);
+                } else {
+
+                    // Otherwise, we apply scroll immediately.
+                    updateScrollClosure();
+                }
+            }
+        }
+
+        /**
+         * Vertically scrolls the score when the mouse scroll wheel is moved.
+         * This custom implementation takes the current score scale into account,
+         * so that scrolling at different zoom scales feels about even.
+         */
+        private function _doVerticalScroll(direction:int):void {
+            var scrollable:IViewport = scoreContainer.viewport;
+            var requestedOffset:Number = scrollable.verticalScrollPosition + BASE_SCROLL_STEP * zoomFactor * direction;
+            var availableOffset:Number = Math.abs((direction < 0) ? scrollable.verticalScrollPosition :
+                    scrollable.contentHeight - scrollable.height);
+            var newPosition:Number = Math.min(requestedOffset, availableOffset);
+            scrollable.verticalScrollPosition = newPosition;
+        }
+
+        /**
+         * Causes the graphical rendering of the score to be displayed in the given
+         * scale.
+         */
+        private function _updatePageScale(scale:Number):void {
+            scorePage.scaleX = scale;
+            scorePage.scaleY = scale;
+        }
+
+
+        /**
+         * Triggered when user clicks either "Fit width" or "Fit selection" buttons.
+         * Makes sure the currently selected score element, if any, is visible in the
+         * current viewport bounds.
+         */
+        private function _fitSelectedScoreElement():void {
+            if (_ownSelectedElement != null) {
+                _fitScoreElements(_ownSelectedElement);
+            }
+        }
+
+        /**
+         * Triggered when a different document loads, or use flips to a different page. Resets the page scroll to the
+         * top.
+         */
+        private function _resetPageScroll():void {
+            var scrollable:IViewport = scoreContainer.viewport;
+            scrollable.horizontalScrollPosition = 0;
+            scrollable.verticalScrollPosition = 0;
+        }
+
+        /**
+         * Hides and unsets the currently selected hotspot, if any.
+         */
+        private function _clearExistingSelection():void {
+            if (_ownSelectedElement != null) {
+                _ownSelectedElement.alpha = Colors.DEFAULT_HOTSPOT_ALPHA;
+                _ownSelectedElement = null;
+                GLOBAL_PIPE.send(ViewKeys.SCORE_SELECTION_CHANGE, _ownSelectedElement);
+            }
+        }
+
+        /**
+         * Makes sure all currently shown tooltips get hidden, and all scheduled occurrences get cancelled.
+         * @see `_claimInScoreUITooltip()`
+         */
+        private function _discardInScoreUITooltips():void {
+            _inScoreTooltipStarter.leaveItForNow();
+            _inScoreTooltipTerminator.leaveItForNow();
+            if (_inScoreTooltip) {
+                ToolTipManager.destroyToolTip(_inScoreTooltip);
+                _inScoreTooltip = null;
+            }
+        }
+
+        /**
+         * Causes custom tooltips to be shown
+         */
+        private function _claimInScoreUITooltip(targetElement:SVGElement, x:Number, y:Number):void {
+            _discardInScoreUITooltips();
+            _inScoreTooltipMessage = targetElement.getAttribute('title') as String;
+            if (_inScoreTooltipMessage) {
+                _inScoreTooltipX = x + Sizes.IN_SCORE_TOOLTIP_X_OFFSET;
+                _inScoreTooltipY = y + Sizes.IN_SCORE_TOOLTIP_Y_OFFSET;
+                _inScoreTooltipStarter.procrastinate();
+            }
+        }
+
+        /**
+         * Delays programmatic (aka, "external") selection of a hotspot, so that
+         * it occurs after the page has rendered. Also see the notes for the
+         * `_onExternallySelectedScoreItem()` method.
+         */
+        private function _scheduleScoreItemSelection(uid:String):void {
+            var closure:Function = function (event:Event):void {
+                score.removeEventListener(SVGEvent.RENDERED, closure);
+                _onExternallySelectedScoreItem(uid, true);
+            }
+            score.addEventListener(SVGEvent.RENDERED, closure);
+        }
+
+        /**
+         * Delays programmatic (aka, "external") highlight of a hotspot, so that
+         * it occurs after the page has rendered. Also see the notes for the
+         * `_onHighlightRequested()` method.
+         */
+        private function _scheduleScoreItemHighlight(uid:String):void {
+            var closure:Function = function (event:Event):void {
+                score.removeEventListener(SVGEvent.RENDERED, closure);
+                _onHighlightRequested(uid, true);
+            }
+            score.addEventListener(SVGEvent.RENDERED, closure);
+        }
+
+        /**
+         * Runs after this Flex component has been initialized.
+         */
+        private function _onInitialize(event:FlexEvent):void {
+
+            // Hook-up to incoming messages
+            GLOBAL_PIPE.subscribe(ViewKeys.ABC_MARKUP_READY, _onAbcMarkupReady);
+            GLOBAL_PIPE.subscribe(ViewKeys.NEW_SCORE_LOADED, _onNewScoreLoaded);
+            GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM, _onExternallySelectedScoreItem);
+            GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_HIGHLIGHTED_SCORE_ITEM, _onHighlightRequested);
+            GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_UNHIGHLIGHTED_SCORE_ITEM, _onUnhighlightRequested);
+            GLOBAL_PIPE.subscribe(ViewKeys.EXTERNALLY_REMOVED_HIGHLIGHTS, _unhighlightAll);
+
+            GLOBAL_PIPE.subscribe(ViewKeys.APP_MENU_TRIGGERED, _onAppMenuTriggered);
+            GLOBAL_PIPE.subscribe(ViewKeys.ZOOM_EXTERNAL_CHANGE, _onScoreZoomChanged);
+            GLOBAL_PIPE.subscribe(ViewKeys.ZOOM_FIT_TO_WIDTH_REQUEST, _onFitToWidthRequested);
+            GLOBAL_PIPE.subscribe(ViewKeys.ZOOM_FIT_SELECTION_REQUEST, _onFitToSelectionRequested);
+            GLOBAL_PIPE.subscribe(ViewKeys.MINIMUM_ZOOM_CHANGE, _onMinimumZoomChanged);
+
+            // Hook up events to respond to the musical score being scrolled
+            scoreContainer.verticalScrollBar.addEventListener(Event.CHANGE, _onScoreScrolled);
+            scoreContainer.horizontalScrollBar.addEventListener(Event.CHANGE, _onScoreScrolled);
+            scoreContainer.addEventListener(FlexMouseEvent.MOUSE_WHEEL_CHANGING, _onScoreScrolled, true, int.MAX_VALUE);
+
+            // Hook up to the score renderer "ready to go" event. This listener must always be executed
+            // first, and especially before any deferred selection listeners.
+            score.addEventListener(SVGEvent.RENDERED, _onScoreRendered, false, int.MAX_VALUE);
+
+            // Provide the initial parser instance
+            _ensureAbcParser();
+
+            // Broadcast availability
+            GLOBAL_PIPE.send(ViewKeys.SCORE_RENDERER_AVAILABLE);
+
+            // For some reason, binding fails to broadcast changes in parent container's height.
+            // The only fix we could find was to manually propagate these changes.
+            (parent as Container).addEventListener(ResizeEvent.RESIZE, _onParentResized);
+        }
+
+        /**
+         * Runs each time the parent container resizes.
+         */
+        private function _onParentResized(event:ResizeEvent):void {
+            if (event.oldHeight != parent.height) {
+                height = (parent.height - Sizes.MAIN_UI_VERTICAL_MARGIN);
+                invalidateProperties();
+                invalidateDisplayList();
+            }
+        }
+
+        /**
+         * Runs after this Flex component has been initialized and measured.
+         */
+        private function _onCreationComplete(event:FlexEvent):void {
+
+            // Respond to messages that came in too early (before this component was initialized)
+            if (GLOBAL_PIPE.hasBackupFor(ViewKeys.NEW_SCORE_LOADED)) {
+                _onNewScoreLoaded();
+                GLOBAL_PIPE.deleteBackupFor(ViewKeys.NEW_SCORE_LOADED);
+            }
+
+            if (GLOBAL_PIPE.hasBackupFor(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM)) {
+                _onExternallySelectedScoreItem(GLOBAL_PIPE.recoverBackupFor(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM) as String);
+                GLOBAL_PIPE.deleteBackupFor(ViewKeys.EXTERNALLY_SELECTED_SCORE_ITEM);
+            }
+        }
+
+        /**
+         * Fired when the score container is scrolled. Useful to discard contextual menus that might be
+         * showing over the score (and scrolling would break their alignment to their target).
+         */
+        private function _onScoreScrolled(event:Event):void {
+
+            // The built-in scroll logic causes very high scroll speeds, and lowering
+            // the "delta" property of the scroll event doesn't really help. We will
+            // disable the built-in logic and use our own.
+            if (event is FlexMouseEvent) {
+                var mouseEvent:FlexMouseEvent = (event as FlexMouseEvent);
+                var direction:int = (mouseEvent.delta > 0) ? -1 : 1;
+                mouseEvent.delta = 0;
+                _doVerticalScroll(direction);
+            }
+            GLOBAL_PIPE.send(ViewKeys.SCORE_WAS_SCROLLED);
+        }
+
+        /**
+         * Fired when new ABC markup becomes available
+         */
+        private function _onAbcMarkupReady(abcMarkup:String):void {
+            _ensureAbcParser();
+            _result = _abcParser.getSvg(abcMarkup);
+            _numPages = _result.info.numPages;
+            _updatePageNavUi();
+            _loadPage(_pageIndex);
+        }
+
+        /**
+         * Called when the user selects a data model object by other means than clicking
+         * in the visual representation of the musical score (e.g., by selecting an
+         * item in the `Project Structure`) tree.
+         *
+         * So, in brief, if (A) we are requested to select a score element whose uid is found
+         * in the current page, we locate its related hotspot, select it, and we're done.
+         * Otherwise, (B) we search the uid throughout the cached SVG code. When/if we find it,
+         * we load the corresponding code as the current page and we are in case (A) again.
+         */
+        private function _onExternallySelectedScoreItem(uid:String, skipExtendedSearch:Boolean = false):void {
+            if (!uid) {
+                return;
+            }
+
+            // Try to resolve given `uid` to a hotspot; if found on current page, highlight it
+            _clearExistingSelection();
+            if (_scoreReady) {
+                var match:Vector.<SVGElement> = _getHotspotByUid(uid) as Vector.<SVGElement>;
+
+                // We found a matching hotspot on the current page
+                if (match != null) {
+                    var hotspot:SVGElement = match[0] as SVGElement;
+                    _applySelection(hotspot);
+                    _fitScoreElements(hotspot);
+                } else {
+
+                    // The element might lie on another page. All pages' SVG code is cached
+                    // in the `_result.pages` Array.
+                    if (!skipExtendedSearch && _numPages > 1) {
+                        var searchPage:String;
+                        var searchPageIndex:int = 0;
+                        var pages:Array = _result.pages;
+                        for (searchPageIndex; searchPageIndex < _numPages; searchPageIndex++) {
+                            if (searchPageIndex == _pageIndex) {
+                                continue;
+                            }
+                            searchPage = pages[searchPageIndex].fullSVG as String;
+                            if (searchPage.indexOf(uid) != -1) {
+                                _scheduleScoreItemSelection(uid);
+                                _pageIndex = searchPageIndex;
+                                _loadPage(_pageIndex);
+                                _updatePageNavUi();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+                    // If we are externally requested to select a hotspot but the page is still loading/rendering
+            // wait until it is ready.
+            else {
+                _scheduleScoreItemSelection(uid);
+            }
+        }
+
+        /**
+         * Displays a score item as being highlighted without making it "semantically" selected. Used by the playback
+         * engine to mark the score items it is currently playing.
+         * @param    uid
+         *            The unique id of the element in the score to highlight.
+         *
+         * @param    skipExtendedSearch
+         *            Optional. If `true`, will silently fail if the given `uid` cannot be found on the current page; if
+         *            `false` (the default) will try to locate the `uid` on other pages.
+         */
+        private function _onHighlightRequested(uid:String, skipExtendedSearch:Boolean = false):void {
+            if (!uid) {
+                return;
+            }
+
+            // Try to resolve given `uid` to a hotspot; if found on current page, highlight it.
+            if (_scoreReady) {
+                var scoreItem:SVGElement;
+                var match:Vector.<SVGElement> = _getHotspotByUid(uid) as Vector.<SVGElement>;
+
+                // We found a matching hotspot on the current page
+                if (match != null && match.length == 1 && (_isHotspot(scoreItem = match[0]))) {
+                    scoreItem.alpha = Colors.HIGHLIGHTED_HOTSPOT_ALPHA;
+                    _fitScoreElements(scoreItem);
+                    _allHighlights.push(uid);
+                } else {
+
+                    // The element is not to be found on the current page. Given the fact that the playback engine
+                    // broadcasts the elements to be highlighted sequentially, it only makes sense to look on the
+                    // very next page. All pages' SVG code is cached in the `_result.pages` Array.
+                    if (!skipExtendedSearch && _numPages > 1) {
+                        var searchPage:String;
+                        var searchPageIndex:int = 0;
+                        var pages:Array = _result.pages;
+                        for (searchPageIndex; searchPageIndex < _numPages; searchPageIndex++) {
+                            if (searchPageIndex == _pageIndex) {
+                                continue;
+                            }
+                            searchPage = (pages[searchPageIndex].fullSVG as String);
+                            if (searchPage.indexOf(uid) != -1) {
+                                _scheduleScoreItemHighlight(uid);
+                                _pageIndex = searchPageIndex;
+                                _loadPage(_pageIndex);
+                                _updatePageNavUi();
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                _scheduleScoreItemHighlight(uid);
+            }
+        }
+
+        /**
+         * Reverts the effect of the `_onHighlightRequested()` function, causing all items that were
+         * highlighted upon external request to return to their default (not highlighted) state. Only operates
+         * within the current page.
+         *
+         * @param    uid
+         *            The unique id of the element in the score to highlight.
+         */
+        private function _onUnhighlightRequested(uid:String):void {
+            if (!uid) {
+                return;
+            }
+
+            // Try to resolve given `uid` to a hotspot; if found on current page, un-highlight it.
+            if (_scoreReady) {
+                var scoreItem:SVGElement;
+                var match:Vector.<SVGElement> = _getHotspotByUid(uid) as Vector.<SVGElement>;
+
+                // We found a matching hotspot on the current page
+                if (match != null && match.length == 1 && (_isHotspot(scoreItem = match[0]))) {
+                    scoreItem.alpha = Colors.DEFAULT_HOTSPOT_ALPHA;
+                    var itemIndex:int = _allHighlights.indexOf(uid);
+                    if (itemIndex != -1) {
+                        _allHighlights.splice(itemIndex, 1);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Removes all the "highlights" added by the `_onHighlightRequested()` method. To be
+         * used when playback stops, to ensure that no hotspots remain "stuck" in their highlighted position.
+         */
+        private function _unhighlightAll(...ignore):void {
+            while (_allHighlights.length) {
+                var uid:String = _allHighlights.pop();
+                _onUnhighlightRequested(uid);
+            }
+        }
+
+        /**
+         * Fired when an external command is triggered
+         */
+        private function _onAppMenuTriggered(info:Object):void {
+            var commandName:String = info.commandName;
+            switch (commandName) {
+                case MenuCommandNames.PREVIOUS_PAGE:
+                    _onPrevPageClick();
+                    break;
+                case MenuCommandNames.NEXT_PAGE:
+                    _onNextPageClick();
+                    break;
+            }
+        }
+
+        /**
+         * Fired when the user requests the next page of the score to be displayed
+         */
+        private function _onPrevPageClick():void {
+            if (_pageIndex > 0) {
+                _pageIndex--;
+                _loadPage(_pageIndex);
+
+                // By exception, we will not reset page zoom when the scale factor is
+                // at minimum (which is the "fit height" ratio) because user might
+                // have done this on purpose, to be able to sight the entire score
+                if (!_isMinimumZoom()) {
+                    _fitScoreWidth();
+                }
+                _resetPageScroll();
+                _updatePageNavUi();
+            }
+        }
+
+        /**
+         * Fired when the user requests the previous page of the score to be displayed
+         */
+        private function _onNextPageClick():void {
+            if (_pageIndex < _numPages - 1) {
+                _pageIndex++;
+                _loadPage(_pageIndex);
+
+                // By exception, we will not reset page zoom when the scale factor is
+                // at minimum (which is the "fit height" ratio) because user might
+                // have done this on purpose, to be able to sight the entire score
+                if (!_isMinimumZoom()) {
+                    _fitScoreWidth();
+                }
+                _resetPageScroll();
+                _updatePageNavUi();
+            }
+        }
+
+        /**
+         * Fired when the score container get resized. Useful to update the zoom controls (the current
+         * value displayed by these controls is context-dependent).
+         */
+        private function _onScoreResized(event:ResizeEvent):void {
+            var sizes:Object = {};
+            sizes[ViewKeys.SCORE_CONTAINER] = {
+                width: scoreContainer.width,
+                height: scoreContainer.height
+            };
+            sizes[ViewKeys.SCORE_PAGE] = {
+                width: scorePage.width,
+                height: scorePage.height
+            };
+            GLOBAL_PIPE.send(ViewKeys.SCORE_WAS_RESIZED, sizes);
+        }
+
+        /**
+         * This function is called against every SVG element, as it is added to the
+         * SVG document by the renderer.
+         *
+         * Note: Hotspots are SVG elements that were previously added to the SVG document
+         * by the ABC parser. They contain information that connects them
+         * to actual objects in the data model, which, in turn, allows the user to
+         * click an element in the score and immediately interact with it.
+         */
+        private function _onSvgElementAdded(event:SVGEvent):void {
+            var svgElement:SVGElement = event.element;
+
+            // The element being added is a hotspot (a clickable rectangle bound to a model object)
+            // We make all hotspots transparent initially (they will be revealed as the user hovers/clicks them)
+            if (_isHotspot(svgElement)) {
+
+                // [DEBUG]
+                // We don't register, nor hide, test hotspots
 //				const TEST_CLASS_NAME:String = 'test';
 //				var hotspotClasses:Array = ((svgElement.getAttribute('class') || CommonStrings.EMPTY) as String).split(CommonStrings.SPACE);
 //				var isTestHotspot:Boolean = (hotspotClasses.indexOf(TEST_CLASS_NAME) != -1);
 //				if (isTestHotspot) {
 //					return;
 //				}
-				// [/DEBUG]
+                // [/DEBUG]
 
-				svgElement.alpha = Colors.DEFAULT_HOTSPOT_ALPHA;
-				svgElement.buttonMode = true;
-				svgElement.useHandCursor = true;
-				var hotspotUid:String = svgElement.id;
-				_registerHotspot(svgElement, hotspotUid);
-			}
-		}
+                svgElement.alpha = Colors.DEFAULT_HOTSPOT_ALPHA;
+                svgElement.buttonMode = true;
+                svgElement.useHandCursor = true;
+                var hotspotUid:String = svgElement.id;
+                _registerHotspot(svgElement, hotspotUid);
+            }
+        }
 
-		/**
-		 * Executed when the header icon is added to stage. Tints the icon with the main color.
-		 */
-		private function _onLabelIconAdded(event:Event):void {
-			var color:uint = FlexGlobals.topLevelApplication.getStyle('color');
-			ColorUtils.tintSprite(color, labelIcon);
-		}
+        /**
+         * Executed when the header icon is added to stage. Tints the icon with the main color.
+         */
+        private function _onLabelIconAdded(event:Event):void {
+            var color:uint = FlexGlobals.topLevelApplication.getStyle('color');
+            ColorUtils.tintSprite(color, labelIcon);
+        }
 
-		/**
-		 * Called when the score zoom factor has been externally changed.
-		 */
-		private function _onScoreZoomChanged(factor:Number):void {
-			_zoomFactor = factor;
-			_updatePageScale(factor);
-		}
+        /**
+         * Called when the score zoom factor has been externally changed.
+         */
+        private function _onScoreZoomChanged(factor:Number):void {
+            _zoomFactor = factor;
+            _updatePageScale(factor);
+        }
 
-		/**
-		 * Called when the minimum available zoom factor changes,
-		 * as a result of the user resizing the application's viewport.
-		 */
-		private function _onMinimumZoomChanged(factor:Number):void {
-			if (factor >= 0) {
-				_minimumZoomFactor = factor;
-			}
-		}
+        /**
+         * Called when the minimum available zoom factor changes,
+         * as a result of the user resizing the application's viewport.
+         */
+        private function _onMinimumZoomChanged(factor:Number):void {
+            if (factor >= 0) {
+                _minimumZoomFactor = factor;
+            }
+        }
 
-		/**
-		 * Called when an external "fit to width" request has been received.
-		 */
-		private function _onFitToWidthRequested(...args):void {
-			_fitScoreWidth();
-			_fitSelectedScoreElement();
-		}
+        /**
+         * Called when an external "fit to width" request has been received.
+         */
+        private function _onFitToWidthRequested(...ignore):void {
+            _fitScoreWidth();
+            _fitSelectedScoreElement();
+        }
 
-		/**
-		 * Called when an external "fit to selection" request has been received.
-		 */
-		private function _onFitToSelectionRequested(...args):void {
-			_fitSelectedScoreElement();
-		}
+        /**
+         * Called when an external "fit to selection" request has been received.
+         */
+        private function _onFitToSelectionRequested(...ignore):void {
+            _fitSelectedScoreElement();
+        }
 
-		/**
-		 * Responds to an externally sent notification, telling that the abc markup
-		 * sent-in represents a different document, and a zoom/scroll/page reset is in order.
-		 */
-		private function _onNewScoreLoaded(...args):void {
-			_resetPageScroll();
-			_fitScoreWidth();
-			_pageIndex = 0;
-			_updatePageNavUi();
-			_loadPage(_pageIndex);
-		}
+        /**
+         * Responds to an externally sent notification, telling that the abc markup
+         * sent-in represents a different document, and a zoom/scroll/page reset is in order.
+         */
+        private function _onNewScoreLoaded(...ignore):void {
+            _resetPageScroll();
+            _fitScoreWidth();
+            _pageIndex = 0;
+            _updatePageNavUi();
+            _loadPage(_pageIndex);
+        }
 
-		/**
-		 * Triggered when user clicks on the musical score representation, either
-		 * on a hotspot, or on an "empty" (i.e., not covered by hotspots) space.
-		 */
-		private function _onScoreClick(event:MouseEvent):void {
-			var clickedEl:SVGElement = event.target as SVGElement;
+        /**
+         * Triggered when user clicks on the musical score representation, either
+         * on a hotspot, or on an "empty" (i.e., not covered by hotspots) space.
+         */
+        private function _onScoreClick(event:MouseEvent):void {
+            var clickedEl:SVGElement = event.target as SVGElement;
 
-			// Clear up the previous selection, if any
-			_clearExistingSelection();
+            // Clear up the previous selection, if any
+            _clearExistingSelection();
 
-			// Handle the current selection (if we have one)
-			if (clickedEl != null && _isHotspot(clickedEl)) {
-				_ownSelectedElement = clickedEl;
-			}
-			if (_ownSelectedElement != null) {
-				_applySelection(_ownSelectedElement);
+            // Handle the current selection (if we have one)
+            if (clickedEl != null && _isHotspot(clickedEl)) {
+                _ownSelectedElement = clickedEl;
+            }
+            if (_ownSelectedElement != null) {
+                _applySelection(_ownSelectedElement);
 
-				// Reports the selection to the controller.
-				var itemKey:String = (_ownSelectedElement.id as String);
-				GLOBAL_PIPE.send(ViewKeys.CLICKED_SCORE_ITEM, itemKey);
-			} else {
-				GLOBAL_PIPE.send(ViewKeys.CLICKED_SCORE_ITEM, null);
-			}
-		}
+                // Reports the selection to the controller.
+                var itemKey:String = (_ownSelectedElement.id as String);
+                GLOBAL_PIPE.send(ViewKeys.CLICKED_SCORE_ITEM, itemKey);
+            } else {
+                GLOBAL_PIPE.send(ViewKeys.CLICKED_SCORE_ITEM, null);
+            }
+        }
 
-		/**
-		 * Called when hovering an SVG element in the score. If the element being hovered
-		 * is a hotspot, it is made visible, to let the user know that he can click there.
-		 */
-		private function _onSvgMouseOver(event:MouseEvent):void {
-			var _svgElement:SVGElement = (event.target as SVGElement);
-			if (_svgElement != null) {
-				_claimInScoreUITooltip(_svgElement, event.stageX, event.stageY);
-				if (_svgElement != _ownSelectedElement && _isHotspot(_svgElement)) {
-					TweenMax.to(_svgElement, HOTSPOT_SHOW_TIME, {
-						alpha: Colors.HIGHLIGHTED_HOTSPOT_ALPHA,
-						delay: HOTSPOT_SHOW_DELAY
-					});
-				}
-			}
+        /**
+         * Called when hovering an SVG element in the score. If the element being hovered
+         * is a hotspot, it is made visible, to let the user know that he can click there.
+         */
+        private function _onSvgMouseOver(event:MouseEvent):void {
+            var _svgElement:SVGElement = (event.target as SVGElement);
+            if (_svgElement != null) {
+                _claimInScoreUITooltip(_svgElement, event.stageX, event.stageY);
+                if (_svgElement != _ownSelectedElement && _isHotspot(_svgElement)) {
+                    TweenMax.to(_svgElement, HOTSPOT_SHOW_TIME, {
+                        alpha: Colors.HIGHLIGHTED_HOTSPOT_ALPHA,
+                        delay: HOTSPOT_SHOW_DELAY
+                    });
+                }
+            }
 
-		}
+        }
 
-		/**
-		 * Called when moving mouse out from an SVG element in the score. If the element
-		 * is a hotspot, we hide it, unless it is selected
-		 */
-		private function _onSvgMouseOut(event:MouseEvent):void {
-			_discardInScoreUITooltips();
-			var _svgElement:SVGElement = (event.target as SVGElement);
-			if (_svgElement != null && _svgElement != _ownSelectedElement && _isHotspot(_svgElement)) {
-				if (!_rightClickInProgress) {
-					TweenMax.killTweensOf(_svgElement);
-					TweenMax.to(_svgElement, HOTSPOT_HIDE_TIME, {alpha: Colors.DEFAULT_HOTSPOT_ALPHA});
-				}
-			}
-		}
+        /**
+         * Called when moving mouse out from an SVG element in the score. If the element
+         * is a hotspot, we hide it, unless it is selected
+         */
+        private function _onSvgMouseOut(event:MouseEvent):void {
+            _discardInScoreUITooltips();
+            var _svgElement:SVGElement = (event.target as SVGElement);
+            if (_svgElement != null && _svgElement != _ownSelectedElement && _isHotspot(_svgElement)) {
+                if (!_rightClickInProgress) {
+                    TweenMax.killTweensOf(_svgElement);
+                    TweenMax.to(_svgElement, HOTSPOT_HIDE_TIME, {alpha: Colors.DEFAULT_HOTSPOT_ALPHA});
+                }
+            }
+        }
 
-		/**
-		 * Triggered when an in-score tooltip is ready to be hidden.
-		 */
-		private function _onInScoreTooltipReadyToHide():void {
-			_discardInScoreUITooltips();
-		}
+        /**
+         * Triggered when an in-score tooltip is ready to be hidden.
+         */
+        private function _onInScoreTooltipReadyToHide():void {
+            _discardInScoreUITooltips();
+        }
 
-		/**
-		 * Triggered when an in-score tooltip is ready to be shown.
-		 */
-		private function _onInScoreTooltipReadyToShow():void {
-			_inScoreTooltip = ToolTipManager.createToolTip(_inScoreTooltipMessage, _inScoreTooltipX, _inScoreTooltipY, null, score);
-			_inScoreTooltipTerminator.procrastinate();
-		}
+        /**
+         * Triggered when an in-score tooltip is ready to be shown.
+         */
+        private function _onInScoreTooltipReadyToShow():void {
+            _inScoreTooltip = ToolTipManager.createToolTip(_inScoreTooltipMessage, _inScoreTooltipX, _inScoreTooltipY, null, score);
+            _inScoreTooltipTerminator.procrastinate();
+        }
 
-		/**
-		 * Triggered after the SVG renderer finishes drawing the current page of music.
-		 * By this time, all hotspots should be registered and addressable.
-		 */
-		private function _onScoreRendered(event:SVGEvent):void {
-			var target:SVG = event.target as SVG;
-			var doc:SVGDocument = target.svgDocument;
-			var engravedMusicBounds:Rectangle = doc.getBounds(doc.parent);
-			var engravedMusicHeight:Number = engravedMusicBounds.height;
-			var printablePageHeight:Number = (PAGE_HEIGHT - PAGE_GUTTER - PRINTED_MUSIC_GUTTER);
-			_scoreScale = Math.min(MAX_SCORE_SCALE, printablePageHeight / engravedMusicHeight);
-			_scoreReady = true;
-		}
+        /**
+         * Triggered after the SVG renderer finishes drawing the current page of music.
+         * By this time, all hotspots should be registered and addressable.
+         */
+        private function _onScoreRendered(event:SVGEvent):void {
+            var target:SVG = event.target as SVG;
+            var doc:SVGDocument = target.svgDocument;
+            var engravedMusicBounds:Rectangle = doc.getBounds(doc.parent);
+            var engravedMusicHeight:Number = engravedMusicBounds.height;
+            var printablePageHeight:Number = (PAGE_HEIGHT - PAGE_GUTTER - PRINTED_MUSIC_GUTTER);
+            _scoreScale = Math.min(MAX_SCORE_SCALE, printablePageHeight / engravedMusicHeight);
+            _scoreReady = true;
+        }
 
-		/**
-		 * Triggered when user right-clicks on the musical score representation, either
-		 * on a hotspot, or on an "empty" (i.e., not covered by hotspots) space.
-		 */
-		protected function _onScoreRightClick(event:MouseEvent):void {
+        /**
+         * Triggered when user right-clicks on the musical score representation, either
+         * on a hotspot, or on an "empty" (i.e., not covered by hotspots) space.
+         */
+        protected function _onScoreRightClick(event:MouseEvent):void {
 
-			// Also select the score element
-			_onScoreClick(event);
+            // Also select the score element
+            _onScoreClick(event);
 
-			// Handle the target element (if we have one)
-			var clickedEl:SVGElement = event.target as SVGElement;
-			var itemKey:String = null;
-			if (clickedEl != null && _isHotspot(clickedEl)) {
-				itemKey = (clickedEl.id as String);
-			}
-			var info:Object = {};
-			info[ViewKeys.SCORE_ITEM_UID] = itemKey;
-			info[ViewKeys.ANCHOR_X] = event.stageX;
-			info[ViewKeys.ANCHOR_Y] = event.stageY;
-			GLOBAL_PIPE.send(ViewKeys.RIGHT_CLICKED_SCORE, info);
-		}
+            // Handle the target element (if we have one)
+            var clickedEl:SVGElement = event.target as SVGElement;
+            var itemKey:String = null;
+            if (clickedEl != null && _isHotspot(clickedEl)) {
+                itemKey = (clickedEl.id as String);
+            }
+            var info:Object = {};
+            info[ViewKeys.SCORE_ITEM_UID] = itemKey;
+            info[ViewKeys.ANCHOR_X] = event.stageX;
+            info[ViewKeys.ANCHOR_Y] = event.stageY;
+            GLOBAL_PIPE.send(ViewKeys.RIGHT_CLICKED_SCORE, info);
+        }
 
-		/**
-		 * Triggered when user middle-clicks on the musical score representation, either
-		 * on a hotspot, or on an "empty" (i.e., not covered by hotspots) space.
-		 */
-		protected function _onScoreMiddleClick(event:MouseEvent):void {
+        /**
+         * Triggered when user middle-clicks on the musical score representation, either
+         * on a hotspot, or on an "empty" (i.e., not covered by hotspots) space.
+         */
+        protected function _onScoreMiddleClick(event:MouseEvent):void {
 
-			// Also select the score element
-			_onScoreClick(event);
+            // Also select the score element
+            _onScoreClick(event);
 
-			// Handle the target element (if we have one)
-			var clickedEl:SVGElement = event.target as SVGElement;
-			var itemKey:String = null;
-			if (clickedEl != null && _isHotspot(clickedEl)) {
-				itemKey = (clickedEl.id as String);
-			}
-			var info:Object = {};
-			info[ViewKeys.SCORE_ITEM_UID] = itemKey;
-			GLOBAL_PIPE.send(ViewKeys.MIDDLE_CLICKED_SCORE, info);
-		}
+            // Handle the target element (if we have one)
+            var clickedEl:SVGElement = event.target as SVGElement;
+            var itemKey:String = null;
+            if (clickedEl != null && _isHotspot(clickedEl)) {
+                itemKey = (clickedEl.id as String);
+            }
+            var info:Object = {};
+            info[ViewKeys.SCORE_ITEM_UID] = itemKey;
+            GLOBAL_PIPE.send(ViewKeys.MIDDLE_CLICKED_SCORE, info);
+        }
 
-		/**
-		 * Triggered when the SVG renderer starts parsing a new page/document.
-		 */
-		protected function _onScoreParseStart(event:SVGEvent):void {
-			// Use as needed.
-		}
+        /**
+         * Triggered when the SVG renderer starts parsing a new page/document.
+         */
+        protected function _onScoreParseStart(event:SVGEvent):void {
+            // Use as needed.
+        }
 
-		/**
-		 * Triggered when the right (secondary) mouse button has been depressed
-		 * over the score area. Used to capture the start of an upcoming "right click"
-		 * sequence.
-		 */
-		protected function _onRightMouseDown(event:MouseEvent):void {
-			_rightClickInProgress = true;
-		}
+        /**
+         * Triggered when the right (secondary) mouse button has been depressed
+         * over the score area. Used to capture the start of an upcoming "right click"
+         * sequence.
+         */
+        protected function _onRightMouseDown(event:MouseEvent):void {
+            _rightClickInProgress = true;
+        }
 
-		/**
-		 * Triggered when the right (secondary) mouse button has been released
-		 * over the score area. Used to capture the start of an upcoming "right click"
-		 * sequence.
-		 */
-		protected function _onRightMouseUp(event:MouseEvent):void {
-			_rightClickInProgress = false;
-		}
-		]]>
+        /**
+         * Triggered when the right (secondary) mouse button has been released
+         * over the score area. Used to capture the start of an upcoming "right click"
+         * sequence.
+         */
+        protected function _onRightMouseUp(event:MouseEvent):void {
+            _rightClickInProgress = false;
+        }
+        ]]>
 	</fx:Script>
-	
-	<!-- Pane Icon and Title -->
-	<s:HGroup verticalAlign="middle" id="headerAndIcon">
-		<s:Group>
-			<images:score id="labelIcon"
-						  width="16"
-						  height="21"
-						  added="_onLabelIconAdded(event)"/>
-		</s:Group>
-		<mx:Label id="header"
-				 styleName="sectionHeader"
-				 text="{title}" />
-	</s:HGroup>
-	
-	<!-- Background for the Scroller component, to clearly delineate the score editing area from the rest of the application -->
-	<s:Rect id="sectionBackground"
-			x="0"
-			y="{headerAndIcon.y + headerAndIcon.height + Sizes.VERTICAL_GAP}"
-			width="{width}"
-			height="{height - headerAndIcon.height - Sizes.VERTICAL_GAP - 1}">
-		<s:stroke>
-			<mx:SolidColorStroke color="#000000" alpha="0.03" />
-		</s:stroke>
-		<s:fill>
-			<mx:SolidColor color="#000000" alpha="0.02" />
-		</s:fill>
-	</s:Rect>
 
-	<!-- Scrollable area for the musical score.
-	     Note: the "- 3" hack addresses a platform bug where
-		 binding fails to recompute value in unclear circumstances. -->
-	<s:Scroller height="{height - headerAndIcon.height - Sizes.VERTICAL_GAP - 3}"
-				y="{headerAndIcon.y + headerAndIcon.height + Sizes.VERTICAL_GAP + 1}"
-				x="1"
-				id="scoreContainer"
-				width="{width - 2}"
-				resize="_onScoreResized(event)">
-		
-		<!-- Boilerplate code: each Scroller must contain one Group child -->
-		<s:Group>
-			<s:layout>
-				<s:VerticalLayout verticalAlign="middle" horizontalAlign="center" />
-			</s:layout>
-			
-			<!-- The "page" scenery used for providing a static, print size context to the (otherwise dynamically rendered) score -->
-			<s:Group id="scorePage"
-					 horizontalCenter="{(scoreContainer.width &gt; scorePage.width * scorePage.scaleX)? 0 : NaN}"
-					 verticalCenter="{(scoreContainer.height &gt; scorePage.height * scorePage.scaleY)? 0 : NaN}"
-					 height="{PAGE_HEIGHT}"
-					 width="{PAGE_WIDTH}"
-					 click="_onScoreClick(event)"
-					 rightClick="_onScoreRightClick(event)"
-					 middleClick="_onScoreMiddleClick(event)"
-					 rightMouseDown="_onRightMouseDown (event)"
-					 rightMouseUp="_onRightMouseUp (event)"
-					 mouseOver="_onSvgMouseOver(event)"
-					 mouseOut="_onSvgMouseOut(event)">
-				
-				<!-- "Background" of the score. i.e., the "white" of the paper. -->
-				<s:Rect width="{PAGE_WIDTH - PAGE_GUTTER}" 
-						height="{PAGE_HEIGHT - PAGE_GUTTER}"
-						x="{PAGE_GUTTER * 0.5}"
-						y="{PAGE_GUTTER * 0.5}">
-					<s:fill>
-						<mx:SolidColor color="{Colors.SCORE_BACKGROUND}" />
-					</s:fill>
-					<s:filters>
-						<s:DropShadowFilter distance="0" blurX="8" blurY="8" quality="{BitmapFilterQuality.HIGH}" alpha="0.05" />
-					</s:filters>
-				</s:Rect>
-				
-				<!-- The actual SVG renderer component, i.e., the "ink" on the paper. 
-					 The score will scale and center on the page based on its size.
-				     Only downscaling is allowed. -->
-				<Flex:SVG id="score"
-						  horizontalCenter="0"
-						  y="{SCORE_Y}"
-						  scaleX="{_scoreScale}"
-						  scaleY="{_scoreScale}"
-						  validateWhileParsing="false"
-						  forceSynchronousParse="true"
-						  defaultFontName="{DEFAULT_FONT_NAME}"
-						  textDrawer="{new TextFieldSVGTextDrawer}"
-						  useEmbeddedFonts="true"
-						  elementAdded="_onSvgElementAdded(event)"
-						  parseStart="_onScoreParseStart (event)" />
-			</s:Group>
-		</s:Group>
-	</s:Scroller>
-	
-	
+    <!-- Pane Icon and Title -->
+    <s:HGroup verticalAlign="middle" id="headerAndIcon">
+        <s:Group>
+            <images:score id="labelIcon"
+                          width="16"
+                          height="21"
+                          added="_onLabelIconAdded(event)"/>
+        </s:Group>
+        <mx:Label id="header"
+                  styleName="sectionHeader"
+                  text="{title}"/>
+    </s:HGroup>
+
+    <!-- Background for the Scroller component, to clearly delineate the score editing area from the rest of the application -->
+    <s:Rect id="sectionBackground"
+            x="0"
+            y="{headerAndIcon.y + headerAndIcon.height + Sizes.VERTICAL_GAP}"
+            width="{width}"
+            height="{height - headerAndIcon.height - Sizes.VERTICAL_GAP - 1}">
+        <s:stroke>
+            <mx:SolidColorStroke color="#000000" alpha="0.03"/>
+        </s:stroke>
+        <s:fill>
+            <mx:SolidColor color="#000000" alpha="0.02"/>
+        </s:fill>
+    </s:Rect>
+
+    <!-- Scrollable area for the musical score.
+         Note: the "- 3" hack addresses a platform bug where
+         binding fails to recompute value in unclear circumstances. -->
+    <s:Scroller height="{height - headerAndIcon.height - Sizes.VERTICAL_GAP - 3}"
+                y="{headerAndIcon.y + headerAndIcon.height + Sizes.VERTICAL_GAP + 1}"
+                x="1"
+                id="scoreContainer"
+                width="{width - 2}"
+                resize="_onScoreResized(event)">
+
+        <!-- Boilerplate code: each Scroller must contain one Group child -->
+        <s:Group>
+            <s:layout>
+                <s:VerticalLayout verticalAlign="middle" horizontalAlign="center"/>
+            </s:layout>
+
+            <!-- The "page" scenery used for providing a static, print size context to the (otherwise dynamically rendered) score -->
+            <s:Group id="scorePage"
+                     horizontalCenter="{(scoreContainer.width &gt; scorePage.width * scorePage.scaleX)? 0 : NaN}"
+                     verticalCenter="{(scoreContainer.height &gt; scorePage.height * scorePage.scaleY)? 0 : NaN}"
+                     height="{PAGE_HEIGHT}"
+                     width="{PAGE_WIDTH}"
+                     click="_onScoreClick(event)"
+                     rightClick="_onScoreRightClick(event)"
+                     middleClick="_onScoreMiddleClick(event)"
+                     rightMouseDown="_onRightMouseDown (event)"
+                     rightMouseUp="_onRightMouseUp (event)"
+                     mouseOver="_onSvgMouseOver(event)"
+                     mouseOut="_onSvgMouseOut(event)">
+
+                <!-- "Background" of the score. i.e., the "white" of the paper. -->
+                <s:Rect width="{PAGE_WIDTH - PAGE_GUTTER}"
+                        height="{PAGE_HEIGHT - PAGE_GUTTER}"
+                        x="{PAGE_GUTTER * 0.5}"
+                        y="{PAGE_GUTTER * 0.5}">
+                    <s:fill>
+                        <mx:SolidColor color="{Colors.SCORE_BACKGROUND}"/>
+                    </s:fill>
+                    <s:filters>
+                        <s:DropShadowFilter distance="0" blurX="8" blurY="8" quality="{BitmapFilterQuality.HIGH}"
+                                            alpha="0.05"/>
+                    </s:filters>
+                </s:Rect>
+
+                <!-- The actual SVG renderer component, i.e., the "ink" on the paper.
+                     The score will scale and center on the page based on its size.
+                     Only downscaling is allowed. -->
+                <Flex:SVG id="score"
+                          horizontalCenter="0"
+                          y="{SCORE_Y}"
+                          scaleX="{_scoreScale}"
+                          scaleY="{_scoreScale}"
+                          validateWhileParsing="false"
+                          forceSynchronousParse="true"
+                          defaultFontName="{DEFAULT_FONT_NAME}"
+                          textDrawer="{new TextFieldSVGTextDrawer}"
+                          useEmbeddedFonts="true"
+                          elementAdded="_onSvgElementAdded(event)"
+                          parseStart="_onScoreParseStart (event)"/>
+            </s:Group>
+        </s:Group>
+    </s:Scroller>
+
+
 </s:Group>

@@ -1,39 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:VBox horizontalScrollPolicy="off"
-		 initialize="_onInitialize(event)"
-		 verticalScrollPolicy="off"
-		 width="100%"
-		 xmlns:components="ro.ciacob.maidens.view.components.*"
-		 xmlns:fx="http://ns.adobe.com/mxml/2009"
-		 xmlns:mx="library://ns.adobe.com/flex/mx"
-		 xmlns:s="library://ns.adobe.com/flex/spark">
+         initialize="_onInitialize(event)"
+         verticalScrollPolicy="off"
+         width="100%"
+         xmlns:components="ro.ciacob.maidens.view.components.*"
+         xmlns:fx="http://ns.adobe.com/mxml/2009"
+         xmlns:mx="library://ns.adobe.com/flex/mx"
+>
 
-	<fx:Metadata>
-		[Event(name="change",type="flash.events.Event")]
-	</fx:Metadata>
+    <fx:Metadata>
+        [Event(name="change", type="flash.events.Event")]
+    </fx:Metadata>
 
-	<fx:Script>
+    <fx:Script>
 		<![CDATA[
+        import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
+        import eu.claudius.iacob.maidens.skins.DeleteElementSkinSmall;
+        import eu.claudius.iacob.maidens.skins.NudgeDownSkinSmall;
+        import eu.claudius.iacob.maidens.skins.NudgeUpSkinSmall;
+        import eu.claudius.iacob.maidens.skins.OpenEditorSkin;
+
         import mx.collections.ArrayCollection;
         import mx.events.FlexEvent;
 
         import ro.ciacob.desktop.signals.PTT;
         import ro.ciacob.maidens.view.constants.EditorSessions;
         import ro.ciacob.maidens.view.constants.PickupComponentKeys;
-
-        import eu.claudius.iacob.maidens.Sizes;
-
-        import ro.ciacob.maidens.view.constants.ViewKeys;
-
-        import eu.claudius.iacob.maidens.skins.CreateElementSkin;
-        import eu.claudius.iacob.maidens.skins.DeleteElementSkin;
-        import eu.claudius.iacob.maidens.skins.DeleteElementSkinSmall;
-        import eu.claudius.iacob.maidens.skins.NudgeDownSkin;
-        import eu.claudius.iacob.maidens.skins.NudgeDownSkinSmall;
-        import eu.claudius.iacob.maidens.skins.NudgeUpSkin;
-        import eu.claudius.iacob.maidens.skins.NudgeUpSkinSmall;
-        import eu.claudius.iacob.maidens.skins.OpenEditorSkin;
-
         import ro.ciacob.utils.Arrays;
         import ro.ciacob.utils.Strings;
         import ro.ciacob.utils.Time;
@@ -54,8 +47,8 @@
         [Bindable]
         public var itemStyleName:String;
 
-        private var _allowDupplicates:Boolean;
-        private var _allowDupplicatesChanged:Boolean;
+        private var _allowDuplicates:Boolean;
+        private var _allowDuplicatesChanged:Boolean;
         private var _availableItems:Array;
         private var _editorSessionUid:String;
         private var _editorTitle:String;
@@ -69,13 +62,13 @@
         private var _pickedUpItemsListSelIndex:int = -1;
         private var _userPickedUpItemsChanged:Boolean;
 
-        public function get allowDupplicates():Boolean {
-            return _allowDupplicates;
+        public function get allowDuplicates():Boolean {
+            return _allowDuplicates;
         }
 
-        public function set allowDupplicates(value:Boolean):void {
-            _allowDupplicates = value;
-            _allowDupplicatesChanged = true;
+        public function set allowDuplicates(value:Boolean):void {
+            _allowDuplicates = value;
+            _allowDuplicatesChanged = true;
             invalidateProperties();
 
         }
@@ -126,8 +119,6 @@
 
         override protected function commitProperties():void {
             super.commitProperties();
-            var i:int;
-            var item:PickupItem;
             if (_enabledChanged) {
                 _enabledChanged = false;
                 if (!_enabled) {
@@ -148,9 +139,9 @@
                 _updateLeftList();
                 _broadcastChange();
             }
-            if (_allowDupplicatesChanged) {
-                _allowDupplicatesChanged = false;
-                if (!allowDupplicates) {
+            if (_allowDuplicatesChanged) {
+                _allowDuplicatesChanged = false;
+                if (!allowDuplicates) {
                     if (_pickedUpItems != null) {
                         var tmp:Array = _pickedUpItems.concat();
                         Arrays.removeDuplicates(tmp);
@@ -176,7 +167,7 @@
             }
         }
 
-        private function _forceCloseEditor():void {
+        private static function _forceCloseEditor():void {
             PTT.getPipe().send(ViewKeys.NEED_PICKUP_COMPONENT_WINDOW_FORCE_CLOSED);
         }
 
@@ -218,7 +209,7 @@
                 windowData[ViewKeys.EDITOR_SESSION] = _editorSessionUid;
                 windowData[ViewKeys.CURRENT_SUBSET] = _pickedUpItemsListDp.source;
                 windowData[ViewKeys.AVAILABLE_SETS] = _availableItems;
-                windowData[ViewKeys.ARE_DUPLICATES_PERMITTED] = _allowDupplicates;
+                windowData[ViewKeys.ARE_DUPLICATES_PERMITTED] = _allowDuplicates;
                 windowData[PickupComponentKeys.ITEMS_STYLE_NAME] = editorItemStyleName;
                 var data:Object = {};
                 data[ViewKeys.WINDOW_TITLE] = _editorTitle;
@@ -315,76 +306,76 @@
         }
         ]]>
 	</fx:Script>
-	<fx:Declarations/>
+    <fx:Declarations/>
 
-	<!-- "Editor open" notice -->
-	<mx:Box borderStyle="solid"
-			height="{Sizes.SMALL_TILE_SIZE}"
-			horizontalAlign="center"
-			id="editorMemo"
-			includeInLayout="false"
-			styleName="blockSection"
-			verticalAlign="middle"
-			visible="false"
-			width="100%">
-		<mx:Label styleName="editorNote"
-				  text="close the editor when done"/>
-	</mx:Box>
+    <!-- "Editor open" notice -->
+    <mx:Box borderStyle="solid"
+            height="{Sizes.SMALL_TILE_SIZE}"
+            horizontalAlign="center"
+            id="editorMemo"
+            includeInLayout="false"
+            styleName="blockSection"
+            verticalAlign="middle"
+            visible="false"
+            width="100%">
+        <mx:Label styleName="editorNote"
+                  text="close the editor when done"/>
+    </mx:Box>
 
-	<!-- List -->
-	<components:CustomHorizontalList change="_onPickedUpItemsListUserSelection(event)"
-									 verticalAlign="middle"
-									 itemStyleName="{itemStyleName}"
-									 columnWidth="{Sizes.SMALL_TILE_SIZE}"
-									 dataProvider="{_pickedUpItemsListDp}"
-									 labelField="label"
-									 height="{Sizes.SMALL_TILE_SIZE + (pickedUpItemsList.isHorizontalScrollBarVisible? 16 : 0)}"
-									 id="pickedUpItemsList"
-									 paddingBottom="0"
-									 paddingLeft="0"
-									 paddingRight="0"
-									 paddingTop="0"
-									 rowHeight="{Sizes.SMALL_TILE_SIZE}"
-									 styleName="thickText"
-									 updateComplete="_onPickedUpItemsListUpdateComplete(event)"
-									 width="100%"
-									 x="0"
-									 itemRenderer="ro.ciacob.maidens.view.components.PickupComponentItemRenderer"
-									 y="0"/>
+    <!-- List -->
+    <components:CustomHorizontalList change="_onPickedUpItemsListUserSelection(event)"
+                                     verticalAlign="middle"
+                                     itemStyleName="{itemStyleName}"
+                                     columnWidth="{Sizes.SMALL_TILE_SIZE}"
+                                     dataProvider="{_pickedUpItemsListDp}"
+                                     labelField="label"
+                                     height="{Sizes.SMALL_TILE_SIZE + (pickedUpItemsList.isHorizontalScrollBarVisible? 16 : 0)}"
+                                     id="pickedUpItemsList"
+                                     paddingBottom="0"
+                                     paddingLeft="0"
+                                     paddingRight="0"
+                                     paddingTop="0"
+                                     rowHeight="{Sizes.SMALL_TILE_SIZE}"
+                                     styleName="thickText"
+                                     updateComplete="_onPickedUpItemsListUpdateComplete(event)"
+                                     width="100%"
+                                     x="0"
+                                     itemRenderer="ro.ciacob.maidens.view.components.PickupComponentItemRenderer"
+                                     y="0"/>
 
-	<!-- Controls -->
-	<mx:HBox horizontalGap="4"
-			 id="controls"
-			 width="100%">
+    <!-- Controls -->
+    <mx:HBox horizontalGap="4"
+             id="controls"
+             width="100%">
 
-		<!-- OPEN EDITOR -->
-		<mx:Button click="_onEditClick(event)"
-				   enabled="false"
-				   id="openEditorButton"
-				   toolTip="Open Editor"
-				   skin="{OpenEditorSkin}"/>
+        <!-- OPEN EDITOR -->
+        <mx:Button click="_onEditClick(event)"
+                   enabled="false"
+                   id="openEditorButton"
+                   toolTip="Open Editor"
+                   skin="{OpenEditorSkin}"/>
 
-		<!-- REMOVE -->
-		<mx:Button click="_onDeleteButtonClick(event)"
-				   enabled="false"
-				   id="deleteButton"
-				   skin="{DeleteElementSkinSmall}"
-				   toolTip="Delete element"/>
+        <!-- REMOVE -->
+        <mx:Button click="_onDeleteButtonClick(event)"
+                   enabled="false"
+                   id="deleteButton"
+                   skin="{DeleteElementSkinSmall}"
+                   toolTip="Delete element"/>
 
-		<!-- UP -->
-		<mx:Button click="_onMovePrevButtonClick(event)"
-				   enabled="false"
-				   id="movePrevButton"
-				   toolTip="Nudge element before"
-				   skin="{NudgeUpSkinSmall}"/>
-		
-		<!-- DOWN -->
-		<mx:Button click="_onMoveNextButtonClick(event)"
-				   enabled="false"
-				   id="moveNextButton"
-				   toolTip="Nudge element after"
-				   skin="{NudgeDownSkinSmall}" />
+        <!-- UP -->
+        <mx:Button click="_onMovePrevButtonClick(event)"
+                   enabled="false"
+                   id="movePrevButton"
+                   toolTip="Nudge element before"
+                   skin="{NudgeUpSkinSmall}"/>
 
-	</mx:HBox>
+        <!-- DOWN -->
+        <mx:Button click="_onMoveNextButtonClick(event)"
+                   enabled="false"
+                   id="moveNextButton"
+                   toolTip="Nudge element after"
+                   skin="{NudgeDownSkinSmall}"/>
+
+    </mx:HBox>
 
 </mx:VBox>

@@ -1,5 +1,5 @@
-UAT - "Nudging" Clusters in a Musical Score
-=============================================
+CONSTRAINED NUDGING TESTS
+=========================
 
 Test Case #1: Constrained Nudging Availability
 ---------------------------------------------

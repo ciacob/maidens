@@ -20,6 +20,8 @@
 
         import eu.claudius.iacob.maidens.Colors;
         import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
         import eu.claudius.iacob.maidens.skins.CreateElementSkin;
         import eu.claudius.iacob.maidens.skins.DeleteElementSkin;
         import eu.claudius.iacob.maidens.skins.FitSelectionSkin;
@@ -37,14 +39,14 @@
 
         import ro.ciacob.desktop.signals.PTT;
         import ro.ciacob.maidens.generators.constants.MIDI;
+        import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
         import ro.ciacob.maidens.model.constants.ModelKeys;
-        import ro.ciacob.maidens.model.constants.StaticFieldValues;
-        import ro.ciacob.maidens.model.constants.StaticTokens;
+
         import ro.ciacob.maidens.model.constants.URLs;
         import ro.ciacob.maidens.view.constants.MenuCommandNames;
         import ro.ciacob.maidens.view.constants.PromptColors;
         import ro.ciacob.maidens.view.constants.PromptKeys;
-        import ro.ciacob.maidens.view.constants.ViewKeys;
+
         import ro.ciacob.utils.OSFamily;
         import ro.ciacob.utils.Strings;
         import ro.ciacob.utils.Time;
@@ -391,7 +393,7 @@
                 selected="true"
                 id="nudgeLockButton"
                 toolTip="{StaticTokens.NUDGE_LOCK}"
-                skinClass="{LockToggleButton}" width="{Sizes.CONTROL_BAR_HEIGHT}" height="{Sizes.CONTROL_BAR_HEIGHT}" />
+                skinClass="{LockToggleButton}" width="{Sizes.CONTROL_BAR_HEIGHT}" height="{Sizes.CONTROL_BAR_HEIGHT}"/>
 
         <mx:Spacer width="{Sizes.SEPARATOR_WIDTH}"/>
 

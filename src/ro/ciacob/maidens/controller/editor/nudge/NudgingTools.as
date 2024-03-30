@@ -1,7 +1,8 @@
 package ro.ciacob.maidens.controller.editor.nudge {
-import ro.ciacob.maidens.model.ModelUtils;
-import ro.ciacob.maidens.model.ProjectData;
-import ro.ciacob.maidens.model.constants.DataFields;
+import ro.ciacob.maidens.legacy.ModelUtils;
+import ro.ciacob.maidens.legacy.ProjectData;
+import ro.ciacob.maidens.legacy.constants.DataFields;
+
 
 public class NudgingTools {
     public function NudgingTools() {

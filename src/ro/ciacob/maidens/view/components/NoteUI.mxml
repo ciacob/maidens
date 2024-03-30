@@ -7,6 +7,8 @@
 
     <fx:Script>
 		<![CDATA[
+        import eu.claudius.iacob.maidens.constants.StaticTokens;
+        import eu.claudius.iacob.maidens.constants.ViewKeys;
         import eu.claudius.iacob.maidens.skins.BlackPianoKeySkin;
         import eu.claudius.iacob.maidens.skins.WhitePianoKeySkin;
 
@@ -18,19 +20,20 @@
         import mx.events.FlexEvent;
 
         import ro.ciacob.desktop.signals.PTT;
-        import ro.ciacob.maidens.controller.MusicUtils;
-        import ro.ciacob.maidens.controller.MusicUtils;
+
         import ro.ciacob.maidens.generators.constants.parts.PartRanges;
         import ro.ciacob.maidens.generators.constants.pitch.MiddleCMapping;
         import ro.ciacob.maidens.generators.constants.pitch.OctaveNames;
-        import ro.ciacob.maidens.model.ProjectData;
-        import ro.ciacob.maidens.model.constants.DataFields;
-        import ro.ciacob.maidens.model.constants.StaticTokens;
 
         import eu.claudius.iacob.maidens.Sizes;
         import eu.claudius.iacob.maidens.Colors;
 
-        import ro.ciacob.maidens.view.constants.ViewKeys;
+        import ro.ciacob.maidens.legacy.MusicUtils;
+
+        import ro.ciacob.maidens.legacy.ProjectData;
+
+        import ro.ciacob.maidens.legacy.constants.DataFields;
+
         import ro.ciacob.utils.Strings;
         import ro.ciacob.utils.Time;
 
@@ -201,7 +204,7 @@
                     } else {
 
                         // If we were not requested an offset, it means that the user is in the "main" area: remove any
-                        // stored offset (to give the user acces to the original octave) and proceed as normal.
+                        // stored offset (to give the user access to the original octave) and proceed as normal.
                         if (_cachedOctaveOffset) {
 
 
@@ -230,7 +233,7 @@
         private function _updatePitchSelection(value:String):void {
             KEY_BUTTONS.forEach(function (keyButton:ToggleButton, i:int, a:Array):void {
                 if (keyButton) {
-                    keyButton.selected = _cachedOctaveOffset? (keyButton.name == (value + '*')) :
+                    keyButton.selected = _cachedOctaveOffset ? (keyButton.name == (value + '*')) :
                             (keyButton.name == value);
                 }
             });
