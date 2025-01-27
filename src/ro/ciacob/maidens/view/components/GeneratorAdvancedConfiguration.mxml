@@ -17,898 +17,906 @@
     <fx:Declarations/>
 
     <fx:Script>
-		<![CDATA[
-        import com.greensock.TweenMax;
-
-        import eu.claudius.iacob.desktop.presetmanager.lib.PresetEvent;
-        import eu.claudius.iacob.maidens.Colors;
-        import eu.claudius.iacob.maidens.Sizes;
-        import eu.claudius.iacob.maidens.constants.ViewKeys;
-        import eu.claudius.iacob.ui.components.Constants;
-        import eu.claudius.iacob.ui.components.ParameterChangeEvent;
-
-        import mx.events.FlexEvent;
-        import mx.utils.ObjectProxy;
-
-        import ro.ciacob.desktop.data.exporters.PlainObjectExporter;
-        import ro.ciacob.desktop.data.importers.PlainObjectImporter;
-        import ro.ciacob.desktop.signals.PTT;
-        import ro.ciacob.desktop.ui.UiFlexBuilder;
-        import ro.ciacob.desktop.ui.UiGenerator;
-        import ro.ciacob.desktop.ui.utils.Objects;
-        import ro.ciacob.desktop.windows.IWindowsManager;
-        import ro.ciacob.desktop.windows.WindowContentBehavior;
-        import ro.ciacob.maidens.generators.constants.GeneratorKeys;
-
-        import ro.ciacob.maidens.generators.core.constants.CoreOperationKeys;
-        import ro.ciacob.maidens.generators.core.interfaces.IParameter;
-        import ro.ciacob.maidens.generators.core.interfaces.IParametersList;
-        import ro.ciacob.maidens.generators.core.ui.ParameterUI;
-        import ro.ciacob.maidens.generators.core.ui.PointTools;
-        import ro.ciacob.maidens.legacy.ProjectData;
-        import ro.ciacob.maidens.legacy.constants.DataFields;
-
-        import ro.ciacob.utils.ScreenUtils;
-        import ro.ciacob.utils.Time;
-
-        // --------------
-        // PUBLIC METHODS
-        // --------------
-
-        /**
-         * Executed by the ClassFactory upon initializing this class. Injects default data to populate the UI with.
-         */
-        public function set genCfgWindowData(data:Object):void {
-
-            // Grab new values
-            _uiBlueprint = (data[GeneratorKeys.GEN_CFG_UI_BLUEPRINT] as Object);
-            if (_uiBlueprint != null) {
-                _parameters = _uiBlueprint [GeneratorKeys.PARAMETERS];
-                if (_parameters) {
-                    _sanitizeParameters();
+        <![CDATA[
+            import com.greensock.TweenMax;
+            
+            import eu.claudius.iacob.desktop.presetmanager.lib.PresetEvent;
+            import eu.claudius.iacob.maidens.Colors;
+            import eu.claudius.iacob.maidens.Sizes;
+            import eu.claudius.iacob.maidens.constants.ViewKeys;
+            import eu.claudius.iacob.ui.components.Constants;
+            import eu.claudius.iacob.ui.components.ParameterChangeEvent;
+            
+            import mx.events.FlexEvent;
+            import mx.utils.ObjectProxy;
+            
+            import ro.ciacob.desktop.data.exporters.PlainObjectExporter;
+            import ro.ciacob.desktop.data.importers.PlainObjectImporter;
+            import ro.ciacob.desktop.signals.PTT;
+            import ro.ciacob.desktop.ui.UiFlexBuilder;
+            import ro.ciacob.desktop.ui.UiGenerator;
+            import ro.ciacob.desktop.ui.utils.Objects;
+            import ro.ciacob.desktop.windows.IWindowsManager;
+            import ro.ciacob.desktop.windows.WindowContentBehavior;
+            import ro.ciacob.maidens.generators.constants.GeneratorKeys;
+            
+            import ro.ciacob.maidens.generators.core.constants.CoreOperationKeys;
+            import ro.ciacob.maidens.generators.core.interfaces.IParameter;
+            import ro.ciacob.maidens.generators.core.interfaces.IParametersList;
+            import ro.ciacob.maidens.generators.core.ui.ParameterUI;
+            import ro.ciacob.maidens.generators.core.ui.PointTools;
+            import ro.ciacob.maidens.legacy.ProjectData;
+            import ro.ciacob.maidens.legacy.constants.DataFields;
+            
+            import ro.ciacob.utils.ScreenUtils;
+            import ro.ciacob.utils.Time;
+            
+            // --------------
+            // PUBLIC METHODS
+            // --------------
+            
+            /**
+             * Executed by the ClassFactory upon initializing this class. Injects default data to populate the UI with.
+             */
+            public function set genCfgWindowData(data:Object):void {
+            
+                // Grab new values
+                _uiBlueprint = (data[GeneratorKeys.GEN_CFG_UI_BLUEPRINT] as Object);
+                if (_uiBlueprint != null) {
+                    _parameters = _uiBlueprint[GeneratorKeys.PARAMETERS];
+                    if (_parameters) {
+                        _sanitizeParameters();
+                    }
+                    _animatedParameters = _uiBlueprint[GeneratorKeys.ANIMATED_PARAMETERS];
+                    _animatedParameterUids = _uiBlueprint[GeneratorKeys.ANIMATED_PARAMETER_UIDS];
+                    delete _uiBlueprint[GeneratorKeys.ANIMATED_PARAMETERS];
+                    delete _uiBlueprint[GeneratorKeys.ANIMATED_PARAMETER_UIDS];
+                    _uiBlueprintChanged = true;
+                    invalidateProperties();
                 }
-                _animatedParameters = _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETERS];
-                _animatedParameterUids = _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETER_UIDS];
-                delete _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETERS];
-                delete _uiBlueprint [GeneratorKeys.ANIMATED_PARAMETER_UIDS];
-                _uiBlueprintChanged = true;
-                invalidateProperties();
-            }
-
-            _receivedConfigData = data[GeneratorKeys.GEN_CFG_DATASET];
-            if (_receivedConfigData != DataFields.VALUE_NOT_SET) {
-                _currentDatasetChanged = true;
-                invalidateProperties();
-            }
-        }
-
-        /**
-         * Executed by the ClassFactory upon initializing this class. Injects the name of the communication pipe to use
-         * for passing messages to and from the rest of the application.
-         */
-        public function set pttPipeName(name:String):void {
-            _pttInstance = PTT.getPipe(name);
-            _pttInstance.subscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
-        }
-
-        /**
-         * Returns the UID of the window owning this content. The windows manager assigns unique IDs to all windows upon creation,
-         * and manipulates them by mean of these IDS. Will return `null` if the owner window has been destroyed (or, in other words,
-         * `windowUid` will be `null` for orphaned content).
-         * @readonly
-         */
-        public function get windowUid():String {
-            return _windowBehavior.windowUid;
-        }
-
-        /**
-         * Returns the screen this content is, or was displayed onto. Returns null if this content was never displayed (e.g., if the
-         * windows holding this content has been created, but never shown).
-         * @readonly
-         */
-        public function get homeScreen():Screen {
-            return _windowBehavior.homeScreen;
-        }
-
-        /**
-         * Returns the horizontal position of this content across the joined space of all screens in use. For instance, it will return
-         * `1920` for a content held by a window which is placed at (0, 0) on the second monitor on the right, on a two, side-by-side
-         * Full HD monitors setup. The offset of the window chrome, if any, is also taken into account. Returns `NaN` for orphaned content
-         * (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
-         * @readonly
-         */
-        public function get allScreensX():Number {
-            return _windowBehavior.allScreensX;
-        }
-
-        /**
-         * @see `allScreensX`
-         * @readonly
-         */
-        public function get allScreensY():Number {
-            return _windowBehavior.allScreensY;
-        }
-
-        /**
-         * Returns the horizontal position of this content within the screen its left boundary is laid on. For instance, it will return
-         * `0` (rather than `1920`) for a content held by a window which is placed at (0, 0) on the second monitor on the right,
-         * on a two, side-by-side Full HD monitors setup. The offset of the window chrome, if any, is also taken into account.
-         *  Returns `NaN` for orphaned content (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
-         * @readonly
-         */
-        public function get currentScreensX():Number {
-            return _windowBehavior.currentScreensX;
-        }
-
-        /**
-         * @see `currentScreensX`
-         * @readonly
-         */
-        public function get currentScreensY():Number {
-            return _windowBehavior.currentScreensY;
-        }
-
-        /**
-         * Sends an instance of the windows manager owner into this implementor (required for performing
-         * various calculations).
-         */
-        public function set manager(value:IWindowsManager):void {
-            _windowBehavior.manager = value;
-        }
-
-        /**
-         * Retrieves the windows manager instance previously sent into this implementor.
-         */
-        public function get manager():IWindowsManager {
-            return _windowBehavior.manager;
-        }
-
-        /**
-         * Produces a simple ValueObject with the initial values of the generated UI
-         * controls. These may be default values, or values previously saved on "this"
-         * particular Generator instance.
-         *
-         * We will consider these "factory defaults" as the "reference dataset"
-         * to observe any future changes against, and this method provides us precisely this
-         * list of factory defaults.
-         */
-        private function _extractDefaultsFromUi(uiDescriptor:Object):Object {
-            var ret:Object = {};
-            var key:String;
-            var param:IParameter;
-            for (key in uiDescriptor) {
-                if (key == GeneratorKeys.UI_GENERATOR_CONFIG) {
-                    continue;
-                }
-                param = _parameters.getByUid(key);
-                ret[param.name] = param.payload;
-            }
-            return ret;
-        }
-
-
-        // -----------------
-        // PROTECTED METHODS
-        // -----------------
-
-        /**
-         * Processes the properties set on the component.
-         * @see UIComponent.commitProperties()
-         */
-        override protected function commitProperties():void {
-            super.commitProperties();
-            if (_uiBlueprintChanged) {
-                _uiBlueprintChanged = false;
-                _buildUi();
-
-                // We need populate the UI after building it
-                _currentDatasetChanged = true;
-                if (_receivedConfigData == DataFields.VALUE_NOT_SET) {
-                    _receivedConfigData = {content: _extractDefaultsFromUi(_uiBlueprint)};
+            
+                _receivedConfigData = data[GeneratorKeys.GEN_CFG_DATASET];
+                if (_receivedConfigData != DataFields.VALUE_NOT_SET) {
+                    _currentDatasetChanged = true;
+                    invalidateProperties();
                 }
             }
-
-            if (_currentDatasetChanged) {
-                _currentDatasetChanged = false;
-                _currentDataset = new ProjectData;
-                if (_receivedConfigData) {
-                    var importer:PlainObjectImporter = new PlainObjectImporter;
-                    importer.importData(_receivedConfigData, _currentDataset);
+            
+            /**
+             * Executed by the ClassFactory upon initializing this class. Injects the name of the communication pipe to use
+             * for passing messages to and from the rest of the application.
+             */
+            public function set pttPipeName(name:String):void {
+                _pttInstance = PTT.getPipe(name);
+                _pttInstance.subscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
+            }
+            
+            /**
+             * Returns the UID of the window owning this content. The windows manager assigns unique IDs to all windows upon creation,
+             * and manipulates them by mean of these IDS. Will return `null` if the owner window has been destroyed (or, in other words,
+             * `windowUid` will be `null` for orphaned content).
+             * @readonly
+             */
+            public function get windowUid():String {
+                return _windowBehavior.windowUid;
+            }
+            
+            /**
+             * Returns the screen this content is, or was displayed onto. Returns null if this content was never displayed (e.g., if the
+             * windows holding this content has been created, but never shown).
+             * @readonly
+             */
+            public function get homeScreen():Screen {
+                return _windowBehavior.homeScreen;
+            }
+            
+            /**
+             * Returns the horizontal position of this content across the joined space of all screens in use. For instance, it will return
+             * `1920` for a content held by a window which is placed at (0, 0) on the second monitor on the right, on a two, side-by-side
+             * Full HD monitors setup. The offset of the window chrome, if any, is also taken into account. Returns `NaN` for orphaned content
+             * (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+             * @readonly
+             */
+            public function get allScreensX():Number {
+                return _windowBehavior.allScreensX;
+            }
+            
+            /**
+             * @see `allScreensX`
+             * @readonly
+             */
+            public function get allScreensY():Number {
+                return _windowBehavior.allScreensY;
+            }
+            
+            /**
+             * Returns the horizontal position of this content within the screen its left boundary is laid on. For instance, it will return
+             * `0` (rather than `1920`) for a content held by a window which is placed at (0, 0) on the second monitor on the right,
+             * on a two, side-by-side Full HD monitors setup. The offset of the window chrome, if any, is also taken into account.
+             *  Returns `NaN` for orphaned content (content not assigned to a window, or assigned to a window that has been destroyed meanwhile).
+             * @readonly
+             */
+            public function get currentScreensX():Number {
+                return _windowBehavior.currentScreensX;
+            }
+            
+            /**
+             * @see `currentScreensX`
+             * @readonly
+             */
+            public function get currentScreensY():Number {
+                return _windowBehavior.currentScreensY;
+            }
+            
+            /**
+             * Sends an instance of the windows manager owner into this implementor (required for performing
+             * various calculations).
+             */
+            public function set manager(value:IWindowsManager):void {
+                _windowBehavior.manager = value;
+            }
+            
+            /**
+             * Retrieves the windows manager instance previously sent into this implementor.
+             */
+            public function get manager():IWindowsManager {
+                return _windowBehavior.manager;
+            }
+            
+            /**
+             * Produces a simple ValueObject with the initial values of the generated UI
+             * controls. These may be default values, or values previously saved on "this"
+             * particular Generator instance.
+             *
+             * We will consider these "factory defaults" as the "reference dataset"
+             * to observe any future changes against, and this method provides us precisely this
+             * list of factory defaults.
+             */
+            private function _extractDefaultsFromUi(uiDescriptor:Object):Object {
+                var ret:Object = {};
+                var key:String;
+                var param:IParameter;
+                for (key in uiDescriptor) {
+                    if (key == GeneratorKeys.UI_GENERATOR_CONFIG) {
+                        continue;
+                    }
+                    param = _parameters.getByUid(key);
+                    ret[param.name] = param.payload;
                 }
-
-                // The loaded dataset will become our new reference, overwriting the default
-                // dataset.
-                _referenceDataset = ProjectData(_currentDataset.clone());
+                return ret;
             }
-        }
-
-
-        // -----------------
-        // PRIVATE CONSTANTS
-        // -----------------
-        private static const SUBSCRIBE:Function = PTT.getPipe().subscribe;
-
-        private static const EDITOR_SERVICE:String = CoreOperationKeys.EDITOR_SERVICE_NOTICE;
-        private static const EDITOR_FOCUS:String = CoreOperationKeys.EDITOR_FOCUS_NOTICE;
-        private static const PARAM_UID:String = CoreOperationKeys.PARAM_UID;
-        private static const TWEENING_STATUS:String = CoreOperationKeys.TWEENING_STATUS;
-        private static const TYPE_ARRAY:uint = CoreOperationKeys.TYPE_ARRAY;
-        private static const DATA_ITEM:String = Constants.DATA_ITEM;
-        private static const NODE_TIME:String = Constants.NODE_TIME;
-        private static const NODE_AMPLITUDE:String = Constants.NODE_AMPLITUDE;
-
-        private static const SPACE:Number = 10;
-        private static const PRESET_FILE_EXTENSION:String = 'harmonyPreset';
-        private static const PRESETS_HOME_DIR:String = 'multiline-generator-preset';
-        private static const COLUMN_WIDTH:Number = (Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width - SPACE * 2);
-
-
-        // -----------------
-        // PRIVATE VARIABLES
-        // -----------------
-
-        // The proxy providing window related functionality to this UIComponent
-        private var _windowBehavior:WindowContentBehavior;
-
-        // The communication pipe to use
-        private var _pttInstance:PTT;
-
-        // The dataset representing the information made available to the user
-        // by means of this UI. The user can freely alter this dataset.
-        private var _currentDataset:ProjectData;
-
-        // Detached copy of the `_currentDataset`, inaccessible to the user. Used
-        // to determine whether the user actually performed any changes.
-        private var _referenceDataset:ProjectData;
-
-        // An Object describing the UI to be dynamically built. Injected by the ClassFactory
-        // upon initializing this class. The data in this Object follows the guidelines in the
-        // UIBuilder library specifications.
-        private var _uiBlueprint:Object;
-
-        // Flag that we raise when we have new data stored in `_uiBlueprint`. This flag will be
-        // picked up in the next drawing cycle of the component.
-        private var _uiBlueprintChanged:Boolean;
-
-        // An Object containing values to populate the dynamically built UI with.
-        private var _receivedConfigData:Object;
-
-        // Flag that we raise when we have new data stored in either `_receivedConfigData`
-        // or `_uiBlueprint`. The idea is that we can infer our current dataset either from values
-        // explicitly received, or from the defaults found in the UI descriptor (aka "blueprint").
-        private var _currentDatasetChanged:Boolean;
-
-        // The UiGenerator used to dynamically build this component's UI, based on received blueprint
-        private var _uiGenerator:UiGenerator;
-
-        // Full list of parameters supported by this Generator. Each parameter is represented by an
-        // IParameter instance.
-        private var _parameters:IParametersList;
-
-        // Map with all Array typed parameters that currently employ tweening
-        private var _animatedParameters:Object = {};
-
-        // Ordered list with all the UIDs in the `_animatedParameters` map
-        private var _animatedParameterUids:Array = [];
-
-        // Flag we raise to indicate that the Envelope Editor should be included in the UI
-        [Bindable]
-        private var _envelopeEditorVisible:Boolean = false;
-
-        // Flag we raise when all parameter items have been fully rendered as form controls
-        [Bindable]
-        private var _formReady:Boolean = false;
-
-        // Stores the UID of the tweenable parameter that is currently active/editable
-        // inside the Envelope Editor
-        private var _activeParamUid:String;
-
-        // Maintains a map with all parameters' current values, indexed by the parameter's name
-        private var _currentSettings:Object;
-
-
-        // ---------------
-        // PRIVATE METHODS
-        // ---------------
-
-        /**
-         * Returns `true` if the dataset loaded into this component was altered by user in any way,
-         * `false` otherwise.
-         */
-        private function _haveUnsavedChanges():Boolean {
-            if (!_referenceDataset || !_currentDataset) {
-                return false;
+            
+            // -----------------
+            // PROTECTED METHODS
+            // -----------------
+            
+            /**
+             * Processes the properties set on the component.
+             * @see UIComponent.commitProperties()
+             */
+            override protected function commitProperties():void {
+                super.commitProperties();
+                if (_uiBlueprintChanged) {
+                    _uiBlueprintChanged = false;
+                    _buildUi();
+            
+                    // We need populate the UI after building it
+                    _currentDatasetChanged = true;
+                    if (_receivedConfigData == DataFields.VALUE_NOT_SET) {
+                        _receivedConfigData = {content: _extractDefaultsFromUi(_uiBlueprint)};
+                    }
+                }
+            
+                if (_currentDatasetChanged) {
+                    _currentDatasetChanged = false;
+                    _currentDataset = new ProjectData;
+                    if (_receivedConfigData) {
+                        var importer:PlainObjectImporter = new PlainObjectImporter;
+                        importer.importData(_receivedConfigData, _currentDataset);
+                    }
+            
+                    // The loaded dataset will become our new reference, overwriting the default
+                    // dataset.
+                    _referenceDataset = ProjectData(_currentDataset.clone());
+                }
             }
-            var haveChanges:Boolean = (!_referenceDataset.isEqualTo(_currentDataset));
-            return haveChanges;
-        }
-
-        /**
-         * Causes/allows the window hosting this UIComponent to actually be closed.
-         */
-        private function _closeWindow():void {
-            if (_pttInstance != null) {
-                _pttInstance.unsubscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
-                _pttInstance.send(ViewKeys.GEN_CFG_WINDOW_CLOSE);
+            
+            // -----------------
+            // PRIVATE CONSTANTS
+            // -----------------
+            private static const SUBSCRIBE:Function = PTT.getPipe().subscribe;
+            
+            private static const EDITOR_SERVICE:String = CoreOperationKeys.EDITOR_SERVICE_NOTICE;
+            private static const EDITOR_FOCUS:String = CoreOperationKeys.EDITOR_FOCUS_NOTICE;
+            private static const PARAM_UID:String = CoreOperationKeys.PARAM_UID;
+            private static const TWEENING_STATUS:String = CoreOperationKeys.TWEENING_STATUS;
+            private static const TYPE_ARRAY:uint = CoreOperationKeys.TYPE_ARRAY;
+            private static const DATA_ITEM:String = Constants.DATA_ITEM;
+            private static const NODE_TIME:String = Constants.NODE_TIME;
+            private static const NODE_AMPLITUDE:String = Constants.NODE_AMPLITUDE;
+            
+            private static const SPACE:Number = 10;
+            private static const PRESET_FILE_EXTENSION:String = 'harmonyPreset';
+            private static const PRESETS_HOME_DIR:String = 'multiline-generator-preset';
+            private static const COLUMN_WIDTH:Number = (Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width - SPACE * 2);
+            
+            // -----------------
+            // PRIVATE VARIABLES
+            // -----------------
+            
+            // The proxy providing window related functionality to this UIComponent
+            private var _windowBehavior:WindowContentBehavior;
+            
+            // The communication pipe to use
+            private var _pttInstance:PTT;
+            
+            // The dataset representing the information made available to the user
+            // by means of this UI. The user can freely alter this dataset.
+            private var _currentDataset:ProjectData;
+            
+            // Detached copy of the `_currentDataset`, inaccessible to the user. Used
+            // to determine whether the user actually performed any changes.
+            private var _referenceDataset:ProjectData;
+            
+            // An Object describing the UI to be dynamically built. Injected by the ClassFactory
+            // upon initializing this class. The data in this Object follows the guidelines in the
+            // UIBuilder library specifications.
+            private var _uiBlueprint:Object;
+            
+            // Flag that we raise when we have new data stored in `_uiBlueprint`. This flag will be
+            // picked up in the next drawing cycle of the component.
+            private var _uiBlueprintChanged:Boolean;
+            
+            // An Object containing values to populate the dynamically built UI with.
+            private var _receivedConfigData:Object;
+            
+            // Flag that we raise when we have new data stored in either `_receivedConfigData`
+            // or `_uiBlueprint`. The idea is that we can infer our current dataset either from values
+            // explicitly received, or from the defaults found in the UI descriptor (aka "blueprint").
+            private var _currentDatasetChanged:Boolean;
+            
+            // The UiGenerator used to dynamically build this component's UI, based on received blueprint
+            private var _uiGenerator:UiGenerator;
+            
+            // Full list of parameters supported by this Generator. Each parameter is represented by an
+            // IParameter instance.
+            private var _parameters:IParametersList;
+            
+            // Map with all Array typed parameters that currently employ tweening
+            private var _animatedParameters:Object = {};
+            
+            // Ordered list with all the UIDs in the `_animatedParameters` map
+            private var _animatedParameterUids:Array = [];
+            
+            // Flag we raise to indicate that the Envelope Editor should be included in the UI
+            [Bindable]
+            private var _envelopeEditorVisible:Boolean = false;
+            
+            // Flag we raise when all parameter items have been fully rendered as form controls
+            [Bindable]
+            private var _formReady:Boolean = false;
+            
+            // Stores the UID of the tweenable parameter that is currently active/editable
+            // inside the Envelope Editor
+            private var _activeParamUid:String;
+            
+            // Maintains a map with all parameters' current values, indexed by the parameter's name
+            private var _currentSettings:Object;
+            
+            // ---------------
+            // PRIVATE METHODS
+            // ---------------
+            
+            /**
+             * Returns `true` if the dataset loaded into this component was altered by user in any way,
+             * `false` otherwise.
+             */
+            private function _haveUnsavedChanges():Boolean {
+                if (!_referenceDataset || !_currentDataset) {
+                    return false;
+                }
+                var haveChanges:Boolean = (!_referenceDataset.isEqualTo(_currentDataset));
+                return haveChanges;
             }
-        }
-
-        /**
-         * Causes the UI portion related to committing changes to reflect the current status,
-         * especially whether the user altered the initial dataset in any way. The purpose is
-         * to help the user only commit the changes he is fond on.
-         */
-        private function _updateCommonControls(withChanges:Boolean):void {
-            warningText.enabled = withChanges;
-            applyButton.enabled = withChanges;
-            resetButton.enabled = withChanges;
-            autoCloseCheckBox.enabled = withChanges;
-        }
-
-        /**
-         * Causes the UI portion related to warning the user about uncommitted changes to
-         * change color, in order to draw attention.
-         */
-        private function _setNotificationAreaColor(mustWarn:Boolean):void {
-            if (mustWarn) {
-                bottomBox.setStyle('backgroundColor', Colors.WARNING);
-            } else {
-                bottomBox.clearStyle('backgroundColor');
+            
+            /**
+             * Causes/allows the window hosting this UIComponent to actually be closed.
+             */
+            private function _closeWindow():void {
+                if (_pttInstance != null) {
+                    _pttInstance.unsubscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
+                    _pttInstance.send(ViewKeys.GEN_CFG_WINDOW_CLOSE);
+                }
             }
-        }
-
-        /**
-         * Causes user changes to be sent into MAIDENS. In the process, aligns the "reference dataset",
-         * the way that the altered set becomes the new reference. Also updates the UI, so that it shows
-         * that there are no "new changes" anymore. Optionally closes the parent window.
-         */
-        private function _commitChanges():void {
-            if (_pttInstance != null) {
-                var configMap:Object = _currentDataset.getContentMap();
-                ProjectData(_referenceDataset).importContent(configMap);
+            
+            /**
+             * Causes the UI portion related to committing changes to reflect the current status,
+             * especially whether the user altered the initial dataset in any way. The purpose is
+             * to help the user only commit the changes he is fond on.
+             */
+            private function _updateCommonControls(withChanges:Boolean):void {
+                warningText.enabled = withChanges;
+                applyButton.enabled = withChanges;
+                resetButton.enabled = withChanges;
+                autoCloseCheckBox.enabled = withChanges;
+            }
+            
+            /**
+             * Causes the UI portion related to warning the user about uncommitted changes to
+             * change color, in order to draw attention.
+             */
+            private function _setNotificationAreaColor(mustWarn:Boolean):void {
+                if (mustWarn) {
+                    bottomBox.setStyle('backgroundColor', Colors.WARNING);
+                }
+                else {
+                    bottomBox.clearStyle('backgroundColor');
+                }
+            }
+            
+            /**
+             * Causes user changes to be sent into MAIDENS. In the process, aligns the "reference dataset",
+             * the way that the altered set becomes the new reference. Also updates the UI, so that it shows
+             * that there are no "new changes" anymore. Optionally closes the parent window.
+             */
+            private function _commitChanges():void {
+                if (_pttInstance != null) {
+                    var configMap:Object = _currentDataset.getContentMap();
+                    ProjectData(_referenceDataset).importContent(configMap);
+                    _currentDataset = ProjectData(_referenceDataset.clone());
+                    _updateUiBasedOnModificationsStatus();
+                    var data:Object = {};
+                    var exporter:PlainObjectExporter = new PlainObjectExporter;
+                    var exportedCfgData:Object = exporter.export(_currentDataset);
+                    data[GeneratorKeys.GEN_CFG_DATASET] = exportedCfgData;
+                    _pttInstance.send(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, data);
+                }
+                if (autoCloseCheckBox.selected) {
+                    _closeWindow();
+                }
+            }
+            
+            /**
+             * Causes user changes to be lost, effectively replacing the "current dataset" with the
+             * "reference dataset". Optionally closes the parent window.
+             */
+            private function _discardChanges():void {
                 _currentDataset = ProjectData(_referenceDataset.clone());
+                var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
+                    parameter.payload = _currentDataset.getContent(parameter.name);
+                };
+                _parameters.forEach(mover);
                 _updateUiBasedOnModificationsStatus();
-                var data:Object = {};
-                var exporter:PlainObjectExporter = new PlainObjectExporter;
-                var exportedCfgData:Object = exporter.export(_currentDataset);
-                data[GeneratorKeys.GEN_CFG_DATASET] = exportedCfgData;
-                _pttInstance.send(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, data);
-            }
-            if (autoCloseCheckBox.selected) {
-                _closeWindow();
-            }
-        }
-
-        /**
-         * Causes user changes to be lost, effectively replacing the "current dataset" with the
-         * "reference dataset". Optionally closes the parent window.
-         */
-        private function _discardChanges():void {
-            _currentDataset = ProjectData(_referenceDataset.clone());
-            var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
-                parameter.payload = _currentDataset.getContent(parameter.name);
-            }
-            _parameters.forEach(mover);
-            _updateUiBasedOnModificationsStatus();
-            if (autoCloseCheckBox.selected) {
-                _closeWindow();
-            }
-        }
-
-        /**
-         * Updates commit related UI, based on whether the user altered the initial dataset or not.
-         */
-        private function _updateUiBasedOnModificationsStatus():void {
-            var haveChanges:Boolean = _haveUnsavedChanges();
-            _updateCommonControls(haveChanges);
-            if (!haveChanges) {
-                _setNotificationAreaColor(false);
-            }
-        }
-
-        /**
-         * Dynamically generates UI controls based on the current UI descriptor (or "blueprint").
-         */
-        private function _buildUi():void {
-            if (_uiBlueprint) {
-                _renderParameters(_uiBlueprint, configurationForm, _onFormReady, _onValueChanged);
-            }
-        }
-
-        /**
-         * Registers parameter with given id as requiring the envelope editor's services.
-         */
-        private function _engageTweeningFor(parameterId:String):void {
-            _animatedParameters[parameterId] = _parameters.getByUid(parameterId);
-            _updateEditorWorklist();
-        }
-
-        /**
-         * Causes the envelope associated to the given parameter's uid to be focused (displayed on top)
-         * inside the editor. Does nothing if the parameter was not previously added to the editor's
-         * worklist.
-         */
-        private function _focusParameterEnvelope(parameterId:String):void {
-            if (parameterId && parametersEditor.dataProvider) {
-                var loadedParameters:Array = (parametersEditor.dataProvider.parameters as Array);
-                if (loadedParameters && loadedParameters.length) {
-                    for (var i:int = 0; i < loadedParameters.length; i++) {
-                        var parameter:Object = (loadedParameters[i] as Object);
-                        if (parameter.paramUid == parameterId) {
-                            parameter.selected = true;
-                            parameter.visible = true;
-                            parameter.locked = false;
-                        } else {
-                            parameter.selected = false;
-                        }
-                    }
+                if (autoCloseCheckBox.selected) {
+                    _closeWindow();
                 }
             }
-        }
-
-        /**
-         * Notifies the preset manager of a particular change in the current settings. This causes the
-         * manager to update the currently selected preset in the presets list if the current set should
-         * match an existing settings combinations. This also prevents identical presets from being created.
-         */
-        private function _respondToSettingUpdate(settingName:String, settingValue:Object):void {
-            if (!_currentSettings) {
-                _currentSettings = _readCurrentSettings();
-            }
-            _currentSettings[settingName] = settingValue;
-            presetManager.evaluate(_currentSettings);
-        }
-
-        /**
-         * Used in conjunction with the preset manager library, in order to retrieve (and possibly store
-         * as a preset) the user's current settings.
-         *
-         * @return    An Object containing parameter uids as keys and their respective values as Object
-         *            values.
-         */
-        private function _readCurrentSettings():Object {
-            var output:Object = {};
-
-            // Populates the `output` Object with the current value of each parameter.
-            var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
-                output[parameter.name] = parameter.payload;
-            }
-            _parameters.forEach(mover);
-            return output;
-        }
-
-        /**
-         * Used in conjunction with the preset manager library, in order to transfer a stored preset
-         * into the current settings. For both the UI and the underlying generator, this will be a
-         * completely transparent process (it will be as if the user entered by hand each value stored
-         * inside the preset).
-         *
-         * @param    settings
-         *            An Object containing parameter names as keys and their respective values as Object
-         *            values. This is semantically identical to the Object returned by
-         *            `_readCurrentSettings()`.
-         */
-        private function _writeCurrentSettings(settings:Object):void {
-
-            // Sets each parameter's current value to the corresponding value stored inside the `settings` Object. Note that older version presets might not hold settings for all parameters.
-            var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
-                if (parameter.name in settings) {
-                    parameter.payload = settings[parameter.name]; // !!replacing and Array payload is bad.
-                    _currentDataset.setContent(parameter.name, parameter.payload);
+            
+            /**
+             * Updates commit related UI, based on whether the user altered the initial dataset or not.
+             */
+            private function _updateUiBasedOnModificationsStatus():void {
+                var haveChanges:Boolean = _haveUnsavedChanges();
+                // Disabling for now as this fails most of the time
+                // _updateCommonControls(haveChanges);
+                if (!haveChanges) {
+                    _setNotificationAreaColor(false);
                 }
             }
-            _parameters.forEach(mover);
-            _updateForm();
-        }
-
-        /**
-         * Updates the existing form without rebuilding it, showing or hiding the envelope editor as needed.
-         */
-        private function _updateForm():void {
-            if (_parameters && _parameters.length > 0) {
-                var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
-                    var parameterUid:String = parameter.uid;
-                    var renderer:ParameterUI = (_uiGenerator.getComponentByName(parameterUid) as ParameterUI);
-                    if (renderer) {
-                        var payload:Object = parameter.payload;
-                        renderer.value = payload;
-                        if (parameter.type == TYPE_ARRAY) {
-                            var animatedParameterUids:Array = [];
-                            var haveEditorChanges:Boolean = false;
-                            if (payload && PointTools.pointsIncurTweening(payload as Array)) {
-                                animatedParameterUids.push(parameterUid);
-                                if (!(parameterUid in _animatedParameters)) {
-                                    _animatedParameters[parameterUid] = parameter;
-                                    haveEditorChanges = true;
-                                }
-                            } else {
-                                if (parameterUid in _animatedParameters) {
-                                    delete _animatedParameters[parameterUid];
-                                    haveEditorChanges = true;
-                                }
-                            }
-                            _updateEditorWorklist();
-                            if (haveEditorChanges) {
-                                Time.delay(0.2, function ():void {
-                                    _focusParameterEnvelope(animatedParameterUids[0]);
-                                });
-                            }
-                        }
-                    }
-                }
-                _parameters.forEach(mover);
-            }
-        }
-
-        /**
-         * Rebuilds the Envelope Editor's data provider, based on the current content of the
-         * `_animatedParameters` map.
-         */
-        private function _updateEditorWorklist():void {
-            if (parametersEditor) {
-                var dataset:Object = {};
-                var parameters:Array = [];
-
-                // Transfer function, ensuring that the parameters having tweening engaged get loaded into the
-                // envelope editor in the same order as they were added inside the IParametersList instance
-                // (which is also the order they show in the UI).
-                var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
-                    var paramId:String = parameter.uid;
-                    if (paramId in _animatedParameters) {
-                        var paramDataset:Object = {};
-                        paramDataset[PARAM_UID] = parameter.uid;
-                        paramDataset.name = parameter.name;
-                        paramDataset.color = parameter.color;
-                        paramDataset.visible = true;
-                        paramDataset.values = (parameter.payload as Array);
-                        var paramProxy:ObjectProxy = new ObjectProxy(paramDataset);
-                        parameters.push(paramProxy);
-                    }
-                    // TODO: also transfer here the result of the last generation task (they are called "actual curves"
-                    // in envelope editor's parlance, and reflect the way the generator was able to actually respond
-                    // to the demands of the "ideal curve", that is, the values plotted by the user on the envelope).
-                }
-                _parameters.forEach(mover);
-                dataset.parameters = parameters;
-                var proxy:ObjectProxy = new ObjectProxy(dataset);
-                parametersEditor.dataProvider = proxy;
-
-                // Hide or show the editor, based on whether there are envelopes to be edited or not
-                var isEditorNeeded:Boolean = !Objects.isEmpty(_animatedParameters);
-                if (isEditorNeeded) {
-                    if (!_envelopeEditorVisible) {
-                        _showEnvelopeEditor();
-                    }
-                } else {
-                    if (_envelopeEditorVisible) {
-                        _hideEnvelopeEditor();
-                    }
+            
+            /**
+             * Dynamically generates UI controls based on the current UI descriptor (or "blueprint").
+             */
+            private function _buildUi():void {
+                if (_uiBlueprint) {
+                    _renderParameters(_uiBlueprint, configurationForm, _onFormReady, _onValueChanged);
                 }
             }
-        }
-
-        /**
-         * Displays the Envelope Editor, also enlarging the window to accommodate the new UI.
-         */
-        private function _showEnvelopeEditor():void {
-            _envelopeEditorVisible = true;
-            TweenMax.fromTo(parametersEditor, 1, {alpha: 0}, {alpha: 1});
-        }
-
-        /**
-         * Hides the Envelope Editor, optionally shrinking the window to reclaim screen real estate.
-         */
-        private function _hideEnvelopeEditor():void {
-            _envelopeEditorVisible = false;
-        }
-
-        /**
-         * Unregisters a parameter previously registered with `_engageTweeningFor()`.
-         */
-        private function _disengageTweeningFor(parameterId:String):void {
-            delete _animatedParameters[parameterId];
-            _updateEditorWorklist();
-        }
-
-        /**
-         * For every Parameter with multiple values, makes sure that these values meet the format expected
-         * by the Envelope Editor. Any needed changes are operated in-place (no value is returned).
-         */
-        private function _sanitizeParameters():void {
-            _parameters.forEach(function (parameter:IParameter, index:int, list:IParametersList):void {
-                var kind:uint = parameter.type;
-                if (kind == TYPE_ARRAY) {
-                    var points:Array = (parameter.payload as Array);
-                    parameter.payload = PointTools.sanitizeEnvelopePoints(points);
-                }
-            });
-        }
-
-        /**
-         * Visually renders given parameters in given container, thus providing the user
-         * the ability to set their values. Called from `_buildUi()` and `_resetForm ()`.
-         */
-        private function _renderParameters(descriptor:Object, target:DisplayObjectContainer, onComplete:Function, onChange:Function):void {
-            _formReady = false;
-
-            // This function iterates through all the parameters and collects those needing the services of the
-            // envelope editor. The actual compilation of the envelope's editor data provider is handled inside the
-            // "_updateEditorWorklist()" function.
-            var iterator:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
-                var parameterUid:String = parameter.uid;
-                var payload:Object = parameter.payload;
-                var paramIdIndex:int;
-
-                if (parameter.type == TYPE_ARRAY) {
-                    if (payload && PointTools.pointsIncurTweening(payload as Array)) {
-                        if (!(parameterUid in _animatedParameters)) {
-                            _animatedParameters[parameterUid] = parameter;
-                            paramIdIndex = _animatedParameterUids.indexOf(parameterUid);
-                            if (paramIdIndex == -1) {
-                                _animatedParameterUids.push(parameterUid);
-                            }
-                        }
-                    } else {
-                        if (parameterUid in _animatedParameters) {
-                            delete _animatedParameters[parameterUid];
-                            paramIdIndex = _animatedParameterUids.indexOf(parameterUid);
-                            if (paramIdIndex != -1) {
-                                _animatedParameterUids.splice(paramIdIndex, 1);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // This function is executed after UI has been generated for all parameters.
-            // If the envelopes editor is required, it is shown, with the first of the
-            // available envelopes preselected.
-            var wrapper:Function = function ():void {
-                _parameters.forEach(iterator);
+            
+            /**
+             * Registers parameter with given id as requiring the envelope editor's services.
+             */
+            private function _engageTweeningFor(parameterId:String):void {
+                _animatedParameters[parameterId] = _parameters.getByUid(parameterId);
                 _updateEditorWorklist();
-                Time.delay(0.5, function ():void {
-                    _focusParameterEnvelope(_animatedParameterUids[0]);
-                });
-                onComplete();
-                _formReady = true;
             }
-            _uiGenerator.generate(descriptor, configurationForm, wrapper, onChange);
-        }
-
-
-        // ---------
-        // LISTENERS
-        // ---------
-
-        /**
-         * Closest equivalent of a constructor function for MXML classes. Executed when
-         * this component begins initializing; none of its children is available yet.
-         */
-        private function _onPreinitialize(event:FlexEvent):void {
-            _windowBehavior = new WindowContentBehavior(this);
-            _uiGenerator = new UiGenerator(UiFlexBuilder);
-            SUBSCRIBE(EDITOR_SERVICE, _onEditorServiceNotice);
-            SUBSCRIBE(EDITOR_FOCUS, _onEditorFocusNotice);
-        }
-
-        /**
-         * Executed when this component has successfully initialized. At this stage,
-         * its children are declared but not yet set up.
-         */
-        private function _onInitialize(event:FlexEvent):void {
-
-            // Initialize the PresetManager
-            presetManager.fileExtension = PRESET_FILE_EXTENSION;
-            presetManager.homeDirName = PRESETS_HOME_DIR;
-            presetManager.addEventListener(PresetEvent.PRESET_CHANGED, _onPresetChanged);
-        }
-
-        /**
-         * Executed when this component has successfully initialized and set up, along with all its
-         * children components.
-         */
-        private function _onCreationComplete(event:FlexEvent):void {
-
-            // Setup initial window bounds. The Envelope Editor is hidden by default
-            var winManager:IWindowsManager = _windowBehavior.manager;
-            var windowUid:String = _windowBehavior.windowUid;
-            if (winManager.isWindowAvailable(windowUid)) {
-                var bounds:Rectangle = Sizes.MIN_ADVANCED_GEN_CFG_WINDOW_BOUNDS;
-                winManager.updateWindowBounds(windowUid, bounds, false);
-                winManager.updateWindowMinSize(windowUid, bounds.width, bounds.height, true);
-                var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
-                if (mainScreenInfo) {
-                    winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
-                }
-            }
-        }
-
-        /**
-         * Executed when the window hosting this UIComponent is about to be closed.
-         */
-        private function _onWindowClosing(...ignore):void {
-            if (!_haveUnsavedChanges()) {
-                _closeWindow();
-            } else {
-                _updateCommonControls(true);
-                _setNotificationAreaColor(true);
-            }
-        }
-
-        /**
-         * Executed when the "Apply" button is clicked.
-         */
-        private function _onApplyButtonClick(event:Event):void {
-            _commitChanges();
-        }
-
-        /**
-         * Executed when the "Reset" button is clicked.
-         */
-        private function _onResetButtonClick(event:Event):void {
-            _discardChanges();
-        }
-
-        /**
-         * Executed when user clicks on the "Animate" checkbox inside the dedicated UI
-         * section of a specific parameter. The exact action depends on the "tweeningStatus"
-         * property contained by the received `info` Object.
-         *
-         * - if "tweeningStatus" is `true`, the editor is opened (if it was not already open),
-         *   the parameter is added to the editor's worklist, and focused. Any subsequent change
-         *   inside the editor, made to the parameter's associated envelope will be reflected in
-         *   the parameter's `value`;
-         *
-         * - if "tweeningStatus" is `false`, and no other parameter requires the editor's
-         *   services, the editor is closed; otherwise, it is left open. Any previous change
-         *   made inside the editor, to the parameter's associated envelope will be lost, as
-         *   all values on the envelope except the first one wil be removed. The first value
-         *   will become the parameter's (constant) value, and will be reflected by the slider
-         *   control that will be displayed once "animate" is disengaged for that parameter.
-         */
-        private function _onEditorServiceNotice(info:Object):void {
-            var id:String = (info[PARAM_UID] as String);
-            var tweeningEngaged:Boolean = (info[TWEENING_STATUS] as Boolean);
-            if (tweeningEngaged) {
-                _engageTweeningFor(id);
-                _focusParameterEnvelope(id);
-            } else {
-                _disengageTweeningFor(id);
-            }
-        }
-
-        /**
-         * Executed when the user interacts with a parameter inside the Envelope Editor in
-         * other ways than by altering its envelope points.
-         */
-        private function _onParameterChange(event:ParameterChangeEvent):void {
-
-            // The "active" parameter has been changed inside the editor
-            if (event.type == ParameterChangeEvent.PARAMETER_CHANGE) {
-                _activeParamUid = event.data[DATA_ITEM][PARAM_UID] as String;
-            }
-        }
-
-        /**
-         * Executed when the user changes the color of a parameter inside the envelopes editor.
-         */
-        private function _onParameterColorChange(event:ParameterChangeEvent):void {
-            var payload:Object = event.data.dataItem;
-            var paramId:String = (payload.paramUid as String);
-            var paramColor:uint = (payload.color as uint);
-            var parameter:IParameter = _parameters.getByUid(paramId);
-            if (parameter) {
-                parameter.color = paramColor;
-                var renderer:ParameterUI = (_uiGenerator.getComponentByName(paramId) as ParameterUI);
-                if (renderer) {
-                    renderer.color = paramColor;
-                }
-            }
-        }
-
-        /**
-         * Executed when the user alters a parameter's envelope (e.g., by
-         * adding, removing or dragging nodes.
-         */
-        private function _onNodesChange(event:ParameterChangeEvent):void {
-
-            // The envelope corresponding to the "Active" parameter has been changed
-            // inside the editor parameter (e.g., by adding, removing or dragging nodes).
-            if (event.type == ParameterChangeEvent.NODES_CHANGE) {
-                var nodesSnapshot:Array = (event.data[DATA_ITEM] as Array);
-                if (nodesSnapshot && _activeParamUid && (_activeParamUid in _animatedParameters)) {
-                    var parameter:IParameter = _parameters.getByUid(_activeParamUid);
-                    if (parameter) {
-                        var payload:Array = parameter.payload as Array;
-
-                        // Update the parameter's values based on edited nodes
-                        payload.length = 0;
-                        for (var i:int = 0; i < nodesSnapshot.length; i++) {
-                            var nodeInfo:Object = nodesSnapshot[i];
-                            payload[nodeInfo[NODE_TIME]] = nodeInfo[NODE_AMPLITUDE];
+            
+            /**
+             * Causes the envelope associated to the given parameter's uid to be focused (displayed on top)
+             * inside the editor. Does nothing if the parameter was not previously added to the editor's
+             * worklist.
+             */
+            private function _focusParameterEnvelope(parameterId:String):void {
+                if (parameterId && parametersEditor.dataProvider) {
+                    var loadedParameters:Array = (parametersEditor.dataProvider.parameters as Array);
+                    if (loadedParameters && loadedParameters.length) {
+                        for (var i:int = 0; i < loadedParameters.length; i++) {
+                            var parameter:Object = (loadedParameters[i] as Object);
+                            if (parameter.paramUid == parameterId) {
+                                parameter.selected = true;
+                                parameter.visible = true;
+                                parameter.locked = false;
+                            }
+                            else {
+                                parameter.selected = false;
+                            }
                         }
-
-                        // Propagate the new node values to the Preset Manager (so that it can
-                        // decide whether they match a known preset or not)
-                        _respondToSettingUpdate(parameter.name, payload);
-
-                        // Update the related renderer, so that its "envelope proxy" shows the
-                        // modified envelope
-                        var renderer:ParameterUI = (_uiGenerator.getComponentByName(parameter.uid) as ParameterUI);
-                        if (renderer) {
-                            renderer.value = payload;
-                        }
-
-                        // Update the current dataset and trigger the window's internal status evaluator
-                        // (to enable or disable the "apply"/"revert" buttons based on whether the new node
-                        // values represent a change or not.
-                        _currentDataset.setContent(parameter.name, payload);
-                        _updateUiBasedOnModificationsStatus();
                     }
                 }
             }
-        }
-
-        /**
-         * Executed when user clicks on the envelope shaped button displayed in place of the slider
-         * control, while "animate" is selected for a certain parameter. Focuses the parameter's
-         * associated envelope inside the editor.
-         */
-        private function _onEditorFocusNotice(info:Object):void {
-            var id:String = (info[PARAM_UID] as String);
-            _focusParameterEnvelope(id);
-        }
-
-        /**
-         * Executed when a new preset has been loaded inside the PresetManager.
-         * Updates the current settings to match the selected preset.
-         */
-        private function _onPresetChanged(event:PresetEvent):void {
-            var presetSettings:Object = event.data;
-            if (presetSettings) {
-                _writeCurrentSettings(presetSettings);
-                _updateUiBasedOnModificationsStatus();
-
-                // We need to re-read current settings, or else, presets based on another preset
-                // will only contain the delta (differences to the original setting, and not the whole
-                // set). We could also re-read the settings on each value being changed by the user, but
-                // that would be too expensive.
-                _currentSettings = _readCurrentSettings();
+            
+            /**
+             * Notifies the preset manager of a particular change in the current settings. This causes the
+             * manager to update the currently selected preset in the presets list if the current set should
+             * match an existing settings combinations. This also prevents identical presets from being created.
+             */
+            private function _respondToSettingUpdate(settingName:String, settingValue:Object):void {
+                if (!_currentSettings) {
+                    _currentSettings = _readCurrentSettings();
+                }
+                _currentSettings[settingName] = settingValue;
+                presetManager.evaluate(_currentSettings);
             }
-        }
-
-        /**
-         * Executed when all needed UI controls have been generated.
-         */
-        private function _onFormReady():void {
-            if (!_currentSettings) {
-                _currentSettings = _readCurrentSettings();
+            
+            /**
+             * Used in conjunction with the preset manager library, in order to retrieve (and possibly store
+             * as a preset) the user's current settings.
+             *
+             * @return    An Object containing parameter uids as keys and their respective values as Object
+             *            values.
+             */
+            private function _readCurrentSettings():Object {
+                var output:Object = {};
+            
+                // Populates the `output` Object with the current value of each parameter.
+                var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
+                    output[parameter.name] = parameter.payload;
+                };
+            
+                _parameters.forEach(mover);
+                return output;
             }
-            presetManager.evaluate(_currentSettings);
-        }
-
-        /**
-         * Executed when user changes a value inside one of the generated UI
-         * controls.
-         *
-         * @param    key
-         *            The UID the generated UI control is bound to.
-         *
-         * @param    value
-         *            The new (modified) value inside the generated UI control.
-         */
-        private function _onValueChanged(key:String, value:Object):void {
-            var parameter:IParameter = _parameters.getByUid(key);
-            if (parameter) {
-                parameter.payload = value;
-                var parName:String = parameter.name;
-                _respondToSettingUpdate(parName, value);
-                _currentDataset.setContent(parName, value);
-                _updateUiBasedOnModificationsStatus();
+            
+            /**
+             * Used in conjunction with the preset manager library, in order to transfer a stored preset
+             * into the current settings. For both the UI and the underlying generator, this will be a
+             * completely transparent process (it will be as if the user entered by hand each value stored
+             * inside the preset).
+             *
+             * @param    settings
+             *            An Object containing parameter names as keys and their respective values as Object
+             *            values. This is semantically identical to the Object returned by
+             *            `_readCurrentSettings()`.
+             */
+            private function _writeCurrentSettings(settings:Object):void {
+            
+                // Sets each parameter's current value to the corresponding value stored inside the `settings` Object. Note that older version presets might not hold settings for all parameters.
+                var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
+                    if (parameter.name in settings) {
+                        parameter.payload = settings[parameter.name]; // !!replacing and Array payload is bad.
+                        _currentDataset.setContent(parameter.name, parameter.payload);
+                    }
+                };
+            
+                _parameters.forEach(mover);
+                _updateForm();
             }
-        }
+            
+            /**
+             * Updates the existing form without rebuilding it, showing or hiding the envelope editor as needed.
+             */
+            private function _updateForm():void {
+                if (_parameters && _parameters.length > 0) {
+                    var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
+                        var parameterUid:String = parameter.uid;
+                        var renderer:ParameterUI = (_uiGenerator.getComponentByName(parameterUid) as ParameterUI);
+                        if (renderer) {
+                            var payload:Object = parameter.payload;
+                            renderer.value = payload;
+                            if (parameter.type == TYPE_ARRAY) {
+                                var animatedParameterUids:Array = [];
+                                var haveEditorChanges:Boolean = false;
+                                if (payload && PointTools.pointsIncurTweening(payload as Array)) {
+                                    animatedParameterUids.push(parameterUid);
+                                    if (!(parameterUid in _animatedParameters)) {
+                                        _animatedParameters[parameterUid] = parameter;
+                                        haveEditorChanges = true;
+                                    }
+                                }
+                                else {
+                                    if (parameterUid in _animatedParameters) {
+                                        delete _animatedParameters[parameterUid];
+                                        haveEditorChanges = true;
+                                    }
+                                }
+                                _updateEditorWorklist();
+                                if (haveEditorChanges) {
+                                    Time.delay(0.2, function ():void {
+                                            _focusParameterEnvelope(animatedParameterUids[0]);
+                                        });
+                                }
+                            }
+                        }
+                    };
+            
+                    _parameters.forEach(mover);
+                }
+            }
+            
+            /**
+             * Rebuilds the Envelope Editor's data provider, based on the current content of the
+             * `_animatedParameters` map.
+             */
+            private function _updateEditorWorklist():void {
+                if (parametersEditor) {
+                    var dataset:Object = {};
+                    var parameters:Array = [];
+            
+                    // Transfer function, ensuring that the parameters having tweening engaged get loaded into the
+                    // envelope editor in the same order as they were added inside the IParametersList instance
+                    // (which is also the order they show in the UI).
+                    var mover:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
+                        var paramId:String = parameter.uid;
+                        if (paramId in _animatedParameters) {
+                            var paramDataset:Object = {};
+                            paramDataset[PARAM_UID] = parameter.uid;
+                            paramDataset.name = parameter.name;
+                            paramDataset.color = parameter.color;
+                            paramDataset.visible = true;
+                            paramDataset.values = (parameter.payload as Array);
+                            var paramProxy:ObjectProxy = new ObjectProxy(paramDataset);
+                            parameters.push(paramProxy);
+                        }
+                        // TODO: also transfer here the result of the last generation task (they are called "actual curves"
+                        // in envelope editor's parlance, and reflect the way the generator was able to actually respond
+                        // to the demands of the "ideal curve", that is, the values plotted by the user on the envelope).
+                    };
+            
+                    _parameters.forEach(mover);
+                    dataset.parameters = parameters;
+                    var proxy:ObjectProxy = new ObjectProxy(dataset);
+                    parametersEditor.dataProvider = proxy;
+            
+                    // Hide or show the editor, based on whether there are envelopes to be edited or not
+                    var isEditorNeeded:Boolean = !Objects.isEmpty(_animatedParameters);
+                    if (isEditorNeeded) {
+                        if (!_envelopeEditorVisible) {
+                            _showEnvelopeEditor();
+                        }
+                    }
+                    else {
+                        if (_envelopeEditorVisible) {
+                            _hideEnvelopeEditor();
+                        }
+                    }
+                }
+            }
+            
+            /**
+             * Displays the Envelope Editor, also enlarging the window to accommodate the new UI.
+             */
+            private function _showEnvelopeEditor():void {
+                _envelopeEditorVisible = true;
+                TweenMax.fromTo(parametersEditor, 1, {alpha: 0}, {alpha: 1});
+            }
+            
+            /**
+             * Hides the Envelope Editor, optionally shrinking the window to reclaim screen real estate.
+             */
+            private function _hideEnvelopeEditor():void {
+                _envelopeEditorVisible = false;
+            }
+            
+            /**
+             * Unregisters a parameter previously registered with `_engageTweeningFor()`.
+             */
+            private function _disengageTweeningFor(parameterId:String):void {
+                delete _animatedParameters[parameterId];
+                _updateEditorWorklist();
+            }
+            
+            /**
+             * For every Parameter with multiple values, makes sure that these values meet the format expected
+             * by the Envelope Editor. Any needed changes are operated in-place (no value is returned).
+             */
+            private function _sanitizeParameters():void {
+                _parameters.forEach(function (parameter:IParameter, index:int, list:IParametersList):void {
+                        var kind:uint = parameter.type;
+                        if (kind == TYPE_ARRAY) {
+                            var points:Array = (parameter.payload as Array);
+                            parameter.payload = PointTools.sanitizeEnvelopePoints(points);
+                        }
+                    });
+            }
+            
+            /**
+             * Visually renders given parameters in given container, thus providing the user
+             * the ability to set their values. Called from `_buildUi()` and `_resetForm ()`.
+             */
+            private function _renderParameters(descriptor:Object, target:DisplayObjectContainer, onComplete:Function, onChange:Function):void {
+                _formReady = false;
+            
+                // This function iterates through all the parameters and collects those needing the services of the
+                // envelope editor. The actual compilation of the envelope's editor data provider is handled inside the
+                // "_updateEditorWorklist()" function.
+                var iterator:Function = function (parameter:IParameter, index:int, list:IParametersList):void {
+                    var parameterUid:String = parameter.uid;
+                    var payload:Object = parameter.payload;
+                    var paramIdIndex:int;
+            
+                    if (parameter.type == TYPE_ARRAY) {
+                        if (payload && PointTools.pointsIncurTweening(payload as Array)) {
+                            if (!(parameterUid in _animatedParameters)) {
+                                _animatedParameters[parameterUid] = parameter;
+                                paramIdIndex = _animatedParameterUids.indexOf(parameterUid);
+                                if (paramIdIndex == -1) {
+                                    _animatedParameterUids.push(parameterUid);
+                                }
+                            }
+                        }
+                        else {
+                            if (parameterUid in _animatedParameters) {
+                                delete _animatedParameters[parameterUid];
+                                paramIdIndex = _animatedParameterUids.indexOf(parameterUid);
+                                if (paramIdIndex != -1) {
+                                    _animatedParameterUids.splice(paramIdIndex, 1);
+                                }
+                            }
+                        }
+                    }
+                };
+            
+                // This function is executed after UI has been generated for all parameters.
+                // If the envelopes editor is required, it is shown, with the first of the
+                // available envelopes preselected.
+                var wrapper:Function = function ():void {
+                    _parameters.forEach(iterator);
+                    _updateEditorWorklist();
+                    Time.delay(0.5, function ():void {
+                            _focusParameterEnvelope(_animatedParameterUids[0]);
+                        });
+                    onComplete();
+                    _formReady = true;
+                };
+            
+                _uiGenerator.generate(descriptor, configurationForm, wrapper, onChange);
+            }
+            
+            // ---------
+            // LISTENERS
+            // ---------
+            
+            /**
+             * Closest equivalent of a constructor function for MXML classes. Executed when
+             * this component begins initializing; none of its children is available yet.
+             */
+            private function _onPreinitialize(event:FlexEvent):void {
+                _windowBehavior = new WindowContentBehavior(this);
+                _uiGenerator = new UiGenerator(UiFlexBuilder);
+                SUBSCRIBE(EDITOR_SERVICE, _onEditorServiceNotice);
+                SUBSCRIBE(EDITOR_FOCUS, _onEditorFocusNotice);
+            }
+            
+            /**
+             * Executed when this component has successfully initialized. At this stage,
+             * its children are declared but not yet set up.
+             */
+            private function _onInitialize(event:FlexEvent):void {
+            
+                // Initialize the PresetManager
+                presetManager.fileExtension = PRESET_FILE_EXTENSION;
+                presetManager.homeDirName = PRESETS_HOME_DIR;
+                presetManager.addEventListener(PresetEvent.PRESET_CHANGED, _onPresetChanged);
+            }
+            
+            /**
+             * Executed when this component has successfully initialized and set up, along with all its
+             * children components.
+             */
+            private function _onCreationComplete(event:FlexEvent):void {
+            
+                // Setup initial window bounds. The Envelope Editor is hidden by default
+                var winManager:IWindowsManager = _windowBehavior.manager;
+                var windowUid:String = _windowBehavior.windowUid;
+                if (winManager.isWindowAvailable(windowUid)) {
+                    var bounds:Rectangle = Sizes.MIN_ADVANCED_GEN_CFG_WINDOW_BOUNDS;
+                    winManager.updateWindowBounds(windowUid, bounds, false);
+                    winManager.updateWindowMinSize(windowUid, bounds.width, bounds.height, true);
+                    var mainScreenInfo:Object = ScreenUtils.getScreensInfo()[0];
+                    if (mainScreenInfo) {
+                        winManager.alignWindowToScreen(windowUid, mainScreenInfo.uid, 0.5, 0.5);
+                    }
+                }
+            }
+            
+            /**
+             * Executed when the window hosting this UIComponent is about to be closed.
+             */
+            private function _onWindowClosing(...ignore):void {
+                if (!_haveUnsavedChanges()) {
+                    _closeWindow();
+                }
+                else {
+                    _updateCommonControls(true);
+                    _setNotificationAreaColor(true);
+                }
+            }
+            
+            /**
+             * Executed when the "Apply" button is clicked.
+             */
+            private function _onApplyButtonClick(event:Event):void {
+                _commitChanges();
+            }
+            
+            /**
+             * Executed when the "Reset" button is clicked.
+             */
+            private function _onResetButtonClick(event:Event):void {
+                _discardChanges();
+            }
+            
+            /**
+             * Executed when user clicks on the "Animate" checkbox inside the dedicated UI
+             * section of a specific parameter. The exact action depends on the "tweeningStatus"
+             * property contained by the received `info` Object.
+             *
+             * - if "tweeningStatus" is `true`, the editor is opened (if it was not already open),
+             *   the parameter is added to the editor's worklist, and focused. Any subsequent change
+             *   inside the editor, made to the parameter's associated envelope will be reflected in
+             *   the parameter's `value`;
+             *
+             * - if "tweeningStatus" is `false`, and no other parameter requires the editor's
+             *   services, the editor is closed; otherwise, it is left open. Any previous change
+             *   made inside the editor, to the parameter's associated envelope will be lost, as
+             *   all values on the envelope except the first one wil be removed. The first value
+             *   will become the parameter's (constant) value, and will be reflected by the slider
+             *   control that will be displayed once "animate" is disengaged for that parameter.
+             */
+            private function _onEditorServiceNotice(info:Object):void {
+                var id:String = (info[PARAM_UID] as String);
+                var tweeningEngaged:Boolean = (info[TWEENING_STATUS] as Boolean);
+                if (tweeningEngaged) {
+                    _engageTweeningFor(id);
+                    _focusParameterEnvelope(id);
+                }
+                else {
+                    _disengageTweeningFor(id);
+                }
+            }
+            
+            /**
+             * Executed when the user interacts with a parameter inside the Envelope Editor in
+             * other ways than by altering its envelope points.
+             */
+            private function _onParameterChange(event:ParameterChangeEvent):void {
+            
+                // The "active" parameter has been changed inside the editor
+                if (event.type == ParameterChangeEvent.PARAMETER_CHANGE) {
+                    _activeParamUid = event.data[DATA_ITEM][PARAM_UID] as String;
+                }
+            }
+            
+            /**
+             * Executed when the user changes the color of a parameter inside the envelopes editor.
+             */
+            private function _onParameterColorChange(event:ParameterChangeEvent):void {
+                var payload:Object = event.data.dataItem;
+                var paramId:String = (payload.paramUid as String);
+                var paramColor:uint = (payload.color as uint);
+                var parameter:IParameter = _parameters.getByUid(paramId);
+                if (parameter) {
+                    parameter.color = paramColor;
+                    var renderer:ParameterUI = (_uiGenerator.getComponentByName(paramId) as ParameterUI);
+                    if (renderer) {
+                        renderer.color = paramColor;
+                    }
+                }
+            }
+            
+            /**
+             * Executed when the user alters a parameter's envelope (e.g., by
+             * adding, removing or dragging nodes.
+             */
+            private function _onNodesChange(event:ParameterChangeEvent):void {
+            
+                // The envelope corresponding to the "Active" parameter has been changed
+                // inside the editor parameter (e.g., by adding, removing or dragging nodes).
+                if (event.type == ParameterChangeEvent.NODES_CHANGE) {
+                    var nodesSnapshot:Array = (event.data[DATA_ITEM] as Array);
+                    if (nodesSnapshot && _activeParamUid && (_activeParamUid in _animatedParameters)) {
+                        var parameter:IParameter = _parameters.getByUid(_activeParamUid);
+                        if (parameter) {
+                            var payload:Array = parameter.payload as Array;
+            
+                            // Update the parameter's values based on edited nodes
+                            payload.length = 0;
+                            for (var i:int = 0; i < nodesSnapshot.length; i++) {
+                                var nodeInfo:Object = nodesSnapshot[i];
+                                payload[nodeInfo[NODE_TIME]] = nodeInfo[NODE_AMPLITUDE];
+                            }
+            
+                            // Propagate the new node values to the Preset Manager (so that it can
+                            // decide whether they match a known preset or not)
+                            _respondToSettingUpdate(parameter.name, payload);
+            
+                            // Update the related renderer, so that its "envelope proxy" shows the
+                            // modified envelope
+                            var renderer:ParameterUI = (_uiGenerator.getComponentByName(parameter.uid) as ParameterUI);
+                            if (renderer) {
+                                renderer.value = payload;
+                            }
+            
+                            // Update the current dataset and trigger the window's internal status evaluator
+                            // (to enable or disable the "apply"/"revert" buttons based on whether the new node
+                            // values represent a change or not.
+                            _currentDataset.setContent(parameter.name, payload);
+                            _updateUiBasedOnModificationsStatus();
+                        }
+                    }
+                }
+            }
+            
+            /**
+             * Executed when user clicks on the envelope shaped button displayed in place of the slider
+             * control, while "animate" is selected for a certain parameter. Focuses the parameter's
+             * associated envelope inside the editor.
+             */
+            private function _onEditorFocusNotice(info:Object):void {
+                var id:String = (info[PARAM_UID] as String);
+                _focusParameterEnvelope(id);
+            }
+            
+            /**
+             * Executed when a new preset has been loaded inside the PresetManager.
+             * Updates the current settings to match the selected preset.
+             */
+            private function _onPresetChanged(event:PresetEvent):void {
+                var presetSettings:Object = event.data;
+                if (presetSettings) {
+                    _writeCurrentSettings(presetSettings);
+                    _updateUiBasedOnModificationsStatus();
+            
+                    // We need to re-read current settings, or else, presets based on another preset
+                    // will only contain the delta (differences to the original setting, and not the whole
+                    // set). We could also re-read the settings on each value being changed by the user, but
+                    // that would be too expensive.
+                    _currentSettings = _readCurrentSettings();
+                }
+            }
+            
+            /**
+             * Executed when all needed UI controls have been generated.
+             */
+            private function _onFormReady():void {
+                if (!_currentSettings) {
+                    _currentSettings = _readCurrentSettings();
+                }
+                presetManager.evaluate(_currentSettings);
+            }
+            
+            /**
+             * Executed when user changes a value inside one of the generated UI
+             * controls.
+             *
+             * @param    key
+             *            The UID the generated UI control is bound to.
+             *
+             * @param    value
+             *            The new (modified) value inside the generated UI control.
+             */
+            private function _onValueChanged(key:String, value:Object):void {
+                var parameter:IParameter = _parameters.getByUid(key);
+                if (parameter) {
+                    parameter.payload = value;
+                    var parName:String = parameter.name;
+                    _respondToSettingUpdate(parName, value);
+                    _currentDataset.setContent(parName, value);
+                    _updateUiBasedOnModificationsStatus();
+                }
+            }
         ]]>
-	</fx:Script>
+    </fx:Script>
 
     <!-- Loading notice -->
     <mx:Label width="100%"
@@ -918,7 +926,6 @@
               verticalCenter="0"
               horizontalCenter="0"/>
 
-
     <!-- BODY -->
     <s:Group id="bodyContainer"
              x="0"
@@ -927,11 +934,11 @@
              height="{rule.y - SPACE}">
         <s:layout>
             <s:HorizontalLayout
-                    gap="{SPACE * 2}"
-                    verticalAlign="top"
-                    paddingLeft="{SPACE}"
-                    paddingTop="{SPACE}"
-                    paddingRight="{SPACE}"/>
+                                gap="{SPACE * 2}"
+                                verticalAlign="top"
+                                paddingLeft="{SPACE}"
+                                paddingTop="{SPACE}"
+                                paddingRight="{SPACE}"/>
         </s:layout>
 
         <!-- Left Pane. Presets manager and list of parameters -->
@@ -969,32 +976,33 @@
                     <s:Group id="configurationForm">
                         <s:layout>
                             <s:TileLayout
-                                    paddingTop="{SPACE}"
-                                    paddingRight="{SPACE}"
-                                    paddingBottom="{SPACE}"
-                                    horizontalGap="{_envelopeEditorVisible? SPACE * 1.5 : SPACE * 2}"
-                                    verticalGap="{SPACE * 5}"
-                                    columnWidth="{COLUMN_WIDTH * 0.9 }"
-                                    columnAlign="justifyUsingWidth"
-                            />
+                                          paddingTop="{SPACE}"
+                                          paddingRight="{SPACE}"
+                                          paddingBottom="{SPACE}"
+                                          horizontalGap="{_envelopeEditorVisible? SPACE * 1.5 : SPACE * 2}"
+                                          verticalGap="{SPACE * 5}"
+                                          columnWidth="{COLUMN_WIDTH * 0.9 }"
+                                          columnAlign="justifyUsingWidth"
+                                          />
                         </s:layout>
                     </s:Group>
                 </s:Scroller>
-            </s:Group> <!-- End of parameters list -->
-        </s:Group> <!-- End of left pane -->
+            </s:Group>
+            <!-- End of parameters list -->
+        </s:Group>
+        <!-- End of left pane -->
 
         <!-- Right Pane. Parameters graphical editor -->
         <components:ParametersGraphicalEditor
-                id="parametersEditor"
-                width="{ (bodyContainer.width - SPACE * 4) * 0.6 }"
-                height="100%"
-                visible="{_envelopeEditorVisible}"
-                includeInLayout="{_envelopeEditorVisible}"
-                parameterChange="_onParameterChange(event)"
-                colorChange="_onParameterColorChange(event)"
-                nodesChange="_onNodesChange(event)"/>
+                                              id="parametersEditor"
+                                              width="{ (bodyContainer.width - SPACE * 4) * 0.6 }"
+                                              height="100%"
+                                              visible="{_envelopeEditorVisible}"
+                                              includeInLayout="{_envelopeEditorVisible}"
+                                              parameterChange="_onParameterChange(event)"
+                                              colorChange="_onParameterColorChange(event)"
+                                              nodesChange="_onNodesChange(event)"/>
     </s:Group>
-
 
     <!-- FOOTER -->
     <!-- Commit / Discard buttons -->
@@ -1027,21 +1035,20 @@
                  verticalScrollPolicy="off">
 
             <!-- Apply / Discard buttons -->
+            <!-- Note: temporarily removed: enabled="false" as related logic fails. -->
             <mx:Button skin="eu.claudius.iacob.maidens.skins.ApplyChangesSkin"
                        click="_onApplyButtonClick (event)"
-                       enabled="false"
                        id="applyButton"
                        toolTip="Apply changes"/>
 
             <mx:Button skin="eu.claudius.iacob.maidens.skins.ResetChangesSkin"
                        click="_onResetButtonClick (event)"
-                       enabled="false"
+
                        id="resetButton"
                        toolTip="Reset changes"/>
 
             <!-- Auto-close button -->
-            <mx:CheckBox enabled="false"
-                         id="autoCloseCheckBox"
+            <mx:CheckBox id="autoCloseCheckBox"
                          label="auto close"
                          selected="true"/>
 

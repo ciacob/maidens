@@ -7,3 +7,6 @@ src/.DS_Store
 dist/macOs--dmg-tools/OUT/*
 /dist/Windows--installer-tools/_output_
 /dist/Windows--installer-tools/bin-release-src/MAIDENS
+/lib
+/.vscode
+/asconfig.json
