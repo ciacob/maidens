@@ -636,7 +636,7 @@ public class GeneratorUtils {
     }
 
     /**
-     * Responds to a request of forcingly closing the Generator Configuration window.
+     * Responds to a request of forcibly closing the Generator Configuration window.
      */
     private function _onGenCfgForceCloseRequested(...ignore):void {
         _onGenCfgWindowClosed();
@@ -694,7 +694,7 @@ public class GeneratorUtils {
             var windowContent:IWindowContent = (_genCfgWindowFactory.newInstance() as IWindowContent);
             _controller.registerColorizableUi(windowContent);
             _controller.genCfgWindowUid = $winManager.createWindow(windowContent,
-                    WindowStyle.TOOL | WindowStyle.TOP | WindowStyle.NATIVE,
+                    WindowStyle.NATIVE | WindowStyle.TOOL | WindowStyle.TOP,
                     true,
                     _controller.mainWindowUid);
             var windowTitle:String = Strings.sprintf(StaticTokens.CONFIGURE_GENERATOR,

@@ -50,6 +50,9 @@
             
             import ro.ciacob.utils.ScreenUtils;
             import ro.ciacob.utils.Time;
+            import eu.claudius.iacob.maidens.Colors;
+            import eu.claudius.iacob.maidens.Sizes;
+            import eu.claudius.iacob.EmbeddedFontsHelper;
             
             // --------------
             // PUBLIC METHODS
@@ -234,6 +237,12 @@
             private static const DATA_ITEM:String = Constants.DATA_ITEM;
             private static const NODE_TIME:String = Constants.NODE_TIME;
             private static const NODE_AMPLITUDE:String = Constants.NODE_AMPLITUDE;
+            private static const INLINE_DOC_SHOW:String = CoreOperationKeys.INLINE_DOC_REQUESTED_NOTICE;
+            private static const INLINE_DOC_HIDE:String = CoreOperationKeys.INLINE_DOC_DISCARDED_NOTICE;
+            private static const DOCUMENTATION:String = CoreOperationKeys.DOC_REQUESTED_NOTICE;
+            private static const PARAM_NAME:String = CoreOperationKeys.PARAM_NAME;
+            private static const DESCRIPTION:String = CoreOperationKeys.DOCUMENTATION_DESCRIPTION;
+            private static const URL:String = CoreOperationKeys.DOCUMENTATION_URL;
             
             private static const SPACE:Number = 10;
             private static const PRESET_FILE_EXTENSION:String = 'harmonyPreset';
@@ -303,21 +312,18 @@
             // Maintains a map with all parameters' current values, indexed by the parameter's name
             private var _currentSettings:Object;
             
+            [Bindable]
+            private var _inlineDocTitle:String;
+            
+            [Bindable]
+            private var _inlineDocBody:String;
+            
+            [Bindable]
+            private var _inlineDocUrl:String;
+            
             // ---------------
             // PRIVATE METHODS
             // ---------------
-            
-            /**
-             * Returns `true` if the dataset loaded into this component was altered by user in any way,
-             * `false` otherwise.
-             */
-            private function _haveUnsavedChanges():Boolean {
-                if (!_referenceDataset || !_currentDataset) {
-                    return false;
-                }
-                var haveChanges:Boolean = (!_referenceDataset.isEqualTo(_currentDataset));
-                return haveChanges;
-            }
             
             /**
              * Causes/allows the window hosting this UIComponent to actually be closed.
@@ -327,18 +333,6 @@
                     _pttInstance.unsubscribe(ViewKeys.GEN_CFG_WINDOW_CLOSING, _onWindowClosing);
                     _pttInstance.send(ViewKeys.GEN_CFG_WINDOW_CLOSE);
                 }
-            }
-            
-            /**
-             * Causes the UI portion related to committing changes to reflect the current status,
-             * especially whether the user altered the initial dataset in any way. The purpose is
-             * to help the user only commit the changes he is fond on.
-             */
-            private function _updateCommonControls(withChanges:Boolean):void {
-                warningText.enabled = withChanges;
-                applyButton.enabled = withChanges;
-                resetButton.enabled = withChanges;
-                autoCloseCheckBox.enabled = withChanges;
             }
             
             /**
@@ -364,16 +358,13 @@
                     var configMap:Object = _currentDataset.getContentMap();
                     ProjectData(_referenceDataset).importContent(configMap);
                     _currentDataset = ProjectData(_referenceDataset.clone());
-                    _updateUiBasedOnModificationsStatus();
                     var data:Object = {};
                     var exporter:PlainObjectExporter = new PlainObjectExporter;
                     var exportedCfgData:Object = exporter.export(_currentDataset);
                     data[GeneratorKeys.GEN_CFG_DATASET] = exportedCfgData;
                     _pttInstance.send(GeneratorKeys.GEN_CFG_WINDOW_COMMIT, data);
                 }
-                if (autoCloseCheckBox.selected) {
-                    _closeWindow();
-                }
+                _closeWindow();
             }
             
             /**
@@ -386,22 +377,7 @@
                     parameter.payload = _currentDataset.getContent(parameter.name);
                 };
                 _parameters.forEach(mover);
-                _updateUiBasedOnModificationsStatus();
-                if (autoCloseCheckBox.selected) {
-                    _closeWindow();
-                }
-            }
-            
-            /**
-             * Updates commit related UI, based on whether the user altered the initial dataset or not.
-             */
-            private function _updateUiBasedOnModificationsStatus():void {
-                var haveChanges:Boolean = _haveUnsavedChanges();
-                // Disabling for now as this fails most of the time
-                // _updateCommonControls(haveChanges);
-                if (!haveChanges) {
-                    _setNotificationAreaColor(false);
-                }
+                _closeWindow();
             }
             
             /**
@@ -695,6 +671,8 @@
                 _uiGenerator = new UiGenerator(UiFlexBuilder);
                 SUBSCRIBE(EDITOR_SERVICE, _onEditorServiceNotice);
                 SUBSCRIBE(EDITOR_FOCUS, _onEditorFocusNotice);
+                SUBSCRIBE(INLINE_DOC_SHOW, _onInlineDocRequested);
+                SUBSCRIBE(INLINE_DOC_HIDE, _onInlineDocDiscarded);
             }
             
             /**
@@ -733,13 +711,21 @@
              * Executed when the window hosting this UIComponent is about to be closed.
              */
             private function _onWindowClosing(...ignore):void {
-                if (!_haveUnsavedChanges()) {
-                    _closeWindow();
-                }
-                else {
-                    _updateCommonControls(true);
-                    _setNotificationAreaColor(true);
-                }
+                _discardChanges();
+                _closeWindow();
+            }
+            
+            /**
+             * Executed when the "learn more..." button is clicked. Causes the system browser to
+             * load related documentation.
+             */
+            private function _onDocButtonClicked(event:MouseEvent):void {
+                // TBD
+            
+                // var payload:Object = {};
+                // payload[PARAM_UID] = _parameterUid;
+                // payload[URL] = _documentationUrl;
+                // SEND(DOCUMENTATION, payload);
             }
             
             /**
@@ -747,13 +733,6 @@
              */
             private function _onApplyButtonClick(event:Event):void {
                 _commitChanges();
-            }
-            
-            /**
-             * Executed when the "Reset" button is clicked.
-             */
-            private function _onResetButtonClick(event:Event):void {
-                _discardChanges();
             }
             
             /**
@@ -851,11 +830,31 @@
                             // (to enable or disable the "apply"/"revert" buttons based on whether the new node
                             // values represent a change or not.
                             _currentDataset.setContent(parameter.name, payload);
-                            _updateUiBasedOnModificationsStatus();
                         }
                     }
                 }
             }
+            
+            /**
+             * Executed when user toggles on the "inline documentation" button inside of a parameter
+             * tile. Opens associated parameter description.
+             */
+            private function _onInlineDocRequested(info:Object):void {
+                _inlineDocTitle = info[PARAM_NAME] || null;
+                _inlineDocBody = info[DESCRIPTION] || null;
+                _inlineDocUrl = info[URL] || null;
+            };
+            
+            /**
+             * Executed when user toggles off the "inline documentation" button inside of a parameter
+             * tile. Hides the associated parameter description, if open
+             */
+            private function _onInlineDocDiscarded(info:Object):void {
+                trace('--> _onInlineDocDiscarded() called; info is: ' + JSON.stringify(info));
+                _inlineDocTitle = null;
+                _inlineDocBody = null;
+                _inlineDocUrl = null;
+            };
             
             /**
              * Executed when user clicks on the envelope shaped button displayed in place of the slider
@@ -875,7 +874,6 @@
                 var presetSettings:Object = event.data;
                 if (presetSettings) {
                     _writeCurrentSettings(presetSettings);
-                    _updateUiBasedOnModificationsStatus();
             
                     // We need to re-read current settings, or else, presets based on another preset
                     // will only contain the delta (differences to the original setting, and not the whole
@@ -912,7 +910,6 @@
                     var parName:String = parameter.name;
                     _respondToSettingUpdate(parName, value);
                     _currentDataset.setContent(parName, value);
-                    _updateUiBasedOnModificationsStatus();
                 }
             }
         ]]>
@@ -1022,37 +1019,65 @@
              x="0"
              y="{height - bottomBox.height}">
 
-        <!-- Apply/Discard notice -->
-        <mx:Text enabled="false"
-                 id="warningText"
-                 selectable="false"
-                 styleName="editorNote"
-                 text="You must APPLY or RESET the current changes before closing this window."
-                 textAlign="left"
-                 width="100%"/>
-
         <mx:HBox horizontalScrollPolicy="off"
-                 verticalScrollPolicy="off">
+                 verticalScrollPolicy="off"
+                 verticalAlign="middle"
+                 horizontalAlign="center"
+                 width="100%">
 
-            <!-- Apply / Discard buttons -->
-            <!-- Note: temporarily removed: enabled="false" as related logic fails. -->
-            <mx:Button skin="eu.claudius.iacob.maidens.skins.ApplyChangesSkin"
-                       click="_onApplyButtonClick (event)"
+            <!-- Apply button -->
+            <mx:Button click="_onApplyButtonClick (event)"
                        id="applyButton"
-                       toolTip="Apply changes"/>
-
-            <mx:Button skin="eu.claudius.iacob.maidens.skins.ResetChangesSkin"
-                       click="_onResetButtonClick (event)"
-
-                       id="resetButton"
-                       toolTip="Reset changes"/>
-
-            <!-- Auto-close button -->
-            <mx:CheckBox id="autoCloseCheckBox"
-                         label="auto close"
-                         selected="true"/>
-
+                       label="Apply configuration"/>
         </mx:HBox>
+    </mx:VBox>
+
+    <!-- DOCUMENTATION POP-UP -->
+    <mx:VBox width="100%"
+             horizontalCenter="0"
+             backgroundColor="{Colors.INFORMATION}"
+             horizontalAlign="left"
+             verticalGap="{Sizes.LARGE_GAP}"
+             paddingTop="{Sizes.HUGE_GAP}" paddingBottom="{Sizes.HUGE_GAP}"
+             paddingLeft="{Sizes.HUGE_GAP * 2}" paddingRight="{Sizes.HUGE_GAP * 2}"
+             visible="{_inlineDocTitle || _inlineDocBody || _inlineDocUrl}"
+             horizontalScrollPolicy="off"
+             verticalScrollPolicy="off">
+
+        <!-- Related Parameter Name -->
+        <mx:Label text="{_inlineDocTitle}" width="100%"
+                  fontWeight="bold"
+                  color="{Colors.UI_WHITE}"
+                  visible="{!!_inlineDocTitle}"
+                  includeInLayout="{!!_inlineDocTitle}"
+                  textAlign="left"
+                  paddingTop="0"
+                  paddingLeft="0"
+                  paddingRight="0"
+                  paddingBottom="0"/>
+
+        <!-- Description -->
+        <mx:Text text="{_inlineDocBody}" width="100%"
+                 color="{Colors.UI_WHITE}"
+                 visible="{!!_inlineDocBody}"
+                 includeInLayout="{!!_inlineDocBody}"
+                 textAlign="left"
+                 letterSpacing="0.5"
+                 paddingTop="0"
+                 paddingLeft="0"
+                 paddingRight="0"
+                 paddingBottom="0"/>
+
+        <!-- "Read more" Button -->
+        <mx:LinkButton label="Read more...  ¤"
+                       color="{Colors.PRIMARY_COLOR}"
+                       visible="{!!_inlineDocUrl}"
+                       includeInLayout="{!!_inlineDocUrl}"
+                       paddingLeft="0"
+                       paddingTop="0"
+                       click="_onDocButtonClicked (event)"
+                       useHandCursor="true"
+                       buttonMode="true"/>
     </mx:VBox>
 
 </mx:Canvas>
