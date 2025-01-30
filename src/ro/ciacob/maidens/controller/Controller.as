@@ -686,8 +686,8 @@ public class Controller {
     /**
      * Causes a general-purpose "Info" dialog to be displayed, regardless of the length of the text involved.
      */
-    public function showPrompt(text:String):void {
-        _promptsManager.information(text);
+    public function showPrompt(text:String, title:String = null, width:Number = 500, height:Number = 200):void {
+        _promptsManager.information(text, title, width, height);
     }
 
     /**

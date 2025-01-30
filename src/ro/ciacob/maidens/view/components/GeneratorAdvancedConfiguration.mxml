@@ -16,9 +16,18 @@
            creationComplete="_onCreationComplete (event)">
     <fx:Declarations/>
 
+    <fx:Style>
+        @namespace s "library://ns.adobe.com/flex/spark";
+        @namespace mx "library://ns.adobe.com/flex/mx";
+
+        .utils {
+            cornerRadius: 0;
+        }
+    </fx:Style>
+
     <fx:Script>
         <![CDATA[
-            import com.greensock.TweenMax;
+            import com.greensock.TweenLite;
             
             import eu.claudius.iacob.desktop.presetmanager.lib.PresetEvent;
             import eu.claudius.iacob.maidens.Colors;
@@ -229,6 +238,7 @@
             // PRIVATE CONSTANTS
             // -----------------
             private static const SUBSCRIBE:Function = PTT.getPipe().subscribe;
+            private static const SEND:Function = PTT.getPipe().send;
             
             private static const EDITOR_SERVICE:String = CoreOperationKeys.EDITOR_SERVICE_NOTICE;
             private static const EDITOR_FOCUS:String = CoreOperationKeys.EDITOR_FOCUS_NOTICE;
@@ -575,7 +585,7 @@
              */
             private function _showEnvelopeEditor():void {
                 _envelopeEditorVisible = true;
-                TweenMax.fromTo(parametersEditor, 1, {alpha: 0}, {alpha: 1});
+                TweenLite.fromTo(parametersEditor, 1, {alpha: 0}, {alpha: 1});
             }
             
             /**
@@ -721,13 +731,22 @@
              * Executed when the "learn more..." button is clicked. Causes the system browser to
              * load related documentation.
              */
-            private function _onDocButtonClicked(event:MouseEvent):void {
+            private function _onReadMoreClicked(event:MouseEvent):void {
                 // TBD
             
                 // var payload:Object = {};
                 // payload[PARAM_UID] = _parameterUid;
                 // payload[URL] = _documentationUrl;
                 // SEND(DOCUMENTATION, payload);
+            }
+            
+            /**
+             * Executed when user clicks the "x" button on the documentation pop-up.
+             * Also propagates the change backwards.
+             */
+            private function _onDocCloseClick(...ignore):void {
+                _onInlineDocDiscarded();
+                SEND(INLINE_DOC_HIDE);
             }
             
             /**
@@ -810,7 +829,7 @@
                     var direction:int = (event.delta > 1) ? 1 : -1;
                     var step:int = SCROLL_STEP * direction;
                     var newVPos:Number = viewPort.verticalScrollPosition - step;
-                    TweenMax.to(viewPort, 0.15, {verticalScrollPosition: newVPos});
+                    TweenLite.to(viewPort, 0.15, {verticalScrollPosition: newVPos});
                 }
                 else {
             
@@ -876,8 +895,7 @@
              * Executed when user toggles off the "inline documentation" button inside of a parameter
              * tile. Hides the associated parameter description, if open
              */
-            private function _onInlineDocDiscarded(info:Object):void {
-                trace('--> _onInlineDocDiscarded() called; info is: ' + JSON.stringify(info));
+            private function _onInlineDocDiscarded(...ignore):void {
                 _inlineDocTitle = null;
                 _inlineDocBody = null;
                 _inlineDocUrl = null;
@@ -1055,12 +1073,15 @@
             <!-- Apply button -->
             <mx:Button click="_onApplyButtonClick (event)"
                        id="applyButton"
-                       label="Apply configuration"/>
+                       label="Apply configuration"
+                       fontWeight="bold" />
         </mx:HBox>
+        <s:Spacer height="{Sizes.LARGE_GAP}" />
     </mx:VBox>
 
     <!-- DOCUMENTATION POP-UP -->
     <mx:VBox width="100%"
+             id="docPopUpContainer"
              horizontalCenter="0"
              backgroundColor="{Colors.INFORMATION}"
              horizontalAlign="left"
@@ -1102,9 +1123,20 @@
                        includeInLayout="{!!_inlineDocUrl}"
                        paddingLeft="0"
                        paddingTop="0"
-                       click="_onDocButtonClicked (event)"
+                       click="_onReadMoreClicked (event)"
                        useHandCursor="true"
                        buttonMode="true"/>
     </mx:VBox>
+
+    <!-- Close button -->
+    <mx:LinkButton click="_onDocCloseClick(event)"
+                   id="docCloseButton"
+                   label="Ł"
+                   styleName="utils"
+                   textDecoration="none"
+                   color="{Colors.PROMPT_UI_FRONT_COLOR}"
+                   visible="{docPopUpContainer.visible}"
+                   x="{docPopUpContainer.width - SPACE - docCloseButton.width}"
+                   y="0"/>
 
 </mx:Canvas>

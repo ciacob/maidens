@@ -309,6 +309,9 @@ public class GeneratorUtils {
         for (i = 0; i < uids.length; i++) {
             uid = uids[i];
             generatorData = _generatorsManager.getGeneratorByUid(uid);
+            if (!generatorData) {
+                continue;
+            }
             label = generatorData.getContent(GeneratorKeys.NAME);
             if (additionalData != null) {
                 specificData = (additionalData[uid] as String);
