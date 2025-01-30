@@ -215,6 +215,7 @@ public class HarmonyGeneratorFacade extends GeneratorBase {
         // Internal callback. Translates intrinsic parameter properties, so that they can be used
         // by the UI builder library. This function is executed for each item available inside the
         // `_parameters` list.
+        var $c : Object = {i:0};
         var mover:Function = function (parameter:IParameter,
                                        index:int,
                                        list:IParametersList):void {
@@ -234,6 +235,7 @@ public class HarmonyGeneratorFacade extends GeneratorBase {
             var rendererConfiguration:Object = parameterConfiguration.CustomComponent || (parameterConfiguration.CustomComponent = {});
             rendererConfiguration.hideLabel = true;
             rendererConfiguration.parameterUid = parameterId;
+            rendererConfiguration.counter = ++$c.i; 
             rendererConfiguration.label = parameter.name;
             rendererConfiguration.description = parameter.description;
             rendererConfiguration.documentationUrl = parameter.documentationUrl;
