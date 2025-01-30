@@ -52,7 +52,8 @@
             import ro.ciacob.utils.Time;
             import eu.claudius.iacob.maidens.Colors;
             import eu.claudius.iacob.maidens.Sizes;
-            import eu.claudius.iacob.EmbeddedFontsHelper;
+            import mx.events.FlexMouseEvent;
+            import spark.core.IViewport;
             
             // --------------
             // PUBLIC METHODS
@@ -248,6 +249,7 @@
             private static const PRESET_FILE_EXTENSION:String = 'harmonyPreset';
             private static const PRESETS_HOME_DIR:String = 'multiline-generator-preset';
             private static const COLUMN_WIDTH:Number = (Sizes.MIN_GEN_CFG_WINDOW_BOUNDS.width - SPACE * 2);
+            private static const SCROLL_STEP:int = 25;
             
             // -----------------
             // PRIVATE VARIABLES
@@ -794,6 +796,31 @@
             }
             
             /**
+             * Executed when the list of parameters is about to be scrolled up or down as a result
+             * of the scroll wheel being moved. We had to address this, as the default scroll
+             * behavior was unmanageable and forced to user to use the scroll bar instead.
+             */
+            private function _onMouseWheelChanging(event:FlexMouseEvent):void {
+            
+                // If possible, we would control scrolling at source.
+                var scroller:Scroller = (event.currentTarget as Scroller);
+                var viewPort:IViewport = scroller.viewport;
+                if (scroller && viewPort) {
+                    event.preventDefault();
+                    var direction:int = (event.delta > 1) ? 1 : -1;
+                    var step:int = SCROLL_STEP * direction;
+                    var newVPos:Number = viewPort.verticalScrollPosition - step;
+                    TweenMax.to(viewPort, 0.15, {verticalScrollPosition: newVPos});
+                }
+                else {
+            
+                    // Otherwise, we will settle for little, and merely limit the
+                    // displacement of the scroll to something the user can manage.
+                    event.delta = (event.delta < 1) ? -1 : 1;
+                }
+            }
+            
+            /**
              * Executed when the user alters a parameter's envelope (e.g., by
              * adding, removing or dragging nodes.
              */
@@ -969,11 +996,11 @@
                      visible="{_formReady}">
 
                 <s:Scroller width="100%" height="100%" horizontalScrollPolicy="off"
-                            measuredSizeIncludesScrollBars="true">
+                            measuredSizeIncludesScrollBars="true"
+                            mouseWheelChanging="_onMouseWheelChanging(event)">
                     <s:Group id="configurationForm">
                         <s:layout>
-                            <s:TileLayout
-                                          paddingTop="{SPACE}"
+                            <s:TileLayout paddingTop="{SPACE}"
                                           paddingRight="{SPACE}"
                                           paddingBottom="{SPACE}"
                                           horizontalGap="{_envelopeEditorVisible? SPACE * 1.5 : SPACE * 2}"
