@@ -547,6 +547,9 @@ public class GeneratorUtils {
     private function _updateParameterDefaults(uiBlueprint:Object, cfgDataset:Object):void {
         if (uiBlueprint && (GeneratorKeys.PARAMETERS in uiBlueprint)) {
             (uiBlueprint[GeneratorKeys.PARAMETERS] as ParametersList).forEach(function (item:IParameter, index:int, etc:Object):void {
+                if (!cfgDataset || cfgDataset === DataFields.VALUE_NOT_SET) {
+                    return;
+                }
                 var updatedPayload:Object = cfgDataset.content[item.name];
                 if (updatedPayload) {
                     if (item.type == CoreOperationKeys.TYPE_ARRAY) {
@@ -735,7 +738,7 @@ public class GeneratorUtils {
      * pipe. Causes the Controller to display a dialog window on behalf of a generator.
      */
     private function _onGeneratorDialogRequested(text:String):void {
-        _controller.showPrompt(text);
+        _controller.showPrompt(text, PromptDefaults.INFORMATION_TITLE, 500, 350);
     }
 
     /**

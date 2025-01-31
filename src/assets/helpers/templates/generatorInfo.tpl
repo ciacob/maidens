@@ -1,11 +1,6 @@
 ${generatorDescription}
 
-♪ Author Information 
-	Name: ${generatorAuthorName}
-	Email: ${generatorAuthorEmail}
-	Web: ${generatorAuthorSite}
-
-♪ Generator Information
+♪ Fact sheet
 	Name: ${generatorFriendlyName}
 	Version: ${generatorVersion}
-	Release date: ${generatorReleaseDate} 
+	Release date: ${generatorReleaseDate}
