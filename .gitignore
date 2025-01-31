@@ -15,3 +15,13 @@ dist/macOs--dmg-tools/OUT/*
 /.vscode
 asconfig.json
 >>>>>>> 50c68cb11aaf317be81849ad952fbf1458b424fd
+
+bin-debug/
+bin-release/
+[Oo]bj/
+[Bb]in/
+*.swf
+*.air
+*.ipa
+*.apk
+.vscode/
