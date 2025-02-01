@@ -3815,10 +3815,6 @@ public class Controller {
         if (_audioStreamer) {
             _synthProxy.stopStreamedPlayback(true);
             _audioStreamer.cancelStreaming();
-            _audioStreamer.removeEventListener(SystemStatusEvent.REPORT_EVENT, _onStreamingEvent);
-            _audioStreamer.decommission();
-            _soundLoader.destroyCache();
-            _audioStreamer = null;
         }
         _synthProxy.stopPrerenderedPlayback(true);
         GLOBAL_PIPE.send(ModelKeys.MIDI_PLAYBACK_STOPPED);
