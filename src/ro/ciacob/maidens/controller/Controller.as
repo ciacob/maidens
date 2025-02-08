@@ -152,6 +152,10 @@ public class Controller {
 
         // Initialize audio support
         _audioStorage = AudioUtils.makeSamplesStorage();
+
+        // N.B.: "SynthProxy" is only used here as a player, therefore, we DO NOT feed
+        // it a synth engine. We use another "SynthProxy" instantiated from within
+        // "eu.claudius.iacob.synth.utils.AudioWorker" for actually generating sound.
         _synthProxy = new SynthProxy(_audioStorage);
         _synthProxy.addEventListener(PlaybackAnnotationEvent.PLAYBACK_ANNOTATION_EVENT, _onPlaybackAnnotation);
         _soundLoader = new SoundLoader;
@@ -1255,7 +1259,7 @@ public class Controller {
         var progress:ProgressReport = event.report;
         switch (progress.state) {
 
-                // Notify user about loading instrument samples, as they complete: one notification per completed instrument.
+            // Notify user about loading instrument samples, as they complete: one notification per completed instrument.
             case ProgressReport.STATE_PENDING:
                 if (progress.subState == ProgressReport.SUBSTATE_LOADING_SOUNDS &&
                         progress.itemState == ProgressReport.ITEM_STATE_DONE) {
@@ -3476,9 +3480,11 @@ public class Controller {
             // handler.
             showStatus(Strings.sprintf(StaticTokens.LOADING_SOUNDS, CommonStrings.ELLIPSIS),
                     PromptColors.INFORMATION, false);
-            var presetDescriptors:Vector.<PresetDescriptor> = tracksProducer.presetDescriptors;
-            presetDescriptors.unshift(new PresetDescriptor(FileAssets.AUDIO_WORKER_FILE_KEY,
-                    FileAssets.AUDIO_WORKER_FILE_LABEL));
+            var presetDescriptors:Vector.<PresetDescriptor> = new Vector.<PresetDescriptor>;
+            presetDescriptors.push (
+                new PresetDescriptor(FileAssets.AUDIO_WORKER_FILE_KEY, FileAssets.AUDIO_WORKER_FILE_LABEL),
+                new PresetDescriptor(FileAssets.DEFAULT_SOUNDS_FILE_KEY, FileAssets.DEFAULT_SOUNDS_FILE_LABEL)
+            );
             _soundLoader.preloadSounds(presetDescriptors, FileAssets.AUDIO_ASSETS_HOME, FileAssets.AUDIO_ASSET_FILE_TYPE);
         });
     }

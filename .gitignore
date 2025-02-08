@@ -1,27 +1,11 @@
-.build-scripts
-bin
-bin-release
-src/assets/sounds/653-descriptor.xml
-src/.DS_Store
-.DS_Store
-dist/macOs--dmg-tools/OUT/*
-/dist/Windows--installer-tools/_output_
-/dist/Windows--installer-tools/bin-release-src/MAIDENS
-<<<<<<< HEAD
-/lib
-/.vscode
-/asconfig.json
-=======
-/.vscode
-asconfig.json
->>>>>>> 50c68cb11aaf317be81849ad952fbf1458b424fd
+/bin
+/bin-release
+/bin-debug
+.vscode
 
-bin-debug/
-bin-release/
-[Oo]bj/
-[Bb]in/
-*.swf
+asconfig.json
+
+.DS_Store
 *.air
 *.ipa
 *.apk
-.vscode/
