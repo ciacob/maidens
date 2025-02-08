@@ -637,7 +637,7 @@
             
                         // The element might lie on another page. All pages' SVG code is cached
                         // in the `_result.pages` Array.
-                        if (!skipExtendedSearch && _numPages > 1) {
+                        if (_result && !skipExtendedSearch && _numPages > 1) {
                             var searchPage:String;
                             var searchPageIndex:int = 0;
                             var pages:Array = _result.pages;
