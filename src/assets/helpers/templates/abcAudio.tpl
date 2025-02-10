@@ -7,7 +7,7 @@ H:${customNotes}
 I:abc-creator ${creatorSoftware}
 N:${copyrightNote}
 L:1/1
-Q:60
+Q:1/4=60
 <#foreach staff in staves>
 	V:${staff.uid} name="${staff.name}" sname="${staff.abrevName}" clef=${staff.clef}
 </#foreach>
