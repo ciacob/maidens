@@ -50,7 +50,7 @@ K:Cmaj
 		% Section "${section.name}" for staff "${staff.uid}"
 		[V:${staff.uid}] 
 		 <#foreach measure in section.measures>
-		 	${measure.timeSignature}<#foreach event in measure.events>${event}</#foreach> ${measure.bar}
+		 	${measure.timeSignature}[I: MIDI= channel ${staff.channelIndex} MIDI=program ${staff.patchNumber}]<#foreach event in measure.events>${event}</#foreach> ${measure.bar}
 		 </#foreach>
 	</#foreach>
 </#foreach>
