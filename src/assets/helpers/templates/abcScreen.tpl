@@ -8,7 +8,7 @@ I:abc-creator ${creatorSoftware}
 N:${copyrightNote}
 L:1/1 
 <#foreach staff in staves>
-	V:${staff.uid} ${staff.nameToken} ${staff.snameToken} clef=${staff.clef} transpose=${staff.transposition}
+	V:${staff.uid} ${staff.nameToken} ${staff.snameToken} clef=${staff.clef}
 </#foreach>
 %
 %%staves ${stavesGrouping}
