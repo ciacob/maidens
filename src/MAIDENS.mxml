@@ -316,9 +316,9 @@
                     selectionType == DataFields.VOICE ||
                     selectionType == DataFields.CLUSTER
             );
-            var haveScaleableSelection:Boolean = (haveTransposableSelection && selectionType != DataFields.CLUSTER);
+            var haveScalableSelection:Boolean = (haveTransposableSelection && selectionType != DataFields.CLUSTER);
             _globalMenu.setItemEnablement(MenuCommandNames.TRANSPOSE, haveTransposableSelection);
-            _globalMenu.setItemEnablement(MenuCommandNames.SCALE_INTERVALS, haveScaleableSelection);
+            _globalMenu.setItemEnablement(MenuCommandNames.SCALE_INTERVALS, haveScalableSelection);
         }
 
         /**

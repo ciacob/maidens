@@ -47,11 +47,12 @@ K:Cmaj
 %%bgcolor ${scoreBackground}
 %
 <#foreach staff in staves>
+	[V:${staff.uid}]
+	[I: MIDI=channel ${staff.channelIndex} MIDI=program ${staff.patchNumber}]
 	<#foreach section in staff.sections>
 		% Section "${section.name}" for staff "${staff.uid}"
-		[V:${staff.uid}] 
 		 <#foreach measure in section.measures>
-		 	${measure.timeSignature}[I: MIDI= channel ${staff.channelIndex} MIDI=program ${staff.patchNumber}]<#foreach event in measure.events>${event}</#foreach> ${measure.bar}
+		 	${measure.timeSignature}<#foreach event in measure.events>${event}</#foreach> ${measure.bar}
 		 </#foreach>
 	</#foreach>
 </#foreach>

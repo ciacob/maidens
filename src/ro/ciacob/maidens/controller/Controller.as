@@ -128,6 +128,7 @@ import ro.ciacob.utils.constants.FileTypes;
 import ro.ciacob.utils.constants.GenericFieldNames;
 
 import spark.components.WindowedApplication;
+import ro.ciacob.desktop.io.TextDiskReader;
 
 use namespace ciacob;
 
@@ -3338,14 +3339,18 @@ public class Controller {
      * Triggered when user has determined an XML file to export the current project
      * to, via the FileBrowser component.
      * @param    selectedFile
-     *            The PDF file to export the current project to.
+     *            The MusicXML file to export the current project to.
      */
     private function _onXmlFileSelectedForSave(selectedFile:File):void {
         _deferFileBrowserClose = false;
         var on_xml_ready:Function = function (xmlFile:File):void {
             var error:String;
             try {
-                xmlFile.copyTo(selectedFile, true);
+                var reader : TextDiskReader = new TextDiskReader;
+                var xmlString : String = reader.readContent(xmlFile) as String;
+                var patchedXmlString : String = _clearInstrumentNames(xmlString);
+                var writer : TextDiskWritter = new TextDiskWritter;
+                writer.write(patchedXmlString, selectedFile);
                 _showSuccessfullySavedPrompt(selectedFile.nativePath, selectedFile.size);
             } catch (e:Error) {
                 error = e.message;
@@ -3357,7 +3362,7 @@ public class Controller {
         }
         var do_it:Function = function ():void {
 
-            // Mark generated MIDI as dirty.
+            // Invalidate cache, so that we can re-export project
             _midiSessionUid = null;
             ModelUtils.updateUnifiedPartsList(_model.currentProject);
             var abcMarkup:String = _model.currentProject.exportToFormat(DataFormats.PRINT_ABC_DATA_PROVIDER);
@@ -4007,24 +4012,6 @@ public class Controller {
             // There is functionality in need of knowing the last section that was touched
             _currentSection = ModelUtils.getClosestAscendantByType(selection, DataFields.SECTION) || _currentSection;
 
-            // When the selected node is a Measure or Voice, supplemental processing is needed,
-            // due to the fact that these two type of nodes share the same interactive area
-            // (aka "hotspot") in the score editor.
-//            if (isMeasure || isVoice) {
-//                var info:Object;
-//                if (isMeasure) {
-//                    _measureSelectionType = MeasureSelectionKeys.SELECT_MEASURE_NODE;
-//                    _measureSelectionStaffIndex = 1;
-//                    info = _getMeasureSelectionInfo(selection as ProjectData);
-//                } else if (isVoice) {
-//                    var voiceIndex:int = selection.getContent(DataFields.VOICE_INDEX) as int;
-//                    _measureSelectionType = (voiceIndex == 1) ? MeasureSelectionKeys.SELECT_VOICE_ONE_NODE : MeasureSelectionKeys.SELECT_VOICE_TWO_NODE;
-//                    _measureSelectionStaffIndex = selection.getContent(DataFields.STAFF_INDEX) as int;
-//                    info = _getMeasureSelectionInfo(selection.dataParent as ProjectData);
-//                }
-//                GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
-//            }
-
             // There is functionality in need of knowing the last part that was touched
             _currentPart = ModelUtils.getClosestAscendantByType(selection, DataFields.PART) || _currentPart;
         }
@@ -4032,10 +4019,26 @@ public class Controller {
     }
 
     /**
-     * TODO: document
+     * Parses a MusicXML string, locates all <instrument-name> elements,
+     * clears their text content, and returns the modified XML as a string.
+     *
+     * @param xmlString The input XML string representing a MusicXML document.
+     * @return A string containing the modified XML with cleared <instrument-name> elements.
      */
+    private static function _clearInstrumentNames(xmlString: String): String {
+        // Parse the string into an XML object
+        var xmlDoc: XML = new XML(xmlString);
+        
+        // Use E4X to find all <instrument-name> elements and clear their content
+        for each (var instrumentName: XML in xmlDoc..*.(localName() == "instrument-name")) {
+            instrumentName.setChildren("");
+        }
+        
+        // Return the modified XML as a string
+        return xmlDoc.toXMLString();
+    }
+
     private static function _onUidForAnnotationRequested(element:ProjectData):void {
-        // var uid:String=_queryEngine.getShortUidFor(element.route);
         GLOBAL_PIPE.send(ViewKeys.UID_FOR_ANNOTATION_READY, element.route.concat(CommonStrings.BROKEN_VERTICAL_BAR));
     }
 
@@ -4064,10 +4067,6 @@ public class Controller {
                         break;
                     case DataFields.VOICE:
                         _commitData(committedData, targetRoute);
-//                        if (committedData && committedData.dataParent) {
-//                            var info:Object = _getMeasureSelectionInfo(committedData.dataParent as ProjectData);
-//                            GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
-//                        }
                         break;
                     case DataFields.CLUSTER:
                         var clusterDuration:String = (committedData.getContent(DataFields.CLUSTER_DURATION_FRACTION) as String);
