@@ -979,11 +979,91 @@ public class Controller {
      * application menu.
      */
     private function _exportCurrentProjectToXML():void {
+        const GENERATION_FAILED_MSG : String = 'Error: generating the MusicXML file failed.';
+        var $c : Object = {};
+
+        // Actually conclude parallel processing by saving the temporary MusicXML
+        // file at the user selected location.
+        function finalizeXmlExport (source : File, target : File) : void {
+            trace ('--> finalizeXmlExport() : called', source? source.nativePath : 'null', target? target.nativePath : 'null');
+            try {
+                source.copyTo(target, true);
+                _showSuccessfullySavedPrompt(target.nativePath, target.size);
+            } catch (e: Error) {
+                trace('Error copying temporary MusicXML file:', e.message);
+                _showUnwritableFileError(e.message);
+            }
+        }
+
+        // Attempts to conclude the parallel processing by saving converted file to
+        // user-provided location.
+        function attemptClosure () : void {
+            if ($c.selectedFile && $c.converterDone) {
+                var errors : Array = [];
+                if ($c.conversionError) {
+                    errors.push ($c.conversionError);
+                }
+                if (!$c.xmlFile) {
+                    errors.push (GENERATION_FAILED_MSG);
+                }
+                if (errors.length) {
+                    _deferFileBrowserClose = true;
+                    var errMsg : String = errors.join('\n');
+                    _showUnwritableFileError (errMsg); 
+                } else {
+                    finalizeXmlExport($c.xmlFile, $c.selectedFile);
+                }
+            }
+        }
+
+        // Executed when user clicks the "OK" button in the file browser, after having
+        // selected or entered a target for the new MusicXML file.
+        function onXMLFileSelectedForSave (selectedFile : File) : void {
+            _fileSelectedCallback = null;
+            $c.selectedFile = selectedFile;
+            if (selectedFile && selectedFile.exists) {
+                _deferFileBrowserClose = true;
+                _showOverwriteFilePrompt(selectedFile.nativePath, attemptClosure);
+            } else {
+                attemptClosure ();
+            }
+        }
+
+        // Executed after the 3rd party MusicABC to MusicXML (`abc2xml`) exited, hopefully
+        // having produced a file in a temporary location.
+        function onXMLReady (xmlFile : File) : void {
+            try {
+                if (!xmlFile || !xmlFile.exists || xmlFile.size == 0) {
+                    throw (new Error (GENERATION_FAILED_MSG));
+                }
+                var reader : TextDiskReader = new TextDiskReader;
+                var xmlString : String = reader.readContent(xmlFile) as String;
+                var patchedXmlString : String = _clearInstrumentNames(xmlString);
+                var writer : TextDiskWritter = new TextDiskWritter;
+                writer.write(patchedXmlString, xmlFile);
+                $c.xmlFile = xmlFile;
+            } catch (e:Error) {
+                $c.conversionError = e.message;
+            } finally {
+                $c.converterDone = true;
+                attemptClosure ();
+            }
+        }
+
+        // Open the file browser to pick a target file to save in.
         var title:String = StaticTokens.CHOOSE_EXPORT_XML_FILE;
         var folder:File = _model.currentProjectFile ? _model.currentProjectFile.parent : File.documentsDirectory;
         var fileTypes:Array = [new FileFilterEntry(FileAssets.XML_FILE_DESCRIPTION, FileTypes.XML)];
-        _fileSelectedCallback = _onXmlFileSelectedForSave;
+        _fileSelectedCallback = onXMLFileSelectedForSave;
         _openFileBrowser(title, folder, fileTypes);
+
+        // To save time, and since the converter takes a while, also begin conversion
+        // (it will save to a temporary file).
+        _midiSessionUid = null;
+        ModelUtils.updateUnifiedPartsList(_model.currentProject);
+        var abcMarkup:String = _model.currentProject.exportToFormat(DataFormats.PRINT_ABC_DATA_PROVIDER);
+        var naWrapper:NativeAppsWrapper = NativeAppsWrapper.instance;
+        naWrapper.abcToXml(abcMarkup, null, onXMLReady);
     }
 
     /**
@@ -3336,49 +3416,7 @@ public class Controller {
     }
 
     /**
-     * Triggered when user has determined an XML file to export the current project
-     * to, via the FileBrowser component.
-     * @param    selectedFile
-     *            The MusicXML file to export the current project to.
-     */
-    private function _onXmlFileSelectedForSave(selectedFile:File):void {
-        _deferFileBrowserClose = false;
-        var on_xml_ready:Function = function (xmlFile:File):void {
-            var error:String;
-            try {
-                var reader : TextDiskReader = new TextDiskReader;
-                var xmlString : String = reader.readContent(xmlFile) as String;
-                var patchedXmlString : String = _clearInstrumentNames(xmlString);
-                var writer : TextDiskWritter = new TextDiskWritter;
-                writer.write(patchedXmlString, selectedFile);
-                _showSuccessfullySavedPrompt(selectedFile.nativePath, selectedFile.size);
-            } catch (e:Error) {
-                error = e.message;
-                _deferFileBrowserClose = true;
-            }
-            if (error) {
-                _showUnwritableFileError(error);
-            }
-        }
-        var do_it:Function = function ():void {
-
-            // Invalidate cache, so that we can re-export project
-            _midiSessionUid = null;
-            ModelUtils.updateUnifiedPartsList(_model.currentProject);
-            var abcMarkup:String = _model.currentProject.exportToFormat(DataFormats.PRINT_ABC_DATA_PROVIDER);
-            var naWrapper:NativeAppsWrapper = NativeAppsWrapper.instance;
-            naWrapper.abcToXml(abcMarkup, null, on_xml_ready);
-        }
-        if (selectedFile.exists) {
-            _deferFileBrowserClose = true;
-            _showOverwriteFilePrompt(selectedFile.nativePath, do_it);
-        } else {
-            do_it();
-        }
-    }
-
-    /**
-     * TODO: document
+     * Executed when a pick-up window (general purpose list selection UI) has been dismissed.
      */
     private function _onPickupWindowClosed(...ignore):void {
         if (_windowsManager.isWindowAvailable(_pickupWindowUid)) {
