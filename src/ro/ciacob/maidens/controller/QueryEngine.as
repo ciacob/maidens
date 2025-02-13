@@ -407,6 +407,12 @@ public class QueryEngine {
      * measure having the same index.
      */
     public function deleteElement(element:ProjectData):ProjectData {
+
+        if (ModelUtils.isSection(element)) {
+            _unbindSection(element);
+            // Fallthrough
+        }
+
         if (ModelUtils.isMeasure(element)) {
             return _deleteMeasureElement(element);
         }
@@ -1575,6 +1581,26 @@ public class QueryEngine {
         }
         measure.addDataChild(voice);
         return voice;
+    }
+
+    /**
+     * Removes given `section` from all generator bindings where it might be used.
+     * @param section - A section to unbind.
+     */
+    private function _unbindSection (section:ProjectData):void {
+        var connectionUid : String;
+        if ((connectionUid = section.getContent(DataFields.CONNECTION_UID)) != DataFields.VALUE_NOT_SET) {
+            var generators : Array = getAllGeneratorNodes();
+            for each (var generator : ProjectData in generators) {
+                var generatorOutputs : Array = generator.getContent(GeneratorKeys.OUTPUT_CONNECTIONS) as Array;
+                if (generatorOutputs && generatorOutputs.length) {
+                    var matchIndex : int = generatorOutputs.indexOf(connectionUid);
+                    if (matchIndex != -1) {
+                        generatorOutputs.removeAt(matchIndex);
+                    }
+                }
+            }
+        }
     }
 
     private static function _deleteMeasureElement(measureToDelete:ProjectData):ProjectData {

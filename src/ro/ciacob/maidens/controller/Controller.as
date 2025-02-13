@@ -3989,20 +3989,6 @@ public class Controller {
                 return;
             }
 
-            // Deleting a Voice node requires special handling, due to specific voices
-            // restrictions, as detailed in MAID-21
-            // (https://ciacob.atlassian.net/projects/MAID/issues/MAID-21?filter=allopenissues).
-            // Especially, we need to make sure that the parent measure is always left with a
-            // valid "voice 1" to host musical content. Deleting a Voice always causes its previous
-            // sibling node to be selected. This is handled inside the `_deleteVoiceNode()` method.
-//            if (ModelUtils.isVoice(deletable)) {
-//                replacementSelection = _deleteVoiceNode(deletable);
-//                if (replacementSelection && replacementSelection.dataParent) {
-//                    var info:Object = _getMeasureSelectionInfo(replacementSelection.dataParent as ProjectData);
-//                    GLOBAL_PIPE.send(ViewKeys.MEASURE_SELECTION_INFO_READY, info);
-//                }
-//            }
-
             // Deleting a Cluster requires special care, as it could be a member of a tuplet.
             // If this is the case, we must decommission the tuplet.
             if (ModelUtils.isCluster(deletable)) {
