@@ -51,8 +51,11 @@ K:Cmaj
 	[I: MIDI=channel ${staff.channelIndex} MIDI=program ${staff.patchNumber}]
 	<#foreach section in staff.sections>
 		% Section "${section.name}" for staff "${staff.uid}"
-		 <#foreach measure in section.measures>
-		 	${measure.timeSignature}<#foreach event in measure.events>${event}</#foreach> ${measure.bar}
-		 </#foreach>
+		<#if staff.channelIndex=="1">
+		 "^${section.name} "
+		</#if>
+		<#foreach measure in section.measures>
+			${measure.timeSignature}<#foreach event in measure.events>${event}</#foreach> ${measure.bar}
+		</#foreach>
 	</#foreach>
 </#foreach>
