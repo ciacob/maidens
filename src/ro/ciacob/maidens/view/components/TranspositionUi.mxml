@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <windows:BasicWindowRootContainer
-        preinitialize="onPreInitialize(event)"
-        creationComplete="_onCreationComplete(event)"
-        xmlns:fx="http://ns.adobe.com/mxml/2009"
+                                  preinitialize="onPreInitialize(event)"
+                                  creationComplete="_onCreationComplete(event)"
+                                  xmlns:fx="http://ns.adobe.com/mxml/2009"
 
-        xmlns:mx="library://ns.adobe.com/flex/mx"
-        xmlns:windows="ro.ciacob.desktop.windows.*"
-        styleName="tintorettoBackground"
-        width="100%"
-        height="100%">
+                                  xmlns:mx="library://ns.adobe.com/flex/mx"
+                                  xmlns:windows="ro.ciacob.desktop.windows.*"
+                                  styleName="tintorettoBackground"
+                                  width="100%"
+                                  height="100%">
 
     <fx:Style>
         @namespace s "library://ns.adobe.com/flex/spark";
@@ -21,285 +21,287 @@
     </fx:Style>
 
     <fx:Script>
-		<![CDATA[
-        import eu.claudius.iacob.maidens.constants.StaticTokens;
-        import eu.claudius.iacob.maidens.constants.ViewKeys;
-
-        import mx.events.FlexEvent;
-
-        import ro.ciacob.desktop.signals.PTT;
-        import ro.ciacob.desktop.windows.IWindowsManager;
-        import ro.ciacob.desktop.windows.WindowActivity;
-        import ro.ciacob.maidens.generators.constants.pitch.Direction;
-        import ro.ciacob.maidens.generators.constants.pitch.IntervalNames;
-        import ro.ciacob.maidens.generators.constants.pitch.IntervalsSize;
-
-
-        import eu.claudius.iacob.maidens.Colors;
-
-
-        import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
-        import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
-
-        import ro.ciacob.utils.ConstantUtils;
-        import ro.ciacob.utils.Strings;
-        import ro.ciacob.utils.constants.CommonStrings;
-
-        private static const FIRST_COL_WIDTH:uint = 140;
-        private static const INTERVALS_LIST:Array = [];
-        private static const OCTAVES_LIST:Array = [
-            {label: StaticTokens.NONE, value: 0},
-            {label: StaticTokens.OCTAVES_ONE, value: 12},
-            {label: StaticTokens.OCTAVES_TWO, value: 24}
-        ];
-
-        [Bindable]
-        private var canDiscard:Boolean;
-
-        [Bindable]
-        private var canApply:Boolean;
-
-        [Bindable]
-        private var canEnableSection:Boolean;
-
-        private var _windowManager:IWindowsManager;
-        private var _hasWindowCloseListener:Boolean;
-        private var _initialData:Object;
-        private var _initialDataChanged:Boolean;
-        private var _backupData:Object;
-        private var _currentData:Object;
-
-
-        /**
-         * Externally sends values in the UI. Useful to restore last used settings, in the event the user
-         * wants to reuse them.
-         */
-        public function set initialData(value:Object):void {
-            _initialData = value;
-            _initialDataChanged = true;
-            invalidateProperties();
-        }
-
-        /**
-         * Getting a hold to the Windows manager instance that controls this window, to carry out window
-         * closing internally (less round-trip needed to the controller).
-         */
-        override public function set manager(value:IWindowsManager):void {
-            super.manager = value;
-            _windowManager = value;
-        }
-
-        /**
-         * Fires after the component is initialized but after it is drawn on screen. This is the preferred time
-         * to transfer buffered, externally set properties into the component.
-         */
-        override protected function commitProperties():void {
-            super.commitProperties();
-            if (_windowManager && !_hasWindowCloseListener) {
-                _windowManager.observeWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
-                _hasWindowCloseListener = true;
+        <![CDATA[
+            import eu.claudius.iacob.maidens.constants.StaticTokens;
+            import eu.claudius.iacob.maidens.constants.ViewKeys;
+            
+            import mx.events.FlexEvent;
+            
+            import ro.ciacob.desktop.signals.PTT;
+            import ro.ciacob.desktop.windows.IWindowsManager;
+            import ro.ciacob.desktop.windows.WindowActivity;
+            import ro.ciacob.maidens.generators.constants.pitch.Direction;
+            import ro.ciacob.maidens.generators.constants.pitch.IntervalNames;
+            import ro.ciacob.maidens.generators.constants.pitch.IntervalsSize;
+            
+            import eu.claudius.iacob.maidens.Colors;
+            
+            import eu.claudius.iacob.maidens.skins.ApplyChangesSkin;
+            import eu.claudius.iacob.maidens.skins.ResetChangesSkin;
+            
+            import ro.ciacob.utils.ConstantUtils;
+            import ro.ciacob.utils.Strings;
+            import ro.ciacob.utils.constants.CommonStrings;
+            
+            private static const FIRST_COL_WIDTH:uint = 140;
+            private static const SECOND_COL_WIDTH:uint = 220;
+            private static const INTERVALS_LIST:Array = [];
+            private static const OCTAVES_LIST:Array = [
+                    {label: StaticTokens.NONE, value: 0},
+                    {label: StaticTokens.OCTAVES_ONE, value: 12},
+                    {label: StaticTokens.OCTAVES_TWO, value: 24}
+                ];
+            
+            [Bindable]
+            private var canDiscard:Boolean;
+            
+            [Bindable]
+            private var canApply:Boolean;
+            
+            [Bindable]
+            private var canEnableSection:Boolean;
+            
+            private var _windowManager:IWindowsManager;
+            private var _hasWindowCloseListener:Boolean;
+            private var _initialData:Object;
+            private var _initialDataChanged:Boolean;
+            private var _backupData:Object;
+            private var _currentData:Object;
+            
+            /**
+             * Externally sends values in the UI. Useful to restore last used settings, in the event the user
+             * wants to reuse them.
+             */
+            public function set initialData(value:Object):void {
+                _initialData = value;
+                _initialDataChanged = true;
+                invalidateProperties();
             }
-
-            if (_initialDataChanged) {
-                _initialDataChanged = false;
-                _writeToUi(_initialData);
-                if (!_currentData) {
-                    _currentData = _initialData;
-                } else {
-                    _backupData = _initialData;
+            
+            /**
+             * Getting a hold to the Windows manager instance that controls this window, to carry out window
+             * closing internally (less round-trip needed to the controller).
+             */
+            override public function set manager(value:IWindowsManager):void {
+                super.manager = value;
+                _windowManager = value;
+            }
+            
+            /**
+             * Fires after the component is initialized but after it is drawn on screen. This is the preferred time
+             * to transfer buffered, externally set properties into the component.
+             */
+            override protected function commitProperties():void {
+                super.commitProperties();
+                if (_windowManager && !_hasWindowCloseListener) {
+                    _windowManager.observeWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
+                    _hasWindowCloseListener = true;
+                }
+            
+                if (_initialDataChanged) {
+                    _initialDataChanged = false;
+                    _writeToUi(_initialData);
+                    if (!_currentData) {
+                        _currentData = _initialData;
+                    }
+                    else {
+                        _backupData = _initialData;
+                    }
+                    _updateCommitDiscardButtons();
+                }
+            }
+            
+            /**
+             * Fires when window is closed by using the "x" button or similar means. Allows
+             * halting the operation midway.
+             */
+            private function _onWindowBeforeDestroy(...ignore):Boolean {
+                if (_haveChanges()) {
+                    _setWarningStatus(true);
+                    return false;
+                }
+                else {
+                    _prepareForDeletion();
+                }
+                return true;
+            }
+            
+            /**
+             * Populates the UI with given dataset provided it is not null.
+             */
+            private function _writeToUi(dataset:Object):void {
+                if (dataset) {
+                    if (ViewKeys.TRANSPOSITION_DIRECTION in dataset) {
+                        transpositionDirection.selectedValue = dataset[ViewKeys.TRANSPOSITION_DIRECTION] as String;
+                    }
+                    if (ViewKeys.TRANSPOSITION_INTERVAL in dataset) {
+                        transpositionInterval.selectedIndex = _valueToIndex(INTERVALS_LIST, dataset[ViewKeys.TRANSPOSITION_INTERVAL]);
+                    }
+                    if (ViewKeys.ADDITIONAL_OCTAVES in dataset) {
+                        additionalOctaves.selectedIndex = _valueToIndex(OCTAVES_LIST, dataset[ViewKeys.ADDITIONAL_OCTAVES]);
+                    }
+                    if (ViewKeys.KEEP_EXISTING_NOTES in dataset) {
+                        keepExistingNotes.selected = dataset[ViewKeys.KEEP_EXISTING_NOTES] as Boolean;
+                    }
+                }
+            }
+            
+            /**
+             * Produces an object with all the current settings in the UI
+             */
+            private function _readFromUI():Object {
+                var dataset:Object = {};
+                dataset[ViewKeys.TRANSPOSITION_DIRECTION] = transpositionDirection.selectedValue;
+                dataset[ViewKeys.TRANSPOSITION_INTERVAL] = transpositionInterval.selectedItem ? transpositionInterval.selectedItem.value : 0;
+                dataset[ViewKeys.ADDITIONAL_OCTAVES] = additionalOctaves.selectedItem ? additionalOctaves.selectedItem.value : 0;
+                dataset[ViewKeys.KEEP_EXISTING_NOTES] = keepExistingNotes.selected;
+                return dataset;
+            }
+            
+            /**
+             * Determines whether user has made changes in the current session. Useful for preventing
+             * accidental closing of the window.
+             */
+            private function _haveChanges():Boolean {
+                if (_backupData && _currentData) {
+                    for (var key:String in _backupData) {
+                        if (_backupData[key] != _currentData[key]) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            /**
+             * Causes the UI responsible with submitting or discarding user settings to become available or not,
+             * based on the current status.
+             */
+            private function _updateCommitDiscardButtons():void {
+                canDiscard = (_backupData && _currentData && _haveChanges());
+                canApply = (_currentData && (_currentData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0) ||
+                    (_backupData && (_backupData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0);
+                canEnableSection = (canDiscard || canApply);
+            }
+            
+            /**
+             * Causes the notification area to change color in order to notify the user that he must either save or
+             * cancel before.
+             */
+            private function _setWarningStatus(mustWarn:Boolean):void {
+                if (mustWarn) {
+                    bottomBox.setStyle('backgroundColor', Colors.WARNING);
+                }
+                else {
+                    bottomBox.clearStyle('backgroundColor');
+                }
+            }
+            
+            /**
+             * Return the index of the item in given Array that has a "value" property which points, or is
+             * equal to given `value`.
+             */
+            private static function _valueToIndex(arr:Array, value:Object):int {
+                if (arr && arr.length && value !== null) {
+                    for (var i:int = 0; i < arr.length; i++) {
+                        var item:Object = arr[i];
+                        if (item.value === value) {
+                            return i;
+                        }
+                    }
+                }
+                return -1;
+            }
+            
+            /**
+             * Fired when the user clicks the "commit" button.
+             */
+            private function _onApplyButtonClick(event:Event):void {
+                var commitSource:Object = (_currentData && (_currentData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0) ? _currentData :
+                    (_backupData && (_backupData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0) ? _backupData : null;
+                if (commitSource) {
+                    _backupData = commitSource;
+                    PTT.getPipe().send(ViewKeys.TRANSPOSITION_OPERATION_COMMIT, commitSource);
                 }
                 _updateCommitDiscardButtons();
+                _setWarningStatus(false);
+                _closeWindow();
             }
-        }
-
-        /**
-         * Fires when window is closed by using the "x" button or similar means. Allows
-         * halting the operation midway.
-         */
-        private function _onWindowBeforeDestroy(...ignore):Boolean {
-            if (_haveChanges()) {
-                _setWarningStatus(true);
-                return false;
-            } else {
-                _prepareForDeletion();
+            
+            /**
+             * Fired when the user clicks the "cancel" button.
+             */
+            private function _onResetButtonClick(event:Event):void {
+                _currentData = null;
+                if (_backupData) {
+                    _writeToUi(_backupData);
+                }
+                _updateCommitDiscardButtons();
+                _setWarningStatus(false);
+                _closeWindow();
             }
-            return true;
-        }
-
-        /**
-         * Populates the UI with given dataset provided it is not null.
-         */
-        private function _writeToUi(dataset:Object):void {
-            if (dataset) {
-                if (ViewKeys.TRANSPOSITION_DIRECTION in dataset) {
-                    transpositionDirection.selectedValue = dataset[ViewKeys.TRANSPOSITION_DIRECTION] as String;
-                }
-                if (ViewKeys.TRANSPOSITION_INTERVAL in dataset) {
-                    transpositionInterval.selectedIndex = _valueToIndex(INTERVALS_LIST, dataset[ViewKeys.TRANSPOSITION_INTERVAL]);
-                }
-                if (ViewKeys.ADDITIONAL_OCTAVES in dataset) {
-                    additionalOctaves.selectedIndex = _valueToIndex(OCTAVES_LIST, dataset[ViewKeys.ADDITIONAL_OCTAVES]);
-                }
-                if (ViewKeys.KEEP_EXISTING_NOTES in dataset) {
-                    keepExistingNotes.selected = dataset[ViewKeys.KEEP_EXISTING_NOTES] as Boolean;
+            
+            /**
+             * Tries to facilitate memory reclaim upon closing of this window.
+             */
+            private function _prepareForDeletion():void {
+                _windowManager.stopObservingWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
+                _backupData = null;
+                _currentData = null;
+            }
+            
+            /**
+             * Programmatically closes the window, provided the "auto close" check box was selected.
+             */
+            private function _closeWindow():void {
+                if (autoCloseCheckBox.selected) {
+                    _prepareForDeletion();
+                    _windowManager.destroyWindow(windowUid);
+                    _windowManager = null;
                 }
             }
-        }
-
-        /**
-         * Produces an object with all the current settings in the UI
-         */
-        private function _readFromUI():Object {
-            var dataset:Object = {};
-            dataset[ViewKeys.TRANSPOSITION_DIRECTION] = transpositionDirection.selectedValue;
-            dataset[ViewKeys.TRANSPOSITION_INTERVAL] = transpositionInterval.selectedItem ? transpositionInterval.selectedItem.value : 0;
-            dataset[ViewKeys.ADDITIONAL_OCTAVES] = additionalOctaves.selectedItem ? additionalOctaves.selectedItem.value : 0;
-            dataset[ViewKeys.KEEP_EXISTING_NOTES] = keepExistingNotes.selected;
-            return dataset;
-        }
-
-        /**
-         * Determines whether user has made changes in the current session. Useful for preventing
-         * accidental closing of the window.
-         */
-        private function _haveChanges():Boolean {
-            if (_backupData && _currentData) {
-                for (var key:String in _backupData) {
-                    if (_backupData[key] != _currentData[key]) {
-                        return true;
+            
+            /**
+             * Fired shortly after the class constructor runs, and before all the children component are initialized.
+             */
+            protected function onPreInitialize(event:FlexEvent):void {
+            
+                // Compute transposition intervals
+                if (INTERVALS_LIST.length == 0) {
+                    var allIntervalKeys:Array = ConstantUtils.getAllNames(IntervalsSize);
+                    for (var i:int = 0; i < allIntervalKeys.length; i++) {
+                        var intervalRecord:Object = {};
+                        var key:String = allIntervalKeys[i] as String;
+                        var intervalSize:int = IntervalsSize[key] as int;
+                        var stLabel : String = (intervalSize > 1)? 'semitones' : 'semitone';
+                        intervalRecord.value = intervalSize;
+                        var intervalName:String = IntervalNames[key] as String;
+                        intervalRecord.label = Strings.sprintf(StaticTokens.INTERVAL_INFO, intervalName, intervalSize, stLabel);
+                        INTERVALS_LIST[intervalSize] = intervalRecord;
                     }
+                    INTERVALS_LIST.splice(0, 1);
                 }
             }
-            return false;
-        }
-
-        /**
-         * Causes the UI responsible with submitting or discarding user settings to become available or not,
-         * based on the current status.
-         */
-        private function _updateCommitDiscardButtons():void {
-            canDiscard = (_backupData && _currentData && _haveChanges());
-            canApply = (_currentData && (_currentData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0) ||
-                    (_backupData && (_backupData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0);
-            canEnableSection = (canDiscard || canApply);
-        }
-
-        /**
-         * Causes the notification area to change color in order to notify the user that he must either save or
-         * cancel before.
-         */
-        private function _setWarningStatus(mustWarn:Boolean):void {
-            if (mustWarn) {
-                bottomBox.setStyle('backgroundColor', Colors.WARNING);
-            } else {
-                bottomBox.clearStyle('backgroundColor');
+            
+            /**
+             * Fired after one of the controls has been changed by the user
+             */
+            private function _onControlChanged():void {
+                _currentData = _readFromUI();
+                _updateCommitDiscardButtons();
             }
-        }
-
-        /**
-         * Return the index of the item in given Array that has a "value" property which points, or is
-         * equal to given `value`.
-         */
-        private static function _valueToIndex(arr:Array, value:Object):int {
-            if (arr && arr.length && value !== null) {
-                for (var i:int = 0; i < arr.length; i++) {
-                    var item:Object = arr[i];
-                    if (item.value === value) {
-                        return i;
-                    }
+            
+            /**
+             * Fired after the control itself and all children have successfully been initialized and populated,
+             * but not drawn on screen. Values of all children are reliable at this point.
+             */
+            protected function _onCreationComplete(event:FlexEvent):void {
+                if (!_backupData) {
+                    _backupData = _readFromUI();
                 }
             }
-            return -1;
-        }
-
-        /**
-         * Fired when the user clicks the "commit" button.
-         */
-        private function _onApplyButtonClick(event:Event):void {
-            var commitSource:Object = (_currentData && (_currentData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0) ? _currentData :
-                    (_backupData && (_backupData[ViewKeys.TRANSPOSITION_INTERVAL] as int) > 0) ? _backupData : null;
-            if (commitSource) {
-                _backupData = commitSource;
-                PTT.getPipe().send(ViewKeys.TRANSPOSITION_OPERATION_COMMIT, commitSource);
-            }
-            _updateCommitDiscardButtons();
-            _setWarningStatus(false);
-            _closeWindow();
-        }
-
-        /**
-         * Fired when the user clicks the "cancel" button.
-         */
-        private function _onResetButtonClick(event:Event):void {
-            _currentData = null;
-            if (_backupData) {
-                _writeToUi(_backupData);
-            }
-            _updateCommitDiscardButtons();
-            _setWarningStatus(false);
-            _closeWindow();
-        }
-
-        /**
-         * Tries to facilitate memory reclaim upon closing of this window.
-         */
-        private function _prepareForDeletion():void {
-            _windowManager.stopObservingWindowActivity(windowUid, WindowActivity.BEFORE_DESTROY, _onWindowBeforeDestroy);
-            _backupData = null;
-            _currentData = null;
-        }
-
-        /**
-         * Programmatically closes the window, provided the "auto close" check box was selected.
-         */
-        private function _closeWindow():void {
-            if (autoCloseCheckBox.selected) {
-                _prepareForDeletion();
-                _windowManager.destroyWindow(windowUid);
-                _windowManager = null;
-            }
-        }
-
-        /**
-         * Fired shortly after the class constructor runs, and before all the children component are initialized.
-         */
-        protected function onPreInitialize(event:FlexEvent):void {
-
-            // Compute transposition intervals
-            if (INTERVALS_LIST.length == 0) {
-                var allIntervalKeys:Array = ConstantUtils.getAllNames(IntervalsSize);
-                for (var i:int = 0; i < allIntervalKeys.length; i++) {
-                    var intervalRecord:Object = {};
-                    var key:String = allIntervalKeys[i] as String;
-                    var intervalSize:int = IntervalsSize[key] as int;
-                    intervalRecord.value = intervalSize;
-                    var intervalName:String = IntervalNames[key] as String;
-                    intervalRecord.label = Strings.sprintf(StaticTokens.INTERVAL_INFO, intervalName, intervalSize);
-                    INTERVALS_LIST[intervalSize] = intervalRecord;
-                }
-                INTERVALS_LIST.splice(0, 1);
-            }
-        }
-
-        /**
-         * Fired after one of the controls has been changed by the user
-         */
-        private function _onControlChanged():void {
-            _currentData = _readFromUI();
-            _updateCommitDiscardButtons();
-        }
-
-        /**
-         * Fired after the control itself and all children have successfully been initialized and populated,
-         * but not drawn on screen. Values of all children are reliable at this point.
-         */
-        protected function _onCreationComplete(event:FlexEvent):void {
-            if (!_backupData) {
-                _backupData = _readFromUI();
-            }
-        }
         ]]>
-	</fx:Script>
+    </fx:Script>
 
     <!-- Content -->
     <mx:VBox height="{rule.y - 10}"
@@ -329,12 +331,12 @@
         </mx:HBox>
 
         <!-- Number of semitones -->
-        <mx:HBox width="100%">
+        <mx:HBox width="100%" verticalAlign="middle">
             <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
                       text="{StaticTokens.INTERVAL}{CommonStrings.COLON_SPACE}"/>
             <mx:ComboBox id="transpositionInterval"
                          selectedIndex="-1"
-                         width="230"
+                         width="{SECOND_COL_WIDTH}"
                          dataProvider="{INTERVALS_LIST}"
                          labelField="label"
                          change="_onControlChanged()"
@@ -342,11 +344,15 @@
         </mx:HBox>
 
         <!-- Over how many octaves -->
-        <mx:HBox width="100%">
+        <mx:HBox width="100%" verticalAlign="middle">
             <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
                       text="{StaticTokens.ADDITIONAL_OCTAVES}{CommonStrings.COLON_SPACE}"/>
-            <mx:ComboBox id="additionalOctaves" width="100%" dataProvider="{OCTAVES_LIST}" labelField="label"
-                         selectedIndex="0" change="_onControlChanged()"/>
+            <mx:ComboBox id="additionalOctaves"
+                         selectedIndex="0" 
+                         width="{SECOND_COL_WIDTH}"
+                         dataProvider="{OCTAVES_LIST}"
+                         labelField="label"
+                         change="_onControlChanged()" />
         </mx:HBox>
 
         <!-- Maintain existing notes/create parallel motion -->
@@ -384,7 +390,6 @@
                  textAlign="left"
                  width="100%"/>
 
-
         <mx:HBox horizontalScrollPolicy="off"
                  verticalScrollPolicy="off">
 
@@ -406,7 +411,6 @@
                          id="autoCloseCheckBox"
                          label="auto close"
                          selected="true"/>
-
 
         </mx:HBox>
     </mx:VBox>
