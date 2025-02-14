@@ -41,7 +41,7 @@
         import ro.ciacob.utils.constants.CommonStrings;
 
         private static const FIRST_COL_WIDTH:uint = 130;
-        private static const SECOND_COL_WIDTH:uint = 240;
+        private static const SECOND_COL_WIDTH:uint = 220;
         private static const SCALE_STRATEGIES_LIST:Array = [
             {label: StaticTokens.NONE, value: 0},
             {label: StaticTokens.SCALE_BY_CONSTANT_FACTOR, value: StaticFieldValues.CONSTANT},
@@ -346,7 +346,7 @@
         <mx:Spacer height="0"/>
 
         <!-- Strategy -->
-        <mx:HBox width="100%">
+        <mx:HBox width="100%" verticalAlign="middle">
             <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
                       text="{StaticTokens.SCALE_STRATEGY}{CommonStrings.COLON_SPACE}"
                       toolTip="Choose a type of transformation to apply to melodic intervals in the selected material."/>
@@ -360,7 +360,7 @@
         </mx:HBox>
 
         <!-- Threshold operating realm. Only visible when "threshold" is selected in "Strategy" -->
-        <mx:HBox width="100%" id="thresholdOperationRealmGroup"
+        <mx:HBox width="100%" verticalAlign="top" id="thresholdOperationRealmGroup"
                  visible="{scaleStrategy.selectedIndex == 3}"
                  includeInLayout="{scaleStrategy.selectedIndex == 3}">
             <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
@@ -495,7 +495,7 @@
         </mx:HBox>
 
         <!-- Vertical alignment. Visible only when "Strategy" is not set to "none". -->
-        <mx:HBox width="100%" id="verticalAlignGroup"
+        <mx:HBox width="100%" verticalAlign="middle" id="verticalAlignGroup"
                  visible="{scaleStrategy.selectedIndex > 0}"
                  includeInLayout="{scaleStrategy.selectedIndex > 0}">
             <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
@@ -510,7 +510,7 @@
         </mx:HBox>
 
         <!-- Consolidate resulting primes. Visible only when "Strategy" is not set to "none". -->
-        <mx:HBox width="100%" id="resultingPrimesGroup"
+        <mx:HBox width="100%" verticalAlign="top" id="resultingPrimesGroup"
                  visible="{scaleStrategy.selectedIndex > 0}"
                  includeInLayout="{scaleStrategy.selectedIndex > 0}">
             <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
@@ -528,7 +528,7 @@
         </mx:HBox>
 
         <!-- Invert intervals. Visible only when "Strategy" is not set to "none". -->
-        <mx:HBox width="100%" id="invertIntervalsGroup"
+        <mx:HBox width="100%" verticalAlign="middle" id="invertIntervalsGroup"
                  visible="{scaleStrategy.selectedIndex > 0}"
                  includeInLayout="{scaleStrategy.selectedIndex > 0}">
             <mx:Label styleName="alignRight" width="{FIRST_COL_WIDTH}"
