@@ -1,6 +1,7 @@
 /bin
 /bin-release
 /bin-debug
+/dist-src
 .vscode
 
 asconfig.json
