@@ -23,8 +23,6 @@ public class Model {
 
     private var _queryEngine:QueryEngine;
 
-    private var _referenceProject:ProjectData;
-
     public function get currentProject():ProjectData {
         return _currentProject;
     }
@@ -63,10 +61,7 @@ public class Model {
      * Checks whether there currently is unsaved data.
      */
     public function haveUnsavedData():Boolean {
-        if (_currentProject != null && _referenceProject != null) {
-            return !(_currentProject.isEqualTo(_referenceProject));
-        }
-        return false;
+        return (_currentProject != null && !_currentProject.getContent (DataFields.IS_PRISTINE));
     }
 
     public function get queryEngine():QueryEngine {
@@ -75,16 +70,6 @@ public class Model {
 
     public function refreshCurrentProject(alsoDiscardChanges:Boolean = true):void {
         _queryEngine = new QueryEngine(_currentProject);
-        if (alsoDiscardChanges) {
-            resetReferenceData();
-        }
-    }
-
-    public function resetReferenceData():void {
-        _referenceProject = null;
-        if (_currentProject != null) {
-            _referenceProject = (_currentProject.clone() as ProjectData);
-        }
     }
 
     public function getDefaultContentFile():File {

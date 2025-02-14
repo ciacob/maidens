@@ -1584,10 +1584,9 @@ public class Controller {
             _loadProject((defaultProject as ProjectData));
             showStatus(Strings.sprintf(StaticTokens.COLD_START_NOTICE,
                     _model.getDefaultContentFile().nativePath), PromptColors.WARNING);
-            _model.resetReferenceData();
             _updateProjectInfo();
             _resetSnapshotsHistory();
-
+            defaultProject.setContent(DataFields.IS_PRISTINE, true);
         }
     }
 
@@ -1728,6 +1727,7 @@ public class Controller {
             }
 
             // Add recover point
+            _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
             _snapshotsManager.takeSnapshot(_model.currentProject,
                     Strings.sprintf(
                             StaticTokens.ITEM_PASTE_OPERATION, pasteTarget.getContent(DataFields.DATA_TYPE)
@@ -2092,6 +2092,7 @@ public class Controller {
             } else {
                 var currProject:ProjectData = _model.currentProject;
                 currProject.setContent(DataFields.MODIFICATION_TIMESTAMP, Time.timestamp);
+                currProject.setContent(DataFields.IS_PRISTINE, true);
                 var currentData:ByteArray = currProject.toSerialized();
                 var error:String;
                 var onWriteError:Function = function (event:ErrorEvent):void {
@@ -2104,7 +2105,6 @@ public class Controller {
                 var bytesWritten:int = writer.write(currentData, destination);
                 if (bytesWritten > 0) {
                     _showSuccessfullySavedPrompt(destination.nativePath, bytesWritten);
-                    _model.resetReferenceData();
                     _updateProjectInfo();
                     _resetSnapshotsHistory();
                 } else {
@@ -3582,10 +3582,10 @@ public class Controller {
                 var timeStamp:String = Time.timestamp;
                 currProject.setContent(DataFields.MODIFICATION_TIMESTAMP, timeStamp);
                 currProject.setContent(DataFields.CREATION_TIMESTAMP, timeStamp);
+                currProject.setContent(DataFields.IS_PRISTINE, true);
             }
             _model.currentProjectFile = null;
         }
-        _model.resetReferenceData();
         _updateProjectInfo();
         _resetSnapshotsHistory();
     }
@@ -3887,6 +3887,7 @@ public class Controller {
             var child:ProjectData = queryEngine.createChildOf(ProjectData(parent));
 
             // Add recover point
+            _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
             _snapshotsManager.takeSnapshot(_model.currentProject,
                     Strings.sprintf(
                             StaticTokens.ITEM_ADD_OPERATION, child.getContent(DataFields.DATA_TYPE)
@@ -3928,6 +3929,7 @@ public class Controller {
             setSelection(replacement);
 
             // Add recover point
+            _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
             _snapshotsManager.takeSnapshot(_model.currentProject,
                     Strings.sprintf(
                             StaticTokens.ITEM_NUDGE_AFTER, movable.getContent(DataFields.DATA_TYPE)
@@ -3954,6 +3956,7 @@ public class Controller {
             setSelection(replacement);
 
             // Add recover point
+            _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
             _snapshotsManager.takeSnapshot(_model.currentProject,
                     Strings.sprintf(
                             StaticTokens.ITEM_NUDGE_BEFORE, movable.getContent(DataFields.DATA_TYPE)
@@ -3972,6 +3975,7 @@ public class Controller {
             var deletable:ProjectData = (model.currentProject.getElementByRoute(uid) as ProjectData);
 
             // Add recover point
+            _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
             _snapshotsManager.takeSnapshot(_model.currentProject,
                     Strings.sprintf(
                             StaticTokens.ITEM_REMOVE_OPERATION, deletable.getContent(DataFields.DATA_TYPE)
@@ -4078,6 +4082,7 @@ public class Controller {
                 var dataType:String = test.toString();
 
                 // Add recover point
+                _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
                 _snapshotsManager.takeSnapshot(_model.currentProject,
                         Strings.sprintf(StaticTokens.ITEM_EDIT_OPERATION, dataType)
                 );
@@ -4235,6 +4240,7 @@ public class Controller {
                 }
 
                 // Add recovery point
+                _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
                 _snapshotsManager.takeSnapshot(_model.currentProject, Strings.sprintf(
                         StaticTokens.TRANSPOSITION_OPERATION,
                         lastSelection.getContent(DataFields.DATA_TYPE)
@@ -4385,6 +4391,7 @@ public class Controller {
         if (haveChanges) {
 
             // Add recovery point
+            _model.currentProject.setContent(DataFields.IS_PRISTINE, false);
             _snapshotsManager.takeSnapshot(_model.currentProject, Strings.sprintf(
                     StaticTokens.SCALE_INTERVALS_OPERATION,
                     lastSelection.getContent(DataFields.DATA_TYPE)

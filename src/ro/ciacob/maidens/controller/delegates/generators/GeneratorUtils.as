@@ -514,6 +514,7 @@ public class GeneratorUtils {
                 _controller.setSelection(generator);
 
                 // Add recovery point
+                _controller.model.currentProject.setContent(DataFields.IS_PRISTINE, false);
                 _controller.snapshotsManager.takeSnapshot(
                         _controller.model.currentProject,
                         Strings.sprintf(
