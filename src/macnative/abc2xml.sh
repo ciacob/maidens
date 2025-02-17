@@ -9,7 +9,7 @@ die () {
 
 ls "$2/$1.abc" >/dev/null 2>&1 && echo "FOUND file $2/$1.abc" || die "File $2/$1.abc NOT found"
 
-python ./abc2xml.py "$2/$1.abc" -o "$2"
+python2 ./abc2xml.py "$2/$1.abc" -o "$2"
 OUT=$?
 
 if [ $OUT -eq 0 ];then
