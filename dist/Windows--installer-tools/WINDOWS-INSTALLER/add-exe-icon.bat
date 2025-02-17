@@ -1,1 +1,1 @@
-"%~dp0..\ResourceHacker.exe" -open "%~dp0..\bin-release-src\MAIDENS\MAIDENS.exe" -save "%~dp0..\bin-release-src\MAIDENS\MAIDENS.exe" -action addskip -res "%~dp0..\bin-release-src\MAIDENS\assets\images\maidens-application-icon.ico" -mask ICONGROUP,MAINICON,
+"%~dp0..\ResourceHacker.exe" -open "%~dp0..\..\..\dist-interim\MAIDENS.exe" -save "%~dp0..\..\..\dist-interim\MAIDENS.exe" -action addskip -res "%~dp0..\..\..\dist-interim\assets\images\maidens-application-icon.ico" -mask ICONGROUP,MAINICON,

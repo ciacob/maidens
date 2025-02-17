@@ -3,7 +3,7 @@ REM Save current dir
 set "currentdir=%cd%"
 
 REM Go to the output directory and get the name of the file it contains
-cd ..\_output_
+cd ..\..\..\dist-out
 FOR /F "tokens=* USEBACKQ" %%F IN (`dir /b`) DO (
 SET installerfile=%%F
 )
@@ -11,8 +11,8 @@ ECHO installer file is: %installerfile%
 
 REM Get back and run signtool on the installer file
 cd %currentdir%
-SET executable="%~dp0..\_output_\%installerfile%"
-SET certificate="%~dp0..\..\..\..\..\_BUILD_\CERTIFICATES\win\ciacob-test-2.pfx"
+SET executable="%~dp0..\..\..\dist-out\%installerfile%"
+SET certificate="%~dp0..\..\..\..\..\..\..\_BUILD_\p12\ciacob.pfx"
 
 setlocal
 SET password="%win-cert-pass%"

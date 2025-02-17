@@ -2,26 +2,26 @@
 set "currDir=%cd%"
 
 echo.
-REM Empty the raw binaries folder
+REM Empty the "distOutFolder" of any previously compiled installers.
 echo Emptying the installer binaries folder...
-set installerBinariesFolder="%~dp0..\bin-release-src"
-cd /d %installerBinariesFolder%
+set distOutFolder="%~dp0..\..\..\dist-out"
+cd /d %distOutFolder%
 for /F "delims=" %%i in ('dir /b') do (rmdir "%%i" /s/q || del "%%i" /s/q) >nul 2>&1
 cd "%currDir%"
 
 echo.
-REM Empty the output folder
-echo Emptying the output folder...
-set outputFolder="%~dp0..\_output_"
-cd /d %outputFolder%
+REM Empty the "distInterim" of any previously patched binaries.
+echo Emptying the installer sources folder...
+set distInterim="%~dp0..\..\..\dist-interim"
+cd /d %distInterim%
 for /F "delims=" %%i in ('dir /b') do (rmdir "%%i" /s/q || del "%%i" /s/q) >nul 2>&1
 cd "%currDir%"
 
-REM Copy binaries over from project
+REM Copy original binaries, aka the files originally "packed" by AIR
 echo.
 echo Copying bundled application...
-set projectBinariesFolder="%~dp0..\..\..\bin\maidens"
-robocopy "%projectBinariesFolder%" "%installerBinariesFolder%\MAIDENS" /E
+set distSrcFolder="%~dp0..\..\..\dist-src"
+robocopy "%distSrcFolder%" "%distInterim%" /E
 
 REM Change main executable icon
 echo.
