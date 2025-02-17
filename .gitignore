@@ -10,3 +10,6 @@ asconfig.json
 *.air
 *.ipa
 *.apk
+/dist-interim
+/dist/macOs--dmg-tools/nodejs/node_modules
+/dist-out
