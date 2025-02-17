@@ -1,16 +1,24 @@
 package ro.ciacob.maidens {
     import flash.utils.describeType;
     import flash.system.Capabilities;
+    import ro.ciacob.desktop.signals.PTT;
 
     public class DebugChecker {
-        /** Custom metadata tag that gets stripped in Release mode */
 
+        public static const TRACE: String = 'trace';
+        private static const GLOBAL_PIPE:PTT = PTT.getPipe();
+
+        /** Custom metadata tag that gets stripped in Release mode */
         [CustomMeta304796]
         public var debugMarker:int;
 
         /** Cached results to avoid redundant checks */
         private var _isDebugBuild:Boolean = detectDebugBuild();
         private var _runsInDebugger:Boolean = Capabilities.isDebugger;
+
+        public static function trace (s : String) : void {
+             GLOBAL_PIPE.send (TRACE, s);
+        }
 
         /**
          * Checks if the code was compiled in Debug mode.

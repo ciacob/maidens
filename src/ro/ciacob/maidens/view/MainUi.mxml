@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<windows:BasicWindowRootContainer height="100%"
+<windows:BasicWindowRootContainer xmlns:maidens="ro.ciacob.maidens.*" height="100%"
                                   horizontalScrollPolicy="off"
                                   initialize="_onInitialize(event)"
                                   preinitialize="_onPreinitialize(event)"
@@ -15,333 +15,344 @@
                                   xmlns:components="ro.ciacob.maidens.view.components.*">
 
     <fx:Script>
-		<![CDATA[
-        import com.greensock.TweenMax;
-
-        import eu.claudius.iacob.maidens.Colors;
-        import eu.claudius.iacob.maidens.Sizes;
-        import eu.claudius.iacob.maidens.constants.StaticTokens;
-        import eu.claudius.iacob.maidens.constants.ViewKeys;
-        import eu.claudius.iacob.maidens.skins.CreateElementSkin;
-        import eu.claudius.iacob.maidens.skins.DeleteElementSkin;
-        import eu.claudius.iacob.maidens.skins.FitSelectionSkin;
-        import eu.claudius.iacob.maidens.skins.FitToWidthSkin;
-        import eu.claudius.iacob.maidens.skins.LockToggleButton;
-        import eu.claudius.iacob.maidens.skins.NextPageSkin;
-        import eu.claudius.iacob.maidens.skins.NudgeDownSkin;
-        import eu.claudius.iacob.maidens.skins.NudgeUpSkin;
-        import eu.claudius.iacob.maidens.skins.PlaybackSkin;
-        import eu.claudius.iacob.maidens.skins.PrevPageSkin;
-        import eu.claudius.iacob.maidens.skins.StopSkin;
-
-        import mx.core.UIComponent;
-        import mx.events.FlexEvent;
-
-        import ro.ciacob.desktop.signals.PTT;
-        import ro.ciacob.maidens.generators.constants.MIDI;
-        import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
-        import ro.ciacob.maidens.model.constants.ModelKeys;
-
-        import ro.ciacob.maidens.model.constants.URLs;
-        import ro.ciacob.maidens.view.constants.MenuCommandNames;
-        import ro.ciacob.maidens.view.constants.PromptColors;
-        import ro.ciacob.maidens.view.constants.PromptKeys;
-
-        import ro.ciacob.utils.OSFamily;
-        import ro.ciacob.utils.Strings;
-        import ro.ciacob.utils.Time;
-        import ro.ciacob.utils.constants.CommonStrings;
-
-        private static const GLOBAL_PIPE:PTT = PTT.getPipe();
-
-        [Bindable]
-        private var _minimumZoomFactor:Number = 0.25;
-
-        [Bindable]
-        private var _haveScoreSelection:Boolean;
-
-        [Bindable]
-        private var _currPageNumber:int;
-
-        [Bindable]
-        private var _numPages:int;
-
-        [Bindable]
-        private var _noScore:Boolean;
-
-        private var _ctaMessages:Array;
-        private var _currentCtaIdx:int = 0;
-        private var ptt:PTT;
-
-        /**
-         * Fired when a toolbar item was clicked
-         * Merely forward to controller, which will handle this.
-         */
-        private static function _onAppToolbarItemClick(event:Event, commandName:String):void {
-            if (event) {
-                var button:UIComponent = (event.target as UIComponent);
-                button.enabled = false;
-            }
-            if (!Strings.isEmpty(commandName)) {
-                GLOBAL_PIPE.send(ViewKeys.APP_MENU_TRIGGERED, {'commandName': commandName});
-            }
-        }
-
-        /**
-         * Equivalent of a constructor function for MXML classes. Children components
-         * are not available yet at this stage.
-         */
-        private function _onPreinitialize(event:FlexEvent):void {
-            setStyle('pictureAlpha', 0.2);
-            ptt = PTT.getPipe();
-        }
-
-        /**
-         * Triggered after children components where initialized (but not configured or
-         * rendered). Sort of a "stage two" constructor function for MXML classes.
-         */
-        private function _onInitialize(event:FlexEvent):void {
-
-            // Initialize application-wide functionality
-            GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT, _onPromptRequested);
-            GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT_DISCARDED, _onPromptDecommissioned);
-
-            // Initialize toolbar related functionality
-            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.STRUCTURE_OPERATIONS_STATUS, _onOperationsStatusUpdate);
-            GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STARTED, _onMidiPlaybackStarted);
-            GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STOPPED, _onMidiPlaybackStopped);
-            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.NAVIGATION_STATE_CHANGE, _onNavigationStateChange);
-            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.SCORE_WAS_RESIZED, _onScoreResized);
-            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.ZOOM_INTERNAL_CHANGE, _onZoomInternalChange);
-            GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.SCORE_SELECTION_CHANGE, _onScoreSelectionChange);
-
-            // Initialize the "call to action" carousel
-            _ctaMessages = [
-                [StaticTokens.CTA_REPORT_BUGS, URLs.CTA_REPORT_BUGS],
-                [StaticTokens.CTA_DONATE, URLs.CTA_DONATE],
-                [StaticTokens.CTA_DISCUSS, URLs.CTA_DISCUSS],
-                [StaticTokens.CTA_SPREAD_THE_WORD, URLs.CTA_SPREAD_THE_WORD]
-            ];
-            _showNextCta();
-        }
-
-        /**
-         * Triggered after children components where initialized and configured (but
-         * not rendered). Sort of a "stage three" constructor function for MXML classes.
-         */
-        private function _onCreationComplete(event:FlexEvent):void {
-        }
-
-        /**
-         * Responds to the MIDI playback started signal, by disabling the "playback" button
-         * and enabling the "stop" button.
-         */
-        private function _onMidiPlaybackStarted(...ignore):void {
-            _updatePlaybackButtons(MIDI.PLAYING_STATE);
-        }
-
-        /**
-         * Responds to the MIDI playback stopped signal, by disabling the "stop" button
-         * and enabling the "playback" button.
-         */
-        private function _onMidiPlaybackStopped(...ignore):void {
-            _updatePlaybackButtons(MIDI.STOPPED_STATE);
-        }
-
-        /**
-         * Toggles availability of the playback buttons based on given state.
-         */
-        private function _updatePlaybackButtons(state:int):void {
-            switch (state) {
-                case MIDI.PLAYING_STATE:
-                    playButton.enabled = false;
-                    stopButton.enabled = true;
-                    break;
-                case MIDI.STOPPED_STATE:
-                    playButton.enabled = true;
-                    stopButton.enabled = false;
-                    break;
-                case MIDI.UNKNOWN_STATE:
-                default:
-                    playButton.enabled = false;
-                    stopButton.enabled = false;
-                    break;
-            }
-        }
-
-        /**
-         * Triggered when a notification is received that deals with the availability
-         * of common functions, such as creating, deleting or moving items around,
-         * performing copy/paste operations, etc.
-         */
-        private function _onOperationsStatusUpdate(status:Object):void {
-            // Update toolbar buttons
-            addButton.enabled = (status[ViewKeys.ADD_ELEMENT_AVAILABLE] as Boolean);
-            removeButton.enabled = (status[ViewKeys.REMOVE_ELEMENT_AVAILABLE] as Boolean);
-            moveUpButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_UP_AVAILABLE] as Boolean);
-            moveDownButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_DOWN_AVAILABLE] as Boolean);
-        }
-
-        private function _onNavigationStateChange(state:Object):void {
-            prevPageButton.enabled = state[ViewKeys.PREV_PAGE_ENABLED] as Boolean;
-            nextPageButton.enabled = state[ViewKeys.NEXT_PAGE_ENABLED] as Boolean;
-            _currPageNumber = state[ViewKeys.CURRENT_PAGE] as int;
-            _numPages = state[ViewKeys.PAGES_NUMBER] as int;
-            _noScore = (state[ViewKeys.NO_SCORE]);
-        }
-
-        /**
-         * Triggered when the score rendering area has been resized.
-         */
-        private function _onScoreResized(sizes:Object):void {
-            var scoreContainer:Object = sizes[ViewKeys.SCORE_CONTAINER] as Object;
-            var scorePage:Object = sizes[ViewKeys.SCORE_PAGE] as Object;
-            _minimumZoomFactor = Math.min(scoreContainer.height / scorePage.height,
-                    scoreContainer.width / scorePage.width) * 0.95;
-            ptt.send(ViewKeys.MINIMUM_ZOOM_CHANGE, _minimumZoomFactor);
-        }
-
-        /**
-         * Triggered when a notification is received that requests a prompt to be displayed.
-         */
-        private function _onPromptRequested(promptData:Object):void {
-            if (PromptKeys.TEXT in promptData) {
-                promptsUi.text = promptData[PromptKeys.TEXT];
-                promptsUi.backgroundColor = (promptData[PromptKeys.BACKGROUND_COLOR] ||
-                        PromptColors.NOTICE);
-                promptsUi.buttonUids = (promptData[PromptKeys.BUTTONS] || null);
-                promptsUi.callback = (promptData[PromptKeys.CALLBACK] || null);
-                if (promptData[PromptKeys.AUTOCLOSE] === undefined) {
-                    promptsUi.autoClose = true;
-                } else {
-                    promptsUi.autoClose = (promptData[PromptKeys.AUTOCLOSE] as Boolean);
+        <![CDATA[
+            import com.greensock.TweenMax;
+            
+            import eu.claudius.iacob.maidens.Colors;
+            import eu.claudius.iacob.maidens.Sizes;
+            import eu.claudius.iacob.maidens.constants.StaticTokens;
+            import eu.claudius.iacob.maidens.constants.ViewKeys;
+            import eu.claudius.iacob.maidens.skins.CreateElementSkin;
+            import eu.claudius.iacob.maidens.skins.DeleteElementSkin;
+            import eu.claudius.iacob.maidens.skins.FitSelectionSkin;
+            import eu.claudius.iacob.maidens.skins.FitToWidthSkin;
+            import eu.claudius.iacob.maidens.skins.LockToggleButton;
+            import eu.claudius.iacob.maidens.skins.NextPageSkin;
+            import eu.claudius.iacob.maidens.skins.NudgeDownSkin;
+            import eu.claudius.iacob.maidens.skins.NudgeUpSkin;
+            import eu.claudius.iacob.maidens.skins.PlaybackSkin;
+            import eu.claudius.iacob.maidens.skins.PrevPageSkin;
+            import eu.claudius.iacob.maidens.skins.StopSkin;
+            
+            import mx.core.UIComponent;
+            import mx.events.FlexEvent;
+            
+            import ro.ciacob.desktop.signals.PTT;
+            import ro.ciacob.maidens.generators.constants.MIDI;
+            import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
+            import ro.ciacob.maidens.model.constants.ModelKeys;
+            
+            import ro.ciacob.maidens.model.constants.URLs;
+            import ro.ciacob.maidens.view.constants.MenuCommandNames;
+            import ro.ciacob.maidens.view.constants.PromptColors;
+            import ro.ciacob.maidens.view.constants.PromptKeys;
+            
+            import ro.ciacob.utils.OSFamily;
+            import ro.ciacob.utils.Strings;
+            import ro.ciacob.utils.Time;
+            import ro.ciacob.utils.constants.CommonStrings;
+            
+            private static const GLOBAL_PIPE:PTT = PTT.getPipe();
+            
+            [Bindable]
+            private var _debugTools:Boolean = false;
+            
+            [Bindable]
+            private var _minimumZoomFactor:Number = 0.25;
+            
+            [Bindable]
+            private var _haveScoreSelection:Boolean;
+            
+            [Bindable]
+            private var _currPageNumber:int;
+            
+            [Bindable]
+            private var _numPages:int;
+            
+            [Bindable]
+            private var _noScore:Boolean;
+            
+            private var _ctaMessages:Array;
+            private var _currentCtaIdx:int = 0;
+            private var ptt:PTT;
+            
+            /**
+             * Fired when a toolbar item was clicked
+             * Merely forward to controller, which will handle this.
+             */
+            private static function _onAppToolbarItemClick(event:Event, commandName:String):void {
+                if (event) {
+                    var button:UIComponent = (event.target as UIComponent);
+                    button.enabled = false;
                 }
-                promptsUi.show();
-            }
-        }
-
-        /**
-         * Triggered when a specific request has been received to hide the existing prompt (usually the case when the
-         * prompt has been opened for an undefined period of time via setting its `autoClose` property to `false`).
-         */
-        private function _onPromptDecommissioned(...ignore):void {
-            promptsUi.hide();
-        }
-
-        /**
-         * Triggered when the "zoom" slider is dragged by the user.
-         */
-        private static function _onZoomChange(factor:Number):void {
-            GLOBAL_PIPE.send(ViewKeys.ZOOM_EXTERNAL_CHANGE, factor);
-        }
-
-        /**
-         * Triggered when the zoom factor has been internally set inside the score renderer
-         * component.
-         */
-        private function _onZoomInternalChange(factor:Number):void {
-            zoomFactorSlider.value = factor;
-        }
-
-        /**
-         * Formatting function used to display the scaling factor as a percent number.
-         */
-        private static function _scaleValueFormatter(rawValue:Number):String {
-            return (Math.round(rawValue * 100) + CommonStrings.PERCENT);
-        }
-
-        /**
-         * Triggered when in-score selection occurs. Despite the fact that score selection
-         * always maps to a project hierarchy selection, the reverse is not always true.
-         * There are situations when selecting an element (e.g., Project) in the hierarchy
-         * does not result in a score selection.
-         */
-        private function _onScoreSelectionChange(scoreSelection:Object):void {
-            _haveScoreSelection = (scoreSelection != null);
-        }
-
-        /**
-         * Triggered when a mouse wheel movement is detected while hovering the zoom
-         * slider. Scrolls the slider by the smallest increments possible.
-         */
-        private function _onMouseWheelZoom(event:MouseEvent):void {
-            var direction:int = (event.delta > 0) ? 1 : (event.delta < 0) ? -1 : 0;
-            if (direction) {
-                var step:Number = zoomFactorSlider.snapInterval;
-                var currVal:Number = zoomFactorSlider.value;
-                var minVal:Number = zoomFactorSlider.minimum;
-                var maxVal:Number = zoomFactorSlider.maximum;
-                var newVal:Number = currVal + (step * direction);
-                if (newVal <= maxVal && newVal >= minVal) {
-                    zoomFactorSlider.value = newVal;
-                    GLOBAL_PIPE.send(ViewKeys.ZOOM_EXTERNAL_CHANGE, newVal);
+                if (!Strings.isEmpty(commandName)) {
+                    GLOBAL_PIPE.send(ViewKeys.APP_MENU_TRIGGERED, {'commandName': commandName});
                 }
             }
-
-        }
-
-        /**
-         * Triggered when the "fit to width" button is clicked.
-         */
-        private static function _onFitToWidthClick(event:MouseEvent):void {
-            GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_TO_WIDTH_REQUEST);
-        }
-
-        /**
-         * Triggered when the "fit selection" button is clicked.
-         */
-        private static function _onFitSelectionClick(event:MouseEvent):void {
-            GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_SELECTION_REQUEST);
-        }
-
-        /**
-         * Causes the "call to action" carousel to deliver the next message in queue.
-         */
-        private function _showNextCta():void {
-            var nextIdx:int = _currentCtaIdx + 1;
-            var numMessages:int = _ctaMessages.length;
-            if (nextIdx > numMessages - 1) {
-                nextIdx %= numMessages;
+            
+            /**
+             * Equivalent of a constructor function for MXML classes. Children components
+             * are not available yet at this stage.
+             */
+            private function _onPreinitialize(event:FlexEvent):void {
+                setStyle('pictureAlpha', 0.2);
+                ptt = PTT.getPipe();
             }
-            _currentCtaIdx = nextIdx;
-            _hideCtaMessage(_showCtaMessage);
-        }
-
-        /**
-         * Hides the currently displaying "call to action" message.
-         */
-        private function _hideCtaMessage(callback:Function):void {
-            TweenMax.to(callToAction, StaticFieldValues.CTA_HIDE_TIME, {alpha: 0, onComplete: callback});
-        }
-
-        /**
-         * Loads and displays the next message in queue in the "call to action" carousel.
-         */
-        private function _showCtaMessage():void {
-            var cta:Array = (_ctaMessages[_currentCtaIdx] as Array);
-            var message:String = cta[0] as String;
-            TweenMax.to(callToAction, StaticFieldValues.CTA_SHOW_TIME, {alpha: 1, onComplete: _scheduleNextCta});
-            callToAction.label = message;
-        }
-
-        /**
-         * Initializes a timeout for the next call to action message to be shown
-         */
-        private function _scheduleNextCta():void {
-            Time.delay(StaticFieldValues.CTA_SPIN_DELAY, _showNextCta);
-        }
-
-        /**
-         * Executed when user clicks on one of the messages that tun in a loop at the bottom of the main UI.
-         */
-        private function _onCallToActionClicked():void {
-            var cta:Array = (_ctaMessages[_currentCtaIdx] as Array);
-            var url:String = (cta[1] as String);
-            var urlReq:URLRequest = new URLRequest(url);
-            navigateToURL(urlReq);
-        }
+            
+            /**
+             * Triggered after children components where initialized (but not configured or
+             * rendered). Sort of a "stage two" constructor function for MXML classes.
+             */
+            private function _onInitialize(event:FlexEvent):void {
+                // Initialize debug support
+                GLOBAL_PIPE.subscribe(ViewKeys.DEBUG_TOOLS_VISIBILITY, _onDbgToolsVisibility);
+                GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.DEBUG_TOOLS_VISIBILITY, _onDbgToolsVisibility);
+            
+                // Initialize application-wide functionality
+                GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT, _onPromptRequested);
+                GLOBAL_PIPE.subscribe(ViewKeys.NEED_PROMPT_DISCARDED, _onPromptDecommissioned);
+            
+                // Initialize toolbar related functionality
+                GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.STRUCTURE_OPERATIONS_STATUS, _onOperationsStatusUpdate);
+                GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STARTED, _onMidiPlaybackStarted);
+                GLOBAL_PIPE.subscribe(ModelKeys.MIDI_PLAYBACK_STOPPED, _onMidiPlaybackStopped);
+                GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.NAVIGATION_STATE_CHANGE, _onNavigationStateChange);
+                GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.SCORE_WAS_RESIZED, _onScoreResized);
+                GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.ZOOM_INTERNAL_CHANGE, _onZoomInternalChange);
+                GLOBAL_PIPE.retroactivelySubscribe(ViewKeys.SCORE_SELECTION_CHANGE, _onScoreSelectionChange);
+            
+                // Initialize the "call to action" carousel
+                _ctaMessages = [
+                        [StaticTokens.CTA_REPORT_BUGS, URLs.CTA_REPORT_BUGS],
+                        [StaticTokens.CTA_DONATE, URLs.CTA_DONATE],
+                        [StaticTokens.CTA_DISCUSS, URLs.CTA_DISCUSS],
+                        [StaticTokens.CTA_SPREAD_THE_WORD, URLs.CTA_SPREAD_THE_WORD]
+                    ];
+                _showNextCta();
+            }
+            
+            /**
+             * Triggered after children components where initialized and configured (but
+             * not rendered). Sort of a "stage three" constructor function for MXML classes.
+             */
+            private function _onCreationComplete(event:FlexEvent):void {}
+            
+            /**
+             * Responds to the MIDI playback started signal, by disabling the "playback" button
+             * and enabling the "stop" button.
+             */
+            private function _onMidiPlaybackStarted(...ignore):void {
+                _updatePlaybackButtons(MIDI.PLAYING_STATE);
+            }
+            
+            /**
+             * Responds to the MIDI playback stopped signal, by disabling the "stop" button
+             * and enabling the "playback" button.
+             */
+            private function _onMidiPlaybackStopped(...ignore):void {
+                _updatePlaybackButtons(MIDI.STOPPED_STATE);
+            }
+            
+            /**
+             * Toggles availability of the playback buttons based on given state.
+             */
+            private function _updatePlaybackButtons(state:int):void {
+                switch (state) {
+                    case MIDI.PLAYING_STATE:
+                        playButton.enabled = false;
+                        stopButton.enabled = true;
+                        break;
+                    case MIDI.STOPPED_STATE:
+                        playButton.enabled = true;
+                        stopButton.enabled = false;
+                        break;
+                    case MIDI.UNKNOWN_STATE:
+                    default:
+                        playButton.enabled = false;
+                        stopButton.enabled = false;
+                        break;
+                }
+            }
+            
+            private function _onDbgToolsVisibility(visibility:Boolean):void {
+                trace('========> visibility:', visibility);
+                _debugTools = visibility;
+            }
+            
+            /**
+             * Triggered when a notification is received that deals with the availability
+             * of common functions, such as creating, deleting or moving items around,
+             * performing copy/paste operations, etc.
+             */
+            private function _onOperationsStatusUpdate(status:Object):void {
+                // Update toolbar buttons
+                addButton.enabled = (status[ViewKeys.ADD_ELEMENT_AVAILABLE] as Boolean);
+                removeButton.enabled = (status[ViewKeys.REMOVE_ELEMENT_AVAILABLE] as Boolean);
+                moveUpButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_UP_AVAILABLE] as Boolean);
+                moveDownButton.enabled = (status[ViewKeys.NUDGE_ELEMENT_DOWN_AVAILABLE] as Boolean);
+            }
+            
+            private function _onNavigationStateChange(state:Object):void {
+                prevPageButton.enabled = state[ViewKeys.PREV_PAGE_ENABLED] as Boolean;
+                nextPageButton.enabled = state[ViewKeys.NEXT_PAGE_ENABLED] as Boolean;
+                _currPageNumber = state[ViewKeys.CURRENT_PAGE] as int;
+                _numPages = state[ViewKeys.PAGES_NUMBER] as int;
+                _noScore = (state[ViewKeys.NO_SCORE]);
+            }
+            
+            /**
+             * Triggered when the score rendering area has been resized.
+             */
+            private function _onScoreResized(sizes:Object):void {
+                var scoreContainer:Object = sizes[ViewKeys.SCORE_CONTAINER] as Object;
+                var scorePage:Object = sizes[ViewKeys.SCORE_PAGE] as Object;
+                _minimumZoomFactor = Math.min(scoreContainer.height / scorePage.height,
+                        scoreContainer.width / scorePage.width) * 0.95;
+                ptt.send(ViewKeys.MINIMUM_ZOOM_CHANGE, _minimumZoomFactor);
+            }
+            
+            /**
+             * Triggered when a notification is received that requests a prompt to be displayed.
+             */
+            private function _onPromptRequested(promptData:Object):void {
+                if (PromptKeys.TEXT in promptData) {
+                    promptsUi.text = promptData[PromptKeys.TEXT];
+                    promptsUi.backgroundColor = (promptData[PromptKeys.BACKGROUND_COLOR] ||
+                            PromptColors.NOTICE);
+                    promptsUi.buttonUids = (promptData[PromptKeys.BUTTONS] || null);
+                    promptsUi.callback = (promptData[PromptKeys.CALLBACK] || null);
+                    if (promptData[PromptKeys.AUTOCLOSE] === undefined) {
+                        promptsUi.autoClose = true;
+                    }
+                    else {
+                        promptsUi.autoClose = (promptData[PromptKeys.AUTOCLOSE] as Boolean);
+                    }
+                    promptsUi.show();
+                }
+            }
+            
+            /**
+             * Triggered when a specific request has been received to hide the existing prompt (usually the case when the
+             * prompt has been opened for an undefined period of time via setting its `autoClose` property to `false`).
+             */
+            private function _onPromptDecommissioned(...ignore):void {
+                promptsUi.hide();
+            }
+            
+            /**
+             * Triggered when the "zoom" slider is dragged by the user.
+             */
+            private static function _onZoomChange(factor:Number):void {
+                GLOBAL_PIPE.send(ViewKeys.ZOOM_EXTERNAL_CHANGE, factor);
+            }
+            
+            /**
+             * Triggered when the zoom factor has been internally set inside the score renderer
+             * component.
+             */
+            private function _onZoomInternalChange(factor:Number):void {
+                zoomFactorSlider.value = factor;
+            }
+            
+            /**
+             * Formatting function used to display the scaling factor as a percent number.
+             */
+            private static function _scaleValueFormatter(rawValue:Number):String {
+                return (Math.round(rawValue * 100) + CommonStrings.PERCENT);
+            }
+            
+            /**
+             * Triggered when in-score selection occurs. Despite the fact that score selection
+             * always maps to a project hierarchy selection, the reverse is not always true.
+             * There are situations when selecting an element (e.g., Project) in the hierarchy
+             * does not result in a score selection.
+             */
+            private function _onScoreSelectionChange(scoreSelection:Object):void {
+                _haveScoreSelection = (scoreSelection != null);
+            }
+            
+            /**
+             * Triggered when a mouse wheel movement is detected while hovering the zoom
+             * slider. Scrolls the slider by the smallest increments possible.
+             */
+            private function _onMouseWheelZoom(event:MouseEvent):void {
+                var direction:int = (event.delta > 0) ? 1 : (event.delta < 0) ? -1 : 0;
+                if (direction) {
+                    var step:Number = zoomFactorSlider.snapInterval;
+                    var currVal:Number = zoomFactorSlider.value;
+                    var minVal:Number = zoomFactorSlider.minimum;
+                    var maxVal:Number = zoomFactorSlider.maximum;
+                    var newVal:Number = currVal + (step * direction);
+                    if (newVal <= maxVal && newVal >= minVal) {
+                        zoomFactorSlider.value = newVal;
+                        GLOBAL_PIPE.send(ViewKeys.ZOOM_EXTERNAL_CHANGE, newVal);
+                    }
+                }
+            
+            }
+            
+            /**
+             * Triggered when the "fit to width" button is clicked.
+             */
+            private static function _onFitToWidthClick(event:MouseEvent):void {
+                GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_TO_WIDTH_REQUEST);
+            }
+            
+            /**
+             * Triggered when the "fit selection" button is clicked.
+             */
+            private static function _onFitSelectionClick(event:MouseEvent):void {
+                GLOBAL_PIPE.send(ViewKeys.ZOOM_FIT_SELECTION_REQUEST);
+            }
+            
+            /**
+             * Causes the "call to action" carousel to deliver the next message in queue.
+             */
+            private function _showNextCta():void {
+                var nextIdx:int = _currentCtaIdx + 1;
+                var numMessages:int = _ctaMessages.length;
+                if (nextIdx > numMessages - 1) {
+                    nextIdx %= numMessages;
+                }
+                _currentCtaIdx = nextIdx;
+                _hideCtaMessage(_showCtaMessage);
+            }
+            
+            /**
+             * Hides the currently displaying "call to action" message.
+             */
+            private function _hideCtaMessage(callback:Function):void {
+                TweenMax.to(callToAction, StaticFieldValues.CTA_HIDE_TIME, {alpha: 0, onComplete: callback});
+            }
+            
+            /**
+             * Loads and displays the next message in queue in the "call to action" carousel.
+             */
+            private function _showCtaMessage():void {
+                var cta:Array = (_ctaMessages[_currentCtaIdx] as Array);
+                var message:String = cta[0] as String;
+                TweenMax.to(callToAction, StaticFieldValues.CTA_SHOW_TIME, {alpha: 1, onComplete: _scheduleNextCta});
+                callToAction.label = message;
+            }
+            
+            /**
+             * Initializes a timeout for the next call to action message to be shown
+             */
+            private function _scheduleNextCta():void {
+                Time.delay(StaticFieldValues.CTA_SPIN_DELAY, _showNextCta);
+            }
+            
+            /**
+             * Executed when user clicks on one of the messages that tun in a loop at the bottom of the main UI.
+             */
+            private function _onCallToActionClicked():void {
+                var cta:Array = (_ctaMessages[_currentCtaIdx] as Array);
+                var url:String = (cta[1] as String);
+                var urlReq:URLRequest = new URLRequest(url);
+                navigateToURL(urlReq);
+            }
         ]]>
-	</fx:Script>
+    </fx:Script>
 
     <!-- Application level toolbar -->
     <mx:Box horizontalAlign="{OSFamily.isMac? 'center' : 'left'}"
@@ -388,12 +399,12 @@
 
         <!-- NUDGE LOCK -->
         <s:ToggleButton
-                change="_onAppToolbarItemClick(null, nudgeLockButton.selected? MenuCommandNames.NUDGE_LOCK_ON : MenuCommandNames.NUDGE_LOCK_OFF)"
-                enabled="true"
-                selected="true"
-                id="nudgeLockButton"
-                toolTip="{StaticTokens.NUDGE_LOCK}"
-                skinClass="{LockToggleButton}" width="{Sizes.CONTROL_BAR_HEIGHT}" height="{Sizes.CONTROL_BAR_HEIGHT}"/>
+                        change="_onAppToolbarItemClick(null, nudgeLockButton.selected? MenuCommandNames.NUDGE_LOCK_ON : MenuCommandNames.NUDGE_LOCK_OFF)"
+                        enabled="true"
+                        selected="true"
+                        id="nudgeLockButton"
+                        toolTip="{StaticTokens.NUDGE_LOCK}"
+                        skinClass="{LockToggleButton}" width="{Sizes.CONTROL_BAR_HEIGHT}" height="{Sizes.CONTROL_BAR_HEIGHT}"/>
 
         <mx:Spacer width="{Sizes.SEPARATOR_WIDTH}"/>
 
@@ -497,6 +508,11 @@
         <view1:TabView id="tabView"
                        verticalScrollPolicy="off"
                        horizontalScrollPolicy="off"/>
+        <maidens:DebugUi id="debugUi"
+                         visible="{_debugTools}"
+                         includeInLayout="{_debugTools}"
+                         verticalScrollPolicy="off"
+                         horizontalScrollPolicy="off"/>
     </mx:TabNavigator>
 
     <!-- The component displaying application-wide prompts, e.g. warnings -->

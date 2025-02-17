@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas height="100%"
+           width="100%"
+           verticalScrollPolicy="off"
+           horizontalScrollPolicy="off"
+           label="Debug"
+           initialize="_onInitialize(event)"
+           xmlns:fx="http://ns.adobe.com/mxml/2009"
+           xmlns:mx="library://ns.adobe.com/flex/mx"
+           xmlns:components="ro.ciacob.maidens.view.components.*">
+
+    <fx:Script>
+        <![CDATA[
+            import ro.ciacob.desktop.signals.PTT;
+            import ro.ciacob.maidens.DebugChecker;
+
+            private static const GLOBAL_PIPE:PTT = PTT.getPipe();
+            
+            private function _onInitialize(...ignore):void {
+                GLOBAL_PIPE.subscribe(DebugChecker.TRACE, _onTrace);
+                GLOBAL_PIPE.retroactivelySubscribe(DebugChecker.TRACE, _onTrace);
+            }
+
+            private function _onTrace (s : String) : void {
+                printLine(s);
+            }
+            
+            private function printLine(str:String):void {
+                console.text += ('\n' + str);
+            }
+        ]]>
+    </fx:Script>
+    <fx:Declarations/>
+
+    <mx:TextArea id="console"
+                 width="95%"
+                 height="85%"
+                 horizontalCenter="0"
+                 verticalCenter="0"
+                 fontSize="16"
+                 />
+
+</mx:Canvas>

@@ -129,6 +129,7 @@ import ro.ciacob.utils.constants.GenericFieldNames;
 
 import spark.components.WindowedApplication;
 import ro.ciacob.desktop.io.TextDiskReader;
+import ro.ciacob.maidens.DebugChecker;
 
 use namespace ciacob;
 
@@ -147,6 +148,12 @@ public class Controller {
      *            The unique ID of the window that is to be considered "main".
      */
     public function Controller(mainView:DisplayObjectContainer, windowsManager:IWindowsManager, mainWindowUid:String) {
+
+        var dbg : DebugChecker = new DebugChecker;
+        _isDebugBuild = dbg.isDebugBuild();
+        GLOBAL_PIPE.send (ViewKeys.DEBUG_TOOLS_VISIBILITY, _isDebugBuild);
+        trace ('------> _isDebugBuild:', _isDebugBuild);
+        DebugChecker.trace ('------> _isDebugBuild: ' + _isDebugBuild);
 
         // Initialize selection manager
         _selectionManager = new ScoreSelectionManager;
@@ -256,6 +263,8 @@ public class Controller {
     // -----------------
     // Private variables
     // -----------------
+
+    private var _isDebugBuild : Boolean;
 
     private var _selectionManager:ScoreSelectionManager;
 
@@ -1338,6 +1347,11 @@ public class Controller {
      */
     private function _onSoundsLoaderReport(event:SystemStatusEvent):void {
         var progress:ProgressReport = event.report;
+
+        var textReport : String = JSON.stringify (progress, null, '\t');
+        trace (textReport);
+        DebugChecker.trace(textReport);
+
         switch (progress.state) {
 
             // Notify user about loading instrument samples, as they complete: one notification per completed instrument.
