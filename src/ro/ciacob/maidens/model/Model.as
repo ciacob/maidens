@@ -1,11 +1,12 @@
 package ro.ciacob.maidens.model {
 import flash.filesystem.File;
 
-import ro.ciacob.maidens.controller.QueryEngine;
+
 import ro.ciacob.maidens.legacy.ProjectData;
 import ro.ciacob.maidens.legacy.constants.DataFields;
 import ro.ciacob.maidens.legacy.constants.FileAssets;
 import ro.ciacob.utils.constants.CommonStrings;
+import ro.ciacob.maidens.legacy.QueryEngine;
 
 public class Model {
 

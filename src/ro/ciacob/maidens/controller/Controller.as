@@ -129,6 +129,7 @@ import ro.ciacob.utils.constants.GenericFieldNames;
 
 import spark.components.WindowedApplication;
 import ro.ciacob.desktop.io.TextDiskReader;
+import ro.ciacob.maidens.legacy.QueryEngine;
 
 use namespace ciacob;
 

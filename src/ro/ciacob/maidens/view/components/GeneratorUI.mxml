@@ -38,14 +38,13 @@
         import ro.ciacob.maidens.legacy.ProjectData;
         import ro.ciacob.maidens.legacy.constants.DataFields;
         import ro.ciacob.maidens.legacy.constants.FileAssets;
-        import ro.ciacob.maidens.model.GeneratorInstance;
-
 
         import ro.ciacob.maidens.model.constants.DataStatus;
 
 
         import ro.ciacob.utils.Templates;
         import ro.ciacob.utils.constants.CommonStrings;
+        import ro.ciacob.maidens.legacy.GeneratorInstance;
 
         private var _generatorsList:Vector.<ProjectData>;
         private var _generatorUids:Vector.<String>;

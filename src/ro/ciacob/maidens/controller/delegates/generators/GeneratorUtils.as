@@ -21,8 +21,6 @@ import ro.ciacob.desktop.windows.WindowsManager;
 import ro.ciacob.desktop.windows.prompts.constants.PromptDefaults;
 import ro.ciacob.maidens.controller.Controller;
 
-import ro.ciacob.maidens.controller.QueryEngine;
-
 import ro.ciacob.maidens.controller.constants.GeneratorPipes;
 import ro.ciacob.maidens.generators.GeneratorBase;
 import ro.ciacob.maidens.generators.constants.GeneratorBaseKeys;
@@ -36,7 +34,7 @@ import ro.ciacob.maidens.legacy.MusicUtils;
 import ro.ciacob.maidens.legacy.ProjectData;
 import ro.ciacob.maidens.legacy.constants.DataFields;
 import ro.ciacob.maidens.legacy.constants.StaticFieldValues;
-import ro.ciacob.maidens.model.GeneratorInstance;
+
 import ro.ciacob.maidens.model.GeneratorsWiringMap;
 
 import ro.ciacob.maidens.view.components.GeneratorProgressUI;
@@ -48,6 +46,8 @@ import ro.ciacob.utils.Strings;
 import ro.ciacob.utils.Templates;
 import ro.ciacob.utils.Time;
 import ro.ciacob.utils.constants.CommonStrings;
+import ro.ciacob.maidens.legacy.GeneratorInstance;
+import ro.ciacob.maidens.legacy.QueryEngine;
 
 /**
  * "Extension" of the Controller class, grouping code related to Generators manipulation.

@@ -1,5 +1,6 @@
 package ro.ciacob.maidens.model {
 import ro.ciacob.maidens.generators.GeneratorBase;
+import ro.ciacob.maidens.legacy.GeneratorInstance;
 
 public class GeneratorsWiringMap {
 

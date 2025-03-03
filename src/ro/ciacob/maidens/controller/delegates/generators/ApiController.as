@@ -4,7 +4,6 @@ import eu.claudius.iacob.maidens.constants.StaticTokens;
 import flash.utils.getQualifiedClassName;
 	
 	import ro.ciacob.desktop.signals.PTT;
-	import ro.ciacob.maidens.controller.QueryEngine;
 	import ro.ciacob.maidens.controller.constants.CoreApiArguments;
 	import ro.ciacob.maidens.controller.constants.CoreApiNames;
 import ro.ciacob.maidens.legacy.ProjectData;
@@ -12,6 +11,7 @@ import ro.ciacob.maidens.view.constants.PromptKeys;
 	import ro.ciacob.math.Fraction;
 	import ro.ciacob.utils.NumberUtil;
 	import ro.ciacob.utils.Strings;
+	import ro.ciacob.maidens.legacy.QueryEngine;
 
 	public final class ApiController {
 
