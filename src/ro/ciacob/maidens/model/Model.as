@@ -22,8 +22,6 @@ public class Model {
 
     private var _currentProjectFile:File;
 
-    private var _queryEngine:QueryEngine;
-
     public function get currentProject():ProjectData {
         return _currentProject;
     }
@@ -66,11 +64,11 @@ public class Model {
     }
 
     public function get queryEngine():QueryEngine {
-        return _queryEngine;
+        return _currentProject? _currentProject.queryEngine : null;
     }
 
-    public function refreshCurrentProject(alsoDiscardChanges:Boolean = true):void {
-        _queryEngine = new QueryEngine(_currentProject);
+    public function refreshCurrentProject(...ignore):void {
+        queryEngine.resetCache();
     }
 
     public function getDefaultContentFile():File {

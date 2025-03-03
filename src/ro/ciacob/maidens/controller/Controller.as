@@ -1182,7 +1182,6 @@ public class Controller {
         $subscribeTree(ViewKeys.TREE_ITEM_CLICK, _onTreeItemClick);
         var $subscribeMeasurePadding:Function = PTT.getPipe(ViewPipes.MEASURE_PADDING_PIPE).subscribe;
         $subscribeMeasurePadding(ViewKeys.SPLIT_DURATION_NEEDED, _onSplitDurationRequested);
-        $subscribeMeasurePadding(ViewKeys.NEED_VOICE_DATA, _onVoiceDataRequested);
     }
 
     /**
@@ -4156,21 +4155,6 @@ public class Controller {
         if (tupletRoot) {
             _decommissionTupletOf(tupletRoot, false);
         }
-    }
-
-    /**
-     * TODO: document
-     */
-    private function _onVoiceDataRequested(voice:ProjectData):void {
-        var measure:ProjectData = ProjectData(voice.dataParent);
-        var measureNumber:uint = queryEngine.uidToMeasureNumber(measure.route);
-        var measureSpan:Fraction = queryEngine.computeMeasureSpan(measure as ProjectData);
-        var voiceDuration:Fraction = queryEngine.computeVoiceDuration(voice as ProjectData);
-        var data:Object = {};
-        data[ViewKeys.MEASURE_NUMBER] = measureNumber;
-        data[ViewKeys.VOICE_DURATION] = voiceDuration;
-        data[ViewKeys.MEASURE_SPAN] = measureSpan;
-        PTT.getPipe(ViewPipes.MEASURE_PADDING_PIPE).send(ViewKeys.VOICE_DATA_READY, data);
     }
 
     /**
