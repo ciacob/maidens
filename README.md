@@ -1,5 +1,6 @@
 <h3 align="center">
-⚠️ This project has been discontinued by its author. Please see the [official statement](https://github.com/ciacob/maidens/wiki/Official-Statement-Regarding-the-Discontinuation-of-MAIDENS) for more details.
+⚠️ This project has been discontinued by its author. Please see the <a href="https://github.com/ciacob/maidens/wiki/Official-Statement-Regarding-the-Discontinuation-of-MAIDENS">official statement</a> for more details.
+  <br><br>
 </h3>
 
 ![maidens-image](identity/imagery/maidens.jpg)
