@@ -1,5 +1,5 @@
 <h3 align="center">
-<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero. Become a sponsor of MAIDENS!</a><br>
+⚠️ This project has been discontinued by its author. Please see the [official statement](https://github.com/ciacob/maidens/wiki/Official-Statement-Regarding-the-Discontinuation-of-MAIDENS) for more details.
 </h3>
 
 ![maidens-image](identity/imagery/maidens.jpg)
@@ -68,7 +68,3 @@ If it helps, you may also use MAIDENS' minimal built-in *score editor*, to make 
 > You can save time by using **Templates** and **Presets**, so that you can easily reclaim score setups and generator configurations you frequently use.
 
 There is also an extensive online [program documentation](https://github.com/ciacob/maidens/wiki) that you are encouraged to read (in fact, you should, if you want to get the most from MAIDENS).
-
-<h3 align="center">
-<a href="https://github.com/sponsors/ciacob">🦸‍♂️ Be a hero. Become a sponsor of MAIDENS!</a><br>
-</h3>
